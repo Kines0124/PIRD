@@ -1,6 +1,6 @@
 # PIRD — Plataforma Integrada de Resposta a Desastres
 
-Sistema de gerenciamento de ocorrências, coordenação de recursos e comunicação entre a Defesa Civil e a população de Taubaté, SP.
+Sistema de gerenciamento de ocorrências, coordenação de recursos e comunicação entre a Defesa Civil e a população.
 
 ---
 
