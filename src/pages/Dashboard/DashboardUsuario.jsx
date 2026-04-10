@@ -1,10 +1,12 @@
+import { useNavigate } from "react-router-dom";
 import KpiCard from "../../components/KpiCard";
 import Tag from "../../components/Tag";
 import { mockEvents } from "../../data/events";
 import { mockDemands } from "../../data/demands";
 import { mockPoints } from "../../data/points";
 
-export default function DashboardUsuario({ onNavigate }) {
+export default function DashboardUsuario() {
+  const navigate = useNavigate();
   const ea = mockEvents.length;
   const du = mockDemands.filter(d => d.priority >= 4).length;
 
@@ -32,7 +34,7 @@ export default function DashboardUsuario({ onNavigate }) {
         <div style={{ background: "#0a1628", border: "1px solid #0f2040", borderRadius: 14, padding: 22 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 11, color: "#475569", letterSpacing: 2, textTransform: "uppercase" }}>O que mais precisa agora</div>
-            <button onClick={() => onNavigate("portal")} style={{ background: "none", border: "none", color: "#0ea5e9", fontSize: 11, cursor: "pointer" }}>Quero ajudar ›</button>
+            <button onClick={() => navigate("/app/portal")} style={{ background: "none", border: "none", color: "#0ea5e9", fontSize: 11, cursor: "pointer" }}>Quero ajudar ›</button>
           </div>
           {mockDemands.filter(d => d.priority >= 4).map(d => (
             <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid #0f2040" }}>
@@ -51,7 +53,7 @@ export default function DashboardUsuario({ onNavigate }) {
         <div style={{ background: "#0a1628", border: "1px solid #0f2040", borderRadius: 14, padding: 22 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 11, color: "#475569", letterSpacing: 2, textTransform: "uppercase" }}>Pontos de Coleta</div>
-            <button onClick={() => onNavigate("pontos")} style={{ background: "none", border: "none", color: "#0ea5e9", fontSize: 11, cursor: "pointer" }}>Ver todos ›</button>
+            <button onClick={() => navigate("/app/pontos")} style={{ background: "none", border: "none", color: "#0ea5e9", fontSize: 11, cursor: "pointer" }}>Ver todos ›</button>
           </div>
           {mockPoints.slice(0, 4).map(p => (
             <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid #0f2040" }}>

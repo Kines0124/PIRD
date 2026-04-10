@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import KpiCard from "../../components/KpiCard";
 import Tag from "../../components/Tag";
 import { mockEvents } from "../../data/events";
@@ -6,7 +7,8 @@ import { mockVolunteers } from "../../data/volunteers";
 import { categoryColors, severityColor, severityLabel, statusColor } from "../../constants/theme";
 import { pct } from "../../utils/geo";
 
-export default function DashboardDefesa({ onNavigate }) {
+export default function DashboardDefesa() {
+  const navigate = useNavigate();
   const ea = mockEvents.length;
   const du = mockDemands.filter(d => d.priority >= 4).length;
   const va = mockVolunteers.filter(v => v.available).length;
@@ -32,7 +34,7 @@ export default function DashboardDefesa({ onNavigate }) {
         <div style={{ background: "#0a1628", border: "1px solid #0f2040", borderRadius: 14, padding: 22 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 11, color: "#475569", letterSpacing: 2, textTransform: "uppercase" }}>Ocorrências Ativas</div>
-            <button onClick={() => onNavigate("ocorrencias")} style={{ background: "none", border: "none", color: "#475569", fontSize: 11, cursor: "pointer" }}>Ver todas ›</button>
+            <button onClick={() => navigate("/app/ocorrencias")} style={{ background: "none", border: "none", color: "#475569", fontSize: 11, cursor: "pointer" }}>Ver todas ›</button>
           </div>
           {mockEvents.map(ev => (
             <div key={ev.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: "1px solid #0f2040" }}>
@@ -87,7 +89,7 @@ export default function DashboardDefesa({ onNavigate }) {
       <div style={{ background: "#0a1628", border: "1px solid #0f2040", borderRadius: 14, padding: 22, marginTop: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div style={{ fontSize: 11, color: "#475569", letterSpacing: 2, textTransform: "uppercase" }}>Voluntários — Match de Especialidades</div>
-          <button onClick={() => onNavigate("portal")} style={{ background: "none", border: "none", color: "#475569", fontSize: 11, cursor: "pointer" }}>Ver portal ›</button>
+          <button onClick={() => navigate("/app/portal")} style={{ background: "none", border: "none", color: "#475569", fontSize: 11, cursor: "pointer" }}>Ver portal ›</button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10 }}>
           {[

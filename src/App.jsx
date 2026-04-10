@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+
 import Sidebar from "./components/Sidebar";
 import TelaLogin from "./pages/Login/TelaLogin";
 import DashboardDefesa from "./pages/Dashboard/DashboardDefesa";
@@ -8,44 +10,108 @@ import PontosColeta from "./pages/PontosColeta/PontosColeta";
 import PortalDefesa from "./pages/Portal/PortalDefesa";
 import PortalDoador from "./pages/Portal/PortalDoador";
 
-export default function App() {
-  const [perfil, setPerfil] = useState(null);
-  const [active, setActive] = useState("dashboard");
-
-  if (!perfil) return <TelaLogin onLogin={p => { setPerfil(p); setActive("dashboard"); }} />;
-
-  function renderContent() {
-    if (perfil === "defesa") {
-      switch (active) {
-        case "dashboard":   return <DashboardDefesa onNavigate={setActive} />;
-        case "ocorrencias": return <Ocorrencias perfil="defesa" />;
-        case "pontos":      return <PontosColeta perfil="defesa" />;
-        case "portal":      return <PortalDefesa />;
-        default:            return <DashboardDefesa onNavigate={setActive} />;
-      }
-    } else {
-      switch (active) {
-        case "dashboard":   return <DashboardUsuario onNavigate={setActive} />;
-        case "pontos":      return <PontosColeta perfil="usuario" />;
-        case "ocorrencias": return <Ocorrencias perfil="usuario" />;
-        case "portal":      return <PortalDoador />;
-        default:            return <DashboardUsuario onNavigate={setActive} />;
-      }
-    }
-  }
+// ---------------------------------------------------------------------------
+// Layout protegido — envolve todas as telas que exigem login (têm Sidebar)
+// ---------------------------------------------------------------------------
+function LayoutProtegido({ perfil, onLogout }) {
+  if (!perfil) return <Navigate to="/login" replace />;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#050e1a", fontFamily: "'Segoe UI', system-ui, sans-serif", color: "#e2e8f0" }}>
-      <Sidebar active={active} setActive={setActive} perfil={perfil} />
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: "#050e1a",
+        fontFamily: "'Segoe UI', system-ui, sans-serif",
+        color: "#e2e8f0",
+      }}
+    >
+      <Sidebar perfil={perfil} />
+
       <main style={{ flex: 1, overflowY: "auto", maxHeight: "100vh" }}>
-        {renderContent()}
+        <Routes>
+          {perfil === "defesa" ? (
+            <>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<DashboardDefesa />} />
+              <Route path="ocorrencias" element={<Ocorrencias perfil="defesa" />} />
+              <Route path="pontos" element={<PontosColeta perfil="defesa" />} />
+              <Route path="portal" element={<PortalDefesa />} />
+              <Route path="*" element={<Navigate to="dashboard" replace />} />
+            </>
+          ) : (
+            <>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<DashboardUsuario />} />
+              <Route path="pontos" element={<PontosColeta perfil="usuario" />} />
+              <Route path="ocorrencias" element={<Ocorrencias perfil="usuario" />} />
+              <Route path="portal" element={<PortalDoador />} />
+              <Route path="*" element={<Navigate to="dashboard" replace />} />
+            </>
+          )}
+        </Routes>
       </main>
+
       <button
-        onClick={() => { setPerfil(null); setActive("dashboard"); }}
-        style={{ position: "fixed", top: 14, right: 16, zIndex: 999, background: "#0a1628", border: "1px solid #0f2040", borderRadius: 20, padding: "5px 12px", color: "#475569", fontSize: 11, cursor: "pointer", fontFamily: "monospace" }}
+        onClick={onLogout}
+        style={{
+          position: "fixed",
+          top: 14,
+          right: 16,
+          zIndex: 999,
+          background: "#0a1628",
+          border: "1px solid #0f2040",
+          borderRadius: 20,
+          padding: "5px 12px",
+          color: "#475569",
+          fontSize: 11,
+          cursor: "pointer",
+          fontFamily: "monospace",
+        }}
       >
         trocar perfil
       </button>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// App — gerencia apenas o estado de autenticação e define as rotas raiz
+// ---------------------------------------------------------------------------
+export default function App() {
+  const [perfil, setPerfil] = useState(null);
+  const navigate = useNavigate();
+
+  function handleLogin(p) {
+    setPerfil(p);
+    navigate("/app/dashboard", { replace: true });
+  }
+
+  function handleLogout() {
+    setPerfil(null);
+    navigate("/login", { replace: true });
+  }
+
+  return (
+    <Routes>
+      {/* Rota pública: login */}
+      <Route path="/login" element={<TelaLogin onLogin={handleLogin} />} />
+
+      {/* Rotas públicas sem layout — formulários anônimos ficam aqui */}
+      {/* <Route path="/doar" element={<FormDoadores />} /> */}
+
+      {/* Rotas protegidas — passam pelo LayoutProtegido com Sidebar */}
+      <Route
+        path="/app/*"
+        element={<LayoutProtegido perfil={perfil} onLogout={handleLogout} />}
+      />
+
+      {/* Raiz e qualquer URL desconhecida redirecionam adequadamente */}
+      <Route
+        path="/"
+        element={<Navigate to={perfil ? "/app/dashboard" : "/login"} replace />}
+      />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
   );
 }
