@@ -10,6 +10,7 @@ import PontosColeta from "./pages/PontosColeta/PontosColeta";
 import PortalDefesa from "./pages/Portal/PortalDefesa";
 import PortalDoador from "./pages/Portal/PortalDoador";
 import Form from "./pages/FormDoadores/Form"
+import AdminDashboard from "./pages/Admin/AdminDashboard";
 
 // ---------------------------------------------------------------------------
 // Layout protegido — envolve todas as telas que exigem login (têm Sidebar)
@@ -95,6 +96,7 @@ export default function App() {
 
   return (
     <Routes>
+      <Route path="/admin" element={<AdminDashboard />} />
       {/* Rota pública: login */}
       <Route path="/login" element={<TelaLogin onLogin={handleLogin} />} />
 
