@@ -5,7 +5,6 @@ import { colors } from "../../constants/theme.js";
 import { useNavigate } from "react-router-dom";
 import { haversine } from "../../utils/geo.js";
 
-// Componente auxiliar — centraliza o mapa num ponto quando chamado
 function FlyTo({ coords }) {
   const map = useMap();
   if (coords) map.flyTo(coords, 15, { duration: 1.2 });
@@ -34,8 +33,6 @@ export default function DoadoresForm() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-
-        // Calcula distância de cada ponto e pega o menor
         const maisProximo = mockPoints.reduce((melhor, ponto) => {
           const dist = haversine(latitude, longitude, ponto.lat, ponto.lng);
           return dist < melhor.dist ? { ponto, dist } : melhor;
@@ -80,13 +77,14 @@ export default function DoadoresForm() {
 
   return (
     <div className="ContainerForm" style={{
+      position: "relative",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
       padding: "40px 20px",
       minHeight: "100vh",
-      background: "#050e1a",
+      background: "#050e1a", // Testar cor: FFFFF8 // Controla o background
     }}>
 
       {/* Cabeçalho */}
@@ -161,7 +159,6 @@ export default function DoadoresForm() {
         </div>
 
         <label style={labelStyle}>Destino da Carga</label>
-
         <div style={{ position: "relative" }}>
           <input
             type="text"
@@ -205,49 +202,66 @@ export default function DoadoresForm() {
         </button>
       </form>
 
-      <button
-        type="button"
-        onClick={handleMaisProximo}
-        disabled={localizando}
-        style={{
-          marginTop: 24,
-          padding: "9px 12px",
-          background: "transparent",
-          border: `1px solid ${colors.sky}60`,
-          borderRadius: 8, color: colors.sky,
-          fontFamily: "monospace", fontSize: 12,
-          cursor: localizando ? "wait" : "pointer",
-          letterSpacing: 1, transition: "all 0.2s",
-        }}
-        onMouseEnter={e => e.currentTarget.style.borderColor = colors.sky}
-        onMouseLeave={e => e.currentTarget.style.borderColor = `${colors.sky}60`}
-      >
-        {localizando ? "Localizando..." : "◉ Usar ponto mais próximo"}
-      </button>
-
-      {/* Mapa */}
-      <div style={{ width: "100%", maxWidth: "400px", marginTop: 8, borderRadius: 18, overflow: "hidden", border: `1px solid ${colors.gold}30` }}>
-        <MapContainer
-          center={[-23.0320, -45.5557]}
-          zoom={13}
-          style={{ height: 300, width: "100%" }}
-          scrollWheelZoom={false}
+      {/* Mapa — absoluto à direita, fora do fluxo normal */}
+      <div style={{
+        position: "absolute",
+        top: 185,
+        bottom: 95,
+        right: 130,
+        display: "flex",
+        flexDirection: "column",
+        width: "500px",
+      }}>
+        <button
+          type="button"
+          onClick={handleMaisProximo}
+          disabled={localizando}
+          style={{
+            marginBottom: 12, padding: "12px",
+            background: colors.navy,
+            border: `1px solid ${colors.sky}60`,
+            borderRadius: 8,
+            color: colors.gold,
+            fontFamily: "monospace", fontSize: 12,
+            cursor: localizando ? "wait" : "pointer",
+            letterSpacing: 1,
+          }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = colors.sky}
+          onMouseLeave={e => e.currentTarget.style.borderColor = `${colors.sky}60`}
         >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          {localizando ? "Localizando..." : "◉ Usar ponto mais próximo"}
+        </button>
 
-          {/* Voa para o ponto selecionado quando mapCenter muda */}
-          {mapCenter && <FlyTo coords={mapCenter} />}
+        <div style={{ 
+          flex: 1,
+          borderRadius: 18,
+          overflow: "hidden",
+          border: `1px solid ${colors.gold}30`,
+          filter: "invert(1) hue-rotate(180deg)" // Retirar para remover o darkmode do mapa
 
-          {mockPoints.map(p => (
-            <Marker key={p.id} position={[p.lat, p.lng]}>
-              <Popup>
-                <strong>{p.name}</strong><br />
-                {p.address}<br />
-                <span style={{ fontSize: 11, color: "#666" }}>{p.items.join(", ")}</span>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+          }}>
+          <MapContainer
+            center={[-23.0320, -45.5557]}
+            zoom={13}
+            style={{ 
+              height: "100%",
+              width: "100%" 
+            }}
+            scrollWheelZoom={false}
+          >
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            {mapCenter && <FlyTo coords={mapCenter} />}
+            {mockPoints.map(p => (
+              <Marker key={p.id} position={[p.lat, p.lng]}>
+                <Popup>
+                  <strong>{p.name}</strong><br />
+                  {p.address}<br />
+                  <span style={{ fontSize: 11, color: "#666" }}>{p.items.join(", ")}</span>
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+        </div>
       </div>
 
       {/* Botão Início */}
