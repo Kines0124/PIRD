@@ -18,9 +18,57 @@ if (!document.getElementById("leaflet-js")) {
 
 // ─── Mock data ─────────────────────────────────────────────────────────────────
 const MOCK_EVENTS = [
-  { id: 1, title: "Enchente Rio Paraíba", type: "enchente", status: "ativo", severity: "critico", lat: -23.02, lng: -45.56, city: "Taubaté, SP", date: "2025-04-20", victims: 340, volunteers: 18 },
-  { id: 2, title: "Deslizamento Serra", type: "deslizamento", status: "monitoramento", severity: "alto", lat: -23.18, lng: -45.88, city: "Campos do Jordão, SP", date: "2025-04-19", victims: 120, volunteers: 7 },
-  { id: 3, title: "Alagamento Centro", type: "alagamento", status: "controlado", severity: "medio", lat: -23.55, lng: -46.63, city: "São Paulo, SP", date: "2025-04-18", victims: 55, volunteers: 30 },
+  {
+    id: 1,
+    title: "Enchente Rio Paraíba",
+    type: "enchente",
+    status: "ativo",
+    severity: "critico",
+    lat: -23.02,
+    lng: -45.56,
+    city: "Taubaté, SP",
+    date: "2025-04-20",
+    victims: 340,
+    volunteers: 18,
+    criticalPointId: 1,
+    nearbyCollectionIds: [1, 2],
+    volunteerIds: [1, 2],
+    photos: [],
+  },
+  {
+    id: 2,
+    title: "Deslizamento Serra",
+    type: "deslizamento",
+    status: "monitoramento",
+    severity: "alto",
+    lat: -23.18,
+    lng: -45.88,
+    city: "Campos do Jordão, SP",
+    date: "2025-04-19",
+    victims: 120,
+    volunteers: 7,
+    criticalPointId: 2,
+    nearbyCollectionIds: [3],
+    volunteerIds: [3],
+    photos: [],
+  },
+  {
+    id: 3,
+    title: "Alagamento Centro",
+    type: "alagamento",
+    status: "controlado",
+    severity: "medio",
+    lat: -23.55,
+    lng: -46.63,
+    city: "São Paulo, SP",
+    date: "2025-04-18",
+    victims: 55,
+    volunteers: 30,
+    criticalPointId: null,
+    nearbyCollectionIds: [],
+    volunteerIds: [4],
+    photos: [],
+  },
 ];
 
 const MOCK_CRITICAL_POINTS = [
@@ -95,7 +143,10 @@ const styles = `
   .sidebar-logo {
     padding: 22px 20px 18px;
     border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center; /* ← adicionar */
   }
   .logo-mark {
     width: 34px; height: 34px; background: var(--accent);
@@ -237,7 +288,7 @@ const styles = `
 
   /* ── Modal ── */
   .modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
     display: flex; align-items: center; justify-content: center; padding: 20px;
     animation: fadeIn 0.15s;
   }
@@ -415,22 +466,87 @@ function MapView({ events, criticalPoints, collectionPoints }) {
   return <div id="admin-map" ref={mapRef} />;
 }
 
-// ─── Modal: Cadastrar/Editar Evento ────────────────────────────────────────────
-function EventModal({ event, onClose, onSave }) {
-  const [form, setForm] = useState(event || { title: "", type: "enchente", severity: "medio", city: "", lat: "", lng: "", description: "", status: "ativo" });
+const SEVERITY_OPTIONS = [
+  { value: "critico", label: "Crítico", color: "#FF3B3B", bg: "rgba(255,59,59,0.12)" },
+  { value: "alto",    label: "Alto",    color: "#FF8C00", bg: "rgba(255,140,0,0.12)"  },
+  { value: "medio",   label: "Médio",   color: "#F5C518", bg: "rgba(245,197,24,0.12)" },
+  { value: "baixo",   label: "Baixo",   color: "#4CAF50", bg: "rgba(76,175,80,0.12)"  },
+];
+
+export function EventModal({ event, onClose, onSave }) {
+  const [form, setForm] = useState({
+    title: "",
+    type: "enchente",
+    severity: "medio",
+    city: "",
+    address: "",
+    lat: "",
+    lng: "",
+    description: "",
+    status: "ativo",
+    photos: [],
+    criticalPointId: null,
+    nearbyCollectionIds: [],
+    volunteerIds: [],
+    ...event,
+  });
+
+  const [geoStatus, setGeoStatus] = useState(null); // null | "buscando" | "ok" | "erro"
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  async function geocodificar() {
+    if (!form.address.trim()) return;
+    setGeoStatus("buscando");
+    try {
+      const query = encodeURIComponent(form.address);
+      const res   = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`,
+        { headers: { "Accept-Language": "pt-BR" } }
+      );
+      const data = await res.json();
+      if (data.length === 0) { setGeoStatus("erro"); return; }
+      const { lat, lon, display_name } = data[0];
+      setForm(f => ({
+        ...f,
+        lat: parseFloat(lat).toFixed(6),
+        lng: parseFloat(lon).toFixed(6),
+        // Preenche cidade se estiver vazia
+        city: f.city || display_name.split(",").slice(-3, -1).join(",").trim(),
+      }));
+      setGeoStatus("ok");
+    } catch {
+      setGeoStatus("erro");
+    }
+  }
+
+  const canSave = form.title.trim() && form.lat && form.lng;
+
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div
+      className="modal-overlay"
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
       <div className="modal">
         <div className="modal-header">
           <div className="modal-title">{event ? "Editar Evento" : "Cadastrar Novo Evento"}</div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
+
         <div className="modal-body">
+
+          {/* Título */}
           <div className="form-group">
             <label className="form-label">Título do Evento *</label>
-            <input className="form-input" value={form.title} onChange={e => set("title", e.target.value)} placeholder="Ex: Enchente Rio Paraíba" />
+            <input
+              className="form-input"
+              value={form.title}
+              onChange={e => set("title", e.target.value)}
+              placeholder="Ex: Enchente Rio Paraíba"
+            />
           </div>
+
+          {/* Tipo + Status */}
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Tipo</label>
@@ -442,17 +558,6 @@ function EventModal({ event, onClose, onSave }) {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">Severidade</label>
-              <select className="form-select" value={form.severity} onChange={e => set("severity", e.target.value)}>
-                <option value="critico">Crítico</option>
-                <option value="alto">Alto</option>
-                <option value="medio">Médio</option>
-                <option value="baixo">Baixo</option>
-              </select>
-            </div>
-          </div>
-          <div className="form-row">
-            <div className="form-group">
               <label className="form-label">Status</label>
               <select className="form-select" value={form.status} onChange={e => set("status", e.target.value)}>
                 <option value="ativo">Ativo</option>
@@ -460,29 +565,137 @@ function EventModal({ event, onClose, onSave }) {
                 <option value="controlado">Controlado</option>
               </select>
             </div>
-            <div className="form-group">
-              <label className="form-label">Cidade / UF</label>
-              <input className="form-input" value={form.city} onChange={e => set("city", e.target.value)} placeholder="Ex: Taubaté, SP" />
+          </div>
+
+          {/* Severidade — seletor visual */}
+          <div className="form-group">
+            <label className="form-label">Severidade *</label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+              {SEVERITY_OPTIONS.map(opt => (
+                <div
+                  key={opt.value}
+                  onClick={() => set("severity", opt.value)}
+                  style={{
+                    padding: "8px 0",
+                    borderRadius: 8,
+                    border: `2px solid ${form.severity === opt.value ? opt.color : "var(--border)"}`,
+                    background: form.severity === opt.value ? opt.bg : "var(--bg-elevated)",
+                    color: form.severity === opt.value ? opt.color : "var(--text-muted)",
+                    textAlign: "center",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                    userSelect: "none",
+                  }}
+                >
+                  <div style={{ fontSize: 16, marginBottom: 2 }}>
+                    {opt.value === "critico" ? "🔴" : opt.value === "alto" ? "🟠" : opt.value === "medio" ? "🟡" : "🟢"}
+                  </div>
+                  {opt.label}
+                </div>
+              ))}
             </div>
           </div>
+
+          {/* Cidade */}
+          <div className="form-group">
+            <label className="form-label">Cidade / UF</label>
+            <input
+              className="form-input"
+              value={form.city}
+              onChange={e => set("city", e.target.value)}
+              placeholder="Ex: Taubaté, SP"
+            />
+          </div>
+
+          {/* Endereço + botão geocodificar */}
+          <div className="form-group">
+            <label className="form-label">Endereço *</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                className="form-input"
+                style={{ flex: 1 }}
+                value={form.address}
+                onChange={e => { set("address", e.target.value); setGeoStatus(null); }}
+                placeholder="Ex: Av. Charles Schnneider"
+                onKeyDown={e => e.key === "Enter" && geocodificar()}
+              />
+              <button
+                className="btn btn-secondary"
+                onClick={geocodificar}
+                disabled={geoStatus === "buscando" || !form.address.trim()}
+                style={{ flexShrink: 0, opacity: !form.address.trim() ? 0.4 : 1 }}
+              >
+                {geoStatus === "buscando" ? "📡…" : "📍 Geocodificar"}
+              </button>
+            </div>
+
+            {/* Feedback geocodificação */}
+            {geoStatus === "ok" && (
+              <div style={{ fontSize: 11, color: "var(--success)", marginTop: 5 }}>
+                ✓ Coordenadas obtidas com sucesso via OpenStreetMap
+              </div>
+            )}
+            {geoStatus === "erro" && (
+              <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 5 }}>
+                ✗ Endereço não encontrado — tente ser mais específico ou insira as coordenadas manualmente
+              </div>
+            )}
+            {geoStatus === null && (
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>
+                Digite o endereço completo e clique em Geocodificar para obter as coordenadas automaticamente.
+              </div>
+            )}
+          </div>
+
+          {/* Lat / Lng — somente leitura */}
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Latitude (PostGIS)</label>
-              <input className="form-input mono" value={form.lat} onChange={e => set("lat", e.target.value)} placeholder="-23.0200" />
+              <label className="form-label">Latitude</label>
+              <input
+                className="form-input mono"
+                value={form.lat}
+                readOnly
+                placeholder="— preenchido automaticamente —"
+                style={{ color: form.lat ? "var(--accent2)" : "var(--text-muted)", cursor: "default", opacity: 0.8 }}
+              />
             </div>
             <div className="form-group">
-              <label className="form-label">Longitude (PostGIS)</label>
-              <input className="form-input mono" value={form.lng} onChange={e => set("lng", e.target.value)} placeholder="-45.5600" />
+              <label className="form-label">Longitude</label>
+              <input
+                className="form-input mono"
+                value={form.lng}
+                readOnly
+                placeholder="— preenchido automaticamente —"
+                style={{ color: form.lng ? "var(--accent2)" : "var(--text-muted)", cursor: "default", opacity: 0.8 }}
+              />
             </div>
           </div>
+
+          {/* Descrição */}
           <div className="form-group">
             <label className="form-label">Descrição</label>
-            <textarea className="form-textarea" value={form.description} onChange={e => set("description", e.target.value)} placeholder="Detalhes sobre o evento..." />
+            <textarea
+              className="form-textarea"
+              value={form.description}
+              onChange={e => set("description", e.target.value)}
+              placeholder="Detalhes sobre o evento..."
+            />
           </div>
+
         </div>
+
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={() => { onSave(form); onClose(); }}>💾 Salvar Evento</button>
+          <button
+            className="btn btn-primary"
+            disabled={!canSave}
+            style={{ opacity: canSave ? 1 : 0.4 }}
+            onClick={() => { onSave(form); onClose(); }}
+          >
+            💾 Salvar Evento
+          </button>
         </div>
       </div>
     </div>
@@ -491,8 +704,45 @@ function EventModal({ event, onClose, onSave }) {
 
 // ─── Modal: Cadastrar Ponto Crítico ────────────────────────────────────────────
 function CriticalPointModal({ point, onClose, onSave }) {
-  const [form, setForm] = useState(point || { name: "", type: "geologico", risk: "alto", lat: "", lng: "", description: "" });
+  const [form, setForm] = useState({
+    name: "",
+    type: "geologico",
+    risk: "alto",
+    address: "",
+    lat: "",
+    lng: "",
+    description: "",
+    ...point,
+  });
+  const [geoStatus, setGeoStatus] = useState(null);
+  const [detailPoint, setDetailPoint] = useState(null);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  async function geocodificar() {
+    if (!form.address.trim()) return;
+    setGeoStatus("buscando");
+    try {
+      const query = encodeURIComponent(form.address);
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`,
+        { headers: { "Accept-Language": "pt-BR" } }
+      );
+      const data = await res.json();
+      if (data.length === 0) { setGeoStatus("erro"); return; }
+      const { lat, lon } = data[0];
+      setForm(f => ({
+        ...f,
+        lat: parseFloat(lat).toFixed(6),
+        lng: parseFloat(lon).toFixed(6),
+      }));
+      setGeoStatus("ok");
+    } catch {
+      setGeoStatus("erro");
+    }
+  }
+
+  const canSave = form.name.trim() && form.lat && form.lng;
+
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
@@ -501,10 +751,12 @@ function CriticalPointModal({ point, onClose, onSave }) {
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
+
           <div className="form-group">
             <label className="form-label">Nome do Ponto *</label>
             <input className="form-input" value={form.name} onChange={e => set("name", e.target.value)} placeholder="Ex: Encosta Bairro Norte" />
           </div>
+
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Tipo de Risco</label>
@@ -524,24 +776,71 @@ function CriticalPointModal({ point, onClose, onSave }) {
               </select>
             </div>
           </div>
+
+          <div className="form-group">
+            <label className="form-label">Cidade / UF</label>
+            <input
+              className="form-input"
+              value={form.city}
+              onChange={e => set("city", e.target.value)}
+              placeholder="Ex: Taubaté, SP"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Endereço *</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                className="form-input"
+                style={{ flex: 1 }}
+                value={form.address}
+                onChange={e => { set("address", e.target.value); setGeoStatus(null); }}
+                placeholder="Ex: Encosta Norte"
+                onKeyDown={e => e.key === "Enter" && geocodificar()}
+              />
+              <button
+                className="btn btn-secondary"
+                onClick={geocodificar}
+                disabled={geoStatus === "buscando" || !form.address.trim()}
+                style={{ flexShrink: 0, opacity: !form.address.trim() ? 0.4 : 1 }}
+              >
+                {geoStatus === "buscando" ? "📡…" : "📍 Geocodificar"}
+              </button>
+            </div>
+            {geoStatus === "ok"   && <div style={{ fontSize: 11, color: "var(--success)",   marginTop: 5 }}>✓ Coordenadas obtidas com sucesso</div>}
+            {geoStatus === "erro" && <div style={{ fontSize: 11, color: "var(--danger)",    marginTop: 5 }}>✗ Endereço não encontrado — tente ser mais específico</div>}
+            {geoStatus === null   && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>Digite o endereço e clique em Geocodificar.</div>}
+          </div>
+
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Latitude</label>
-              <input className="form-input mono" value={form.lat} onChange={e => set("lat", e.target.value)} placeholder="-23.0200" />
+              <input className="form-input mono" value={form.lat} readOnly placeholder="— preenchido automaticamente —"
+                style={{ color: form.lat ? "var(--accent2)" : "var(--text-muted)", cursor: "default", opacity: 0.8 }} />
             </div>
             <div className="form-group">
               <label className="form-label">Longitude</label>
-              <input className="form-input mono" value={form.lng} onChange={e => set("lng", e.target.value)} placeholder="-45.5600" />
+              <input className="form-input mono" value={form.lng} readOnly placeholder="— preenchido automaticamente —"
+                style={{ color: form.lng ? "var(--accent2)" : "var(--text-muted)", cursor: "default", opacity: 0.8 }} />
             </div>
           </div>
+
           <div className="form-group">
             <label className="form-label">Descrição / Observações</label>
             <textarea className="form-textarea" value={form.description} onChange={e => set("description", e.target.value)} placeholder="Detalhes sobre o risco..." />
           </div>
+
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={() => { onSave(form); onClose(); }}>💾 Salvar</button>
+          <button
+            className="btn btn-primary"
+            disabled={!canSave}
+            style={{ opacity: canSave ? 1 : 0.4 }}
+            onClick={() => { onSave(form); onClose(); }}
+          >
+            💾 Salvar
+          </button>
         </div>
       </div>
     </div>
@@ -605,6 +904,7 @@ function OverviewSection({ events, criticalPoints, volunteers, collectionPoints,
         <div className="card">
           <div className="card-header">
             <div><div className="card-title">⚡ Eventos Recentes</div></div>
+            <button className="btn btn-secondary btn-sm" onClick={onNewEvent}>＋ Adicionar</button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {events.map(e => (
@@ -674,56 +974,434 @@ function OverviewSection({ events, criticalPoints, volunteers, collectionPoints,
   );
 }
 
-function EventsSection({ events, setEvents }) {
-  const [filter, setFilter] = useState("todos");
-  const [search, setSearch] = useState("");
+// ─── Mini-mapa do drawer ──────────────────────────────────────────────────────
+function EventDetailMap({ event }) {
+  const mapRef = useRef(null);
+  const instanceRef = useRef(null);
+
+  useEffect(() => {
+    if (!mapRef.current || !window.L) return;
+    if (instanceRef.current) { instanceRef.current.remove(); instanceRef.current = null; }
+
+    const L = window.L;
+    const map = L.map(mapRef.current, {
+      center: [event.lat, event.lng],
+      zoom: 13,
+      zoomControl: true,
+    });
+    instanceRef.current = map;
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap", maxZoom: 18,
+    }).addTo(map);
+
+    // Marker principal do evento
+    const color = severityColor[event.severity] || "#FF6B1A";
+    const eventIcon = L.divIcon({
+      className: "",
+      html: `<div style="
+        width:34px;height:34px;border-radius:50%;
+        background:${color};border:3px solid rgba(255,255,255,0.4);
+        display:flex;align-items:center;justify-content:center;
+        font-size:16px;box-shadow:0 0 16px ${color}88;
+      ">${typeIcon[event.type] || "⚠️"}</div>`,
+      iconSize: [34, 34], iconAnchor: [17, 17],
+    });
+    L.marker([event.lat, event.lng], { icon: eventIcon })
+      .addTo(map)
+      .bindPopup(`<b>${event.title}</b><br/>${event.city}`)
+      .openPopup();
+
+    // Pontos de coleta próximos
+    (event.nearbyCollectionIds || []).forEach(cid => {
+      const cp = MOCK_COLLECTION_POINTS.find(p => p.id === cid);
+      if (!cp) return;
+      const cpIcon = L.divIcon({
+        className: "",
+        html: `<div style="width:22px;height:22px;border-radius:4px;background:#3B82F6;border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;">📦</div>`,
+        iconSize: [22, 22], iconAnchor: [11, 11],
+      });
+      L.marker([cp.lat, cp.lng], { icon: cpIcon }).addTo(map)
+        .bindPopup(`<b>📦 ${cp.name}</b><br/>${cp.address}`);
+    });
+
+    // Ponto crítico vinculado
+    if (event.criticalPointId) {
+      const cp = MOCK_CRITICAL_POINTS.find(p => p.id === event.criticalPointId);
+      if (cp) {
+        const cpIcon = L.divIcon({
+          className: "",
+          html: `<div style="width:22px;height:22px;transform:rotate(45deg);background:#FF3B3B;border:2px solid rgba(255,255,255,0.3);box-shadow:0 0 10px #FF3B3B44;"></div>`,
+          iconSize: [22, 22], iconAnchor: [11, 11],
+        });
+        L.marker([cp.lat, cp.lng], { icon: cpIcon }).addTo(map)
+          .bindPopup(`<b>⚠️ ${cp.name}</b><br/>${cp.description}`);
+      }
+    }
+
+    return () => { if (instanceRef.current) { instanceRef.current.remove(); instanceRef.current = null; } };
+  }, [event]);
+
+  return (
+    <div style={{ borderRadius: 8, overflow: "hidden", height: 300 }}>
+      <div ref={mapRef} style={{ height: "100%", width: "100%" }} />
+    </div>
+  );
+}
+
+// ─── Drawer de detalhes do evento ─────────────────────────────────────────────
+function EventDetailDrawer({ event, onClose, onEdit }) {
+  const [tab, setTab] = useState("mapa");
+
+  const nearbyPoints    = (event.nearbyCollectionIds || []).map(id => MOCK_COLLECTION_POINTS.find(p => p.id === id)).filter(p => p && p.status === "validado");
+  const activeVolunteers = (event.volunteerIds || []).map(id => MOCK_VOLUNTEERS.find(v => v.id === id)).filter(v => v && v.status === "aprovado");
+  const linkedCritical  = event.criticalPointId ? MOCK_CRITICAL_POINTS.find(p => p.id === event.criticalPointId) : null;
+
+  const tabs = [
+    { id: "mapa",      label: "🗺️ Mapa" },
+    { id: "fotos",     label: `📷 Fotos${event.photos?.length ? ` (${event.photos.length})` : ""}` },
+    { id: "coleta",    label: `📦 Coleta (${nearbyPoints.length})` },
+    { id: "voluntarios", label: `🙋 Voluntários (${activeVolunteers.length})` },
+  ];
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 300, display: "flex", justifyContent: "flex-end" }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div style={{
+        width: 580, maxWidth: "95vw", height: "100vh", overflowY: "auto",
+        background: "var(--bg-surface)", borderLeft: "1px solid var(--border)",
+        display: "flex", flexDirection: "column",
+        animation: "slideInRight 0.22s ease",
+      }}>
+
+        {/* Header do drawer */}
+        <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 22 }}>{typeIcon[event.type] || "⚠️"}</span>
+                <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17 }}>{event.title}</span>
+                {linkedCritical && (
+                  <span style={{
+                    background: "rgba(255,59,59,0.15)", color: "#FF3B3B",
+                    border: "1px solid rgba(255,59,59,0.3)", borderRadius: "99px",
+                    fontSize: 10, padding: "2px 8px", fontWeight: 700, fontFamily: "var(--font-mono)",
+                  }}>⚠️ PONTO CRÍTICO</span>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                {severityBadge(event.severity)}
+                {statusBadge(event.status)}
+                <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>📍 {event.city}</span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>📅 {event.date}</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              <button className="btn btn-secondary btn-sm" onClick={onEdit}>✏️ Editar</button>
+              <button
+                onClick={onClose}
+                style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid var(--border)", background: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}
+              >✕</button>
+            </div>
+          </div>
+
+          {/* KPIs rápidos */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 14 }}>
+            {[
+              { label: "Vítimas", value: event.victims, color: "var(--warning)" },
+              { label: "Voluntários", value: activeVolunteers.length || event.volunteers, color: "var(--success)" },
+              { label: "Pontos de Coleta", value: nearbyPoints.length, color: "var(--accent2)" },
+            ].map((k, i) => (
+              <div key={i} style={{ background: "var(--bg-elevated)", borderRadius: 8, padding: "10px 14px", border: "1px solid var(--border)" }}>
+                <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{k.label}</div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 800, color: k.color }}>{k.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Ponto crítico vinculado */}
+          {linkedCritical && (
+            <div style={{
+              marginTop: 12, background: "rgba(255,59,59,0.07)", border: "1px solid rgba(255,59,59,0.25)",
+              borderRadius: 8, padding: "10px 14px", display: "flex", gap: 10, alignItems: "flex-start",
+            }}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#FF3B3B", marginBottom: 2 }}>{linkedCritical.name}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{linkedCritical.description}</div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div style={{ padding: "14px 24px 0", flexShrink: 0, borderBottom: "1px solid var(--border)" }}>
+          <div style={{ display: "flex", gap: 2 }}>
+            {tabs.map(t => (
+              <div
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  padding: "7px 14px", borderRadius: "6px 6px 0 0", cursor: "pointer",
+                  fontSize: 12.5, fontWeight: 600, transition: "all 0.15s",
+                  color: tab === t.id ? "var(--text-primary)" : "var(--text-secondary)",
+                  background: tab === t.id ? "var(--bg-elevated)" : "transparent",
+                  borderBottom: tab === t.id ? "2px solid var(--accent)" : "2px solid transparent",
+                }}
+              >{t.label}</div>
+            ))}
+          </div>
+        </div>
+
+        {/* Conteúdo das abas */}
+        <div style={{ flex: 1, padding: "20px 24px", overflowY: "auto" }}>
+
+          {/* Aba: Mapa */}
+          {tab === "mapa" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <EventDetailMap event={event} />
+              {event.description && (
+                <div style={{
+                  background: "var(--bg-elevated)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  padding: "12px 14px",
+                }}>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6, fontFamily: "var(--font-mono)" }}>
+                    Descrição
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                    {event.description}
+                  </div>
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 14, fontSize: 11, color: "var(--text-muted)", flexWrap: "wrap" }}>
+                <span>{typeIcon[event.type]} Evento</span>
+                {nearbyPoints.length > 0 && <span>📦 Pontos de coleta</span>}
+                {linkedCritical && <span>◆ Ponto crítico</span>}
+              </div>
+            </div>
+          )}
+
+          {/* Aba: Fotos */}
+          {tab === "fotos" && (
+            <div>
+              {!event.photos || event.photos.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon">📷</div>
+                  <div className="empty-state-text">Nenhuma foto registrada para este evento</div>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+                  {event.photos.map((url, i) => (
+                    <div key={i} style={{ borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)", aspectRatio: "16/9", background: "var(--bg-elevated)" }}>
+                      <img
+                        src={url}
+                        alt={`Foto ${i + 1} — ${event.title}`}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        onError={e => { e.target.style.display = "none"; }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Aba: Pontos de Coleta */}
+          {tab === "coleta" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {nearbyPoints.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon">📦</div>
+                  <div className="empty-state-text">Nenhum ponto de coleta vinculado</div>
+                </div>
+              ) : nearbyPoints.map(p => (
+                <div key={p.id} style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px" }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{p.name}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>📍 {p.address}, {p.city}</div>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
+                    {p.items.map(item => (
+                      <span key={item} style={{
+                        background: "rgba(59,130,246,0.1)", color: "#3B82F6",
+                        border: "1px solid rgba(59,130,246,0.2)", borderRadius: "99px",
+                        fontSize: 10, padding: "2px 8px", fontWeight: 600,
+                      }}>{item}</span>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent2)" }}>{p.capacity} itens</span>
+                    {statusBadge(p.status)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Aba: Voluntários */}
+          {tab === "voluntarios" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {activeVolunteers.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon">🙋</div>
+                  <div className="empty-state-text">Nenhum voluntário vinculado a este evento</div>
+                </div>
+              ) : activeVolunteers.map((v, i) => {
+                const colors = [
+                  "linear-gradient(135deg,#FF6B1A,#FF3B3B)",
+                  "linear-gradient(135deg,#3B82F6,#8B5CF6)",
+                  "linear-gradient(135deg,#22c55e,#16a34a)",
+                  "linear-gradient(135deg,#F5C518,#FF8C00)",
+                ];
+                return (
+                  <div key={v.id} style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 38, height: 38, borderRadius: "50%", background: colors[i % colors.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+                      {v.name[0]}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{v.name}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{v.specialty}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>📍 {v.region}</div>
+                    </div>
+                    {statusBadge(v.status)}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(40px); opacity: 0; }
+          to   { transform: translateX(0);    opacity: 1; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ─── EventsSection atualizada ─────────────────────────────────────────────────
+export function EventsSection({ events, setEvents, criticalPoints }) {
+  const [filter, setFilter]       = useState("todos");
+  const [search, setSearch]       = useState("");
   const [editEvent, setEditEvent] = useState(null);
-  const [showNew, setShowNew] = useState(false);
+  const [showNew, setShowNew]     = useState(false);
+  const [detailEvent, setDetailEvent] = useState(null);
+
+  // Ordena: eventos em ponto crítico primeiro, depois por severidade
+  const severityOrder = { critico: 0, alto: 1, medio: 2, baixo: 3 };
+  const criticalIds   = new Set((criticalPoints || []).map(p => p.id));
 
   const filtered = events
     .filter(e => filter === "todos" || e.status === filter)
-    .filter(e => e.title.toLowerCase().includes(search.toLowerCase()) || e.city.toLowerCase().includes(search.toLowerCase()));
+    .filter(e =>
+      e.title.toLowerCase().includes(search.toLowerCase()) ||
+      e.city.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      const aIsCritical = a.criticalPointId && criticalIds.has(a.criticalPointId) ? 0 : 1;
+      const bIsCritical = b.criticalPointId && criticalIds.has(b.criticalPointId) ? 0 : 1;
+      if (aIsCritical !== bIsCritical) return aIsCritical - bIsCritical;
+      return (severityOrder[a.severity] ?? 9) - (severityOrder[b.severity] ?? 9);
+    });
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <div><div className="card-title">📋 Gerenciar Eventos Oficiais</div><div className="card-subtitle">RF01, RF02 — Cadastro e atualização de desastres</div></div>
-        <button className="btn btn-primary" onClick={() => setShowNew(true)}>＋ Novo Evento</button>
-      </div>
-      <div className="filter-row">
-        {["todos", "ativo", "monitoramento", "controlado"].map(f => (
-          <span key={f} className={`filter-chip ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>
-            {f.charAt(0).toUpperCase() + f.slice(1)}
-          </span>
-        ))}
-        <input className="search-input" placeholder="🔍 Buscar evento..." value={search} onChange={e => setSearch(e.target.value)} />
-      </div>
-      <div className="table-wrap">
-        <table>
-          <thead><tr><th>Evento</th><th>Tipo</th><th>Severidade</th><th>Status</th><th>Vítimas</th><th>Voluntários</th><th>Data</th><th>Ações</th></tr></thead>
-          <tbody>
-            {filtered.map(e => (
-              <tr key={e.id}>
-                <td>
-                  <div style={{ fontWeight: 600 }}>{e.title}</div>
-                  <div className="text-muted text-sm mono">📍 {e.city}</div>
-                </td>
-                <td><span style={{ fontSize: 18 }}>{typeIcon[e.type]}</span></td>
-                <td>{severityBadge(e.severity)}</td>
-                <td>{statusBadge(e.status)}</td>
-                <td><span className="mono" style={{ color: "var(--warning)" }}>{e.victims}</span></td>
-                <td><span className="mono" style={{ color: "var(--success)" }}>{e.volunteers}</span></td>
-                <td><span className="mono text-secondary text-sm">{e.date}</span></td>
-                <td>
-                  <div className="btn-group">
-                    <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setEditEvent(e)} title="Editar">✏️</button>
-                  </div>
-                </td>
+    <>
+      <div className="card">
+        <div className="card-header">
+          <div>
+            <div className="card-title">📋 Gerenciar Eventos Oficiais</div>
+            <div className="card-subtitle">RF01, RF02 — Cadastro e atualização de desastres · clique na linha para detalhes</div>
+          </div>
+          <button className="btn btn-primary" onClick={() => setShowNew(true)}>＋ Novo Evento</button>
+        </div>
+
+        <div className="filter-row">
+          {["todos", "ativo", "monitoramento", "controlado"].map(f => (
+            <span key={f} className={`filter-chip ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </span>
+          ))}
+          <input
+            className="search-input"
+            placeholder="🔍 Buscar evento..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Evento</th>
+                <th>Tipo</th>
+                <th>Severidade</th>
+                <th>Status</th>
+                <th>Vítimas</th>
+                <th>Voluntários</th>
+                <th>Data</th>
+                <th>Ações</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map(e => {
+                const isOnCritical = e.criticalPointId && criticalIds.has(e.criticalPointId);
+                return (
+                  <tr
+                    key={e.id}
+                    onClick={() => setDetailEvent(e)}
+                    style={{ cursor: "pointer" }}
+                    title="Clique para ver detalhes"
+                  >
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        {isOnCritical && (
+                          <span title="Evento em ponto crítico" style={{ fontSize: 12, color: "#FF3B3B", flexShrink: 0 }}>⚠️</span>
+                        )}
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{e.title}</div>
+                          <div className="text-muted text-sm mono">📍 {e.city}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span style={{ fontSize: 18 }}>{typeIcon[e.type]}</span></td>
+                    <td>{severityBadge(e.severity)}</td>
+                    <td>{statusBadge(e.status)}</td>
+                    <td><span className="mono" style={{ color: "var(--warning)" }}>{e.victims}</span></td>
+                    <td><span className="mono" style={{ color: "var(--success)" }}>{e.volunteers}</span></td>
+                    <td><span className="mono text-secondary text-sm">{e.date}</span></td>
+                    <td>
+                      <div className="btn-group" onClick={ev => ev.stopPropagation()}>
+                        <button
+                          className="btn btn-secondary btn-sm btn-icon"
+                          onClick={() => setEditEvent(e)}
+                          title="Editar"
+                        >✏️</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {/* Drawer de detalhes */}
+      {detailEvent && (
+        <EventDetailDrawer
+          event={detailEvent}
+          onClose={() => setDetailEvent(null)}
+          onEdit={() => { setEditEvent(detailEvent); setDetailEvent(null); }}
+        />
+      )}
+
+      {/* Modal de cadastro/edição */}
       {(showNew || editEvent) && (
         <EventModal
           event={editEvent}
@@ -734,41 +1412,150 @@ function EventsSection({ events, setEvents }) {
           }}
         />
       )}
-    </div>
+    </>
   );
 }
 
+function CriticalPointMap({ point }) {
+  const mapRef = useRef(null);
+  const instanceRef = useRef(null);
+
+  useEffect(() => {
+    if (!mapRef.current || !window.L) return;
+    if (instanceRef.current) { instanceRef.current.remove(); instanceRef.current = null; }
+    const L = window.L;
+    const map = L.map(mapRef.current, { center: [point.lat, point.lng], zoom: 15 });
+    instanceRef.current = map;
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap", maxZoom: 18,
+    }).addTo(map);
+    const color = riskColor[point.risk] || "#FF8C00";
+    const icon = L.divIcon({
+      className: "",
+      html: `<div style="width:28px;height:28px;transform:rotate(45deg);background:${color};border:2px solid rgba(255,255,255,0.3);box-shadow:0 0 14px ${color}88;"></div>`,
+      iconSize: [28, 28], iconAnchor: [14, 14],
+    });
+    L.marker([point.lat, point.lng], { icon }).addTo(map)
+      .bindPopup(`<b>⚠️ ${point.name}</b><br/>${point.description || ""}`)
+      .openPopup();
+    return () => { if (instanceRef.current) { instanceRef.current.remove(); instanceRef.current = null; } };
+  }, [point]);
+
+  return <div ref={mapRef} style={{ height: 300, borderRadius: 8, overflow: "hidden" }} />;
+}
+
 function CriticalPointsSection({ criticalPoints, setCriticalPoints }) {
-  const [editPoint, setEditPoint] = useState(null);
-  const [showNew, setShowNew] = useState(false);
+  const [editPoint, setEditPoint]     = useState(null);
+  const [detailPoint, setDetailPoint] = useState(null);
+  const [showNew, setShowNew]         = useState(false);
+
   return (
-    <div className="card">
-      <div className="card-header">
-        <div><div className="card-title">⚠️ Pontos Críticos</div><div className="card-subtitle">RF14 — Áreas de alto risco cadastradas pelo administrador</div></div>
-        <button className="btn btn-primary" onClick={() => setShowNew(true)}>＋ Novo Ponto</button>
+    <>
+      <div className="card">
+        <div className="card-header">
+          <div>
+            <div className="card-title">⚠️ Pontos Críticos</div>
+            <div className="card-subtitle">RF14 — Áreas de alto risco cadastradas pelo administrador · clique na linha para detalhes</div>
+          </div>
+          <button className="btn btn-primary" onClick={() => setShowNew(true)}>＋ Novo Ponto</button>
+        </div>
+
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Nome</th><th>Tipo</th><th>Nível de Risco</th><th>Coordenadas</th><th>Observação</th><th>Ações</th></tr>
+            </thead>
+            <tbody>
+              {criticalPoints.map(p => (
+                <tr
+                  key={p.id}
+                  onClick={() => setDetailPoint(p)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <td><span style={{ fontWeight: 600 }}>{p.name}</span></td>
+                  <td><span style={{ textTransform: "capitalize", fontSize: 12, color: "var(--text-secondary)" }}>{p.type}</span></td>
+                  <td>{severityBadge(p.risk)}</td>
+                  <td><span className="mono text-sm text-muted">{p.lat}, {p.lng}</span></td>
+                  <td><span className="text-sm text-secondary">{p.description.slice(0, 50)}…</span></td>
+                  <td>
+                    <div className="btn-group" onClick={e => e.stopPropagation()}>
+                      <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setEditPoint(p)}>✏️</button>
+                      <button className="btn btn-danger btn-sm btn-icon" onClick={() => setCriticalPoints(pts => pts.filter(x => x.id !== p.id))}>🗑️</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div className="table-wrap">
-        <table>
-          <thead><tr><th>Nome</th><th>Tipo</th><th>Nível de Risco</th><th>Coordenadas</th><th>Observação</th><th>Ações</th></tr></thead>
-          <tbody>
-            {criticalPoints.map(p => (
-              <tr key={p.id}>
-                <td><span style={{ fontWeight: 600 }}>{p.name}</span></td>
-                <td><span style={{ textTransform: "capitalize", fontSize: 12, color: "var(--text-secondary)" }}>{p.type}</span></td>
-                <td>{severityBadge(p.risk)}</td>
-                <td><span className="mono text-sm text-muted">{p.lat}, {p.lng}</span></td>
-                <td><span className="text-sm text-secondary">{p.description.slice(0, 50)}…</span></td>
-                <td>
-                  <div className="btn-group">
-                    <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setEditPoint(p)}>✏️</button>
-                    <button className="btn btn-danger btn-sm btn-icon" onClick={() => setCriticalPoints(pts => pts.filter(x => x.id !== p.id))}>🗑️</button>
+
+      {/* Drawer de detalhes */}
+      {detailPoint && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", justifyContent: "flex-end" }}
+          onClick={e => e.target === e.currentTarget && setDetailPoint(null)}
+        >
+          <div style={{
+            width: 480, maxWidth: "95vw", height: "100vh", overflowY: "auto",
+            background: "var(--bg-surface)", borderLeft: "1px solid var(--border)",
+            display: "flex", flexDirection: "column",
+            animation: "slideInRight 0.22s ease",
+          }}>
+            {/* Header */}
+            <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, marginBottom: 6 }}>
+                    ⚠️ {detailPoint.name}
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    {severityBadge(detailPoint.risk)}
+                    <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)", textTransform: "capitalize" }}>
+                      {detailPoint.type}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => { setEditPoint(detailPoint); setDetailPoint(null); }}
+                  >✏️ Editar</button>
+                  <button
+                    onClick={() => setDetailPoint(null)}
+                    style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid var(--border)", background: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >✕</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Corpo */}
+            <div style={{ flex: 1, padding: "20px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "var(--font-mono)" }}>
+                Localização
+              </div>
+              <CriticalPointMap point={detailPoint} />
+              {detailPoint.description && (
+                <div style={{
+                  background: "var(--bg-elevated)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  padding: "12px 14px",
+                }}>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6, fontFamily: "var(--font-mono)" }}>
+                    Descrição
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                    {detailPoint.description}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de cadastro/edição */}
       {(showNew || editPoint) && (
         <CriticalPointModal
           point={editPoint}
@@ -779,332 +1566,389 @@ function CriticalPointsSection({ criticalPoints, setCriticalPoints }) {
           }}
         />
       )}
-    </div>
+    </>
   );
 }
 
-function VolunteersSection({ volunteers, setVolunteers }) {
-  const [tab, setTab] = useState("pendente");
-  const filtered = volunteers.filter(v => v.status === tab);
-  const approve = id => setVolunteers(vols => vols.map(v => v.id === id ? { ...v, status: "aprovado" } : v));
-  const reject = id => setVolunteers(vols => vols.filter(v => v.id !== id));
-  const colors = ["linear-gradient(135deg,#FF6B1A,#FF3B3B)", "linear-gradient(135deg,#3B82F6,#8B5CF6)", "linear-gradient(135deg,#22c55e,#16a34a)", "linear-gradient(135deg,#F5C518,#FF8C00)"];
-
-  return (
-    <div className="card">
-      <div className="card-header">
-        <div><div className="card-title">🙋 Validação de Voluntários</div><div className="card-subtitle">RF10, RF11 — Aprovação de profissionais qualificados</div></div>
-        <div className="text-sm text-muted mono">{volunteers.filter(v => v.status === "pendente").length} pendentes</div>
-      </div>
-      <div className="tabs">
-        {["pendente", "aprovado"].map(t => (
-          <div key={t} className={`tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>
-            {t === "pendente" ? "⏳ Aguardando" : "✅ Aprovados"} ({volunteers.filter(v => v.status === t).length})
-          </div>
-        ))}
-      </div>
-      {filtered.length === 0 ? (
-        <div className="empty-state"><div className="empty-state-icon">{tab === "pendente" ? "✅" : "🙋"}</div><div className="empty-state-text">{tab === "pendente" ? "Nenhum voluntário pendente" : "Nenhum voluntário aprovado ainda"}</div></div>
-      ) : (
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>Profissional</th><th>Especialidade</th><th>Região</th><th>CPF</th><th>Cadastro</th><th>Status</th>{tab === "pendente" && <th>Ações</th>}</tr></thead>
-            <tbody>
-              {filtered.map((v, i) => (
-                <tr key={v.id}>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                      <div className="vol-avatar" style={{ background: colors[i % colors.length] }}>{v.name[0]}</div>
-                      <span style={{ fontWeight: 600 }}>{v.name}</span>
-                    </div>
-                  </td>
-                  <td><span className="text-secondary text-sm">{v.specialty}</span></td>
-                  <td><span className="text-muted text-sm mono">📍 {v.region}</span></td>
-                  <td><span className="mono text-sm text-muted">{v.cpf}</span></td>
-                  <td><span className="mono text-sm text-muted">{v.registered}</span></td>
-                  <td>{statusBadge(v.status)}</td>
-                  {tab === "pendente" && (
-                    <td>
-                      <div className="btn-group">
-                        <button className="btn btn-success btn-sm" onClick={() => approve(v.id)}>✓ Aprovar</button>
-                        <button className="btn btn-danger btn-sm" onClick={() => reject(v.id)}>✕ Rejeitar</button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Seção 1: Validação de Pontos de Coleta ───────────────────────────────────
-export function CollectionValidationSection({ collectionPoints, setCollectionPoints }) {
-  const [tab, setTab] = useState("pendente");
-  const filtered = collectionPoints.filter(p => p.status === tab);
-  const validate = id => setCollectionPoints(pts => pts.map(p => p.id === id ? { ...p, status: "validado" } : p));
-  const reject   = id => setCollectionPoints(pts => pts.filter(p => p.id !== id));
-
-  return (
-    <div className="card">
-      <div className="card-header">
-        <div>
-          <div className="card-title">✅ Validação de Pontos de Coleta</div>
-          <div className="card-subtitle">RF07, RF08 — Aprovação de pontos cadastrados pelos usuários</div>
-        </div>
-        <div className="text-sm text-muted mono">
-          {collectionPoints.filter(p => p.status === "pendente").length} aguardando validação
-        </div>
-      </div>
-
-      <div className="tabs">
-        {["pendente", "validado"].map(t => (
-          <div key={t} className={`tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>
-            {t === "pendente" ? "⏳ Pendentes" : "✅ Validados"} ({collectionPoints.filter(p => p.status === t).length})
-          </div>
-        ))}
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">✅</div>
-          <div className="empty-state-text">Nenhum ponto {tab}</div>
-        </div>
-      ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Endereço</th>
-                <th>Capacidade</th>
-                <th>Itens Aceitos</th>
-                <th>Status</th>
-                {tab === "pendente" && <th>Ações</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(p => (
-                <tr key={p.id}>
-                  <td><span style={{ fontWeight: 600 }}>{p.name}</span></td>
-                  <td><span className="text-secondary text-sm">📍 {p.address}, {p.city}</span></td>
-                  <td><span className="mono" style={{ color: "var(--accent2)" }}>{p.capacity} itens</span></td>
-                  <td>
-                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                      {p.items.map(item => (
-                        <span key={item} style={{
-                          background: "rgba(59,130,246,0.1)", color: "#3B82F6",
-                          border: "1px solid rgba(59,130,246,0.25)", borderRadius: "99px",
-                          fontSize: 10, padding: "2px 8px", fontWeight: 600,
-                        }}>{item}</span>
-                      ))}
-                    </div>
-                  </td>
-                  <td>{statusBadge(p.status)}</td>
-                  {tab === "pendente" && (
-                    <td>
-                      <div className="btn-group">
-                        <button className="btn btn-success btn-sm" onClick={() => validate(p.id)}>✓ Validar</button>
-                        <button className="btn btn-danger btn-sm"  onClick={() => reject(p.id)}>✕ Recusar</button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Mapa interno (sem dependência de CDN — usa react-leaflet) ────────────────
+// ─── Mapa de pontos de coleta (igual ao CollectionMapSection anterior) ────────
 function CollectionMap({ points, selectedId }) {
   const mapRef      = useRef(null);
   const instanceRef = useRef(null);
   const markersRef  = useRef({});
 
   useEffect(() => {
-    // Aguarda o container existir no DOM
-    if (!mapRef.current) return;
-
-    // Inicializa o mapa apenas uma vez
+    if (!mapRef.current || !window.L) return;
     if (!instanceRef.current) {
       const L = window.L;
-      if (!L) return;
-
-      instanceRef.current = L.map(mapRef.current, {
-        center: [-23.03, -45.56],
-        zoom: 12,
-        zoomControl: true,
-      });
-
+      instanceRef.current = L.map(mapRef.current, { center: [-23.03, -45.56], zoom: 12 });
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap",
-        maxZoom: 18,
+        attribution: "© OpenStreetMap", maxZoom: 18,
       }).addTo(instanceRef.current);
     }
-
     const L   = window.L;
     const map = instanceRef.current;
-
-    // Limpa markers anteriores
     Object.values(markersRef.current).forEach(m => m.remove());
     markersRef.current = {};
-
-    // Adiciona markers dos pontos validados
     points.forEach(p => {
       if (!p.lat || !p.lng) return;
       const icon = L.divIcon({
         className: "",
-        html: `<div style="
-          width:26px;height:26px;border-radius:6px;
-          background:${selectedId === p.id ? "#FF6B1A" : "#3B82F6"};
-          border:2px solid rgba(255,255,255,0.35);
-          display:flex;align-items:center;justify-content:center;
-          font-size:13px;
-          box-shadow:0 0 10px ${selectedId === p.id ? "#FF6B1A88" : "#3B82F688"};
-          transition:all 0.2s;
-        ">📦</div>`,
-        iconSize: [26, 26],
-        iconAnchor: [13, 13],
+        html: `<div style="width:26px;height:26px;border-radius:6px;background:${selectedId === p.id ? "#FF6B1A" : "#3B82F6"};border:2px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 10px ${selectedId === p.id ? "#FF6B1A88" : "#3B82F688"};">📦</div>`,
+        iconSize: [26, 26], iconAnchor: [13, 13],
       });
-
-      const marker = L.marker([p.lat, p.lng], { icon })
-        .addTo(map)
-        .bindPopup(`
-          <div style="font-family:sans-serif;min-width:160px">
-            <div style="font-weight:700;font-size:13px;margin-bottom:4px">📦 ${p.name}</div>
-            <div style="font-size:11px;color:#555;margin-bottom:2px">📍 ${p.address}, ${p.city}</div>
-            <div style="font-size:11px;color:#555">Capacidade: ${p.capacity} itens</div>
-          </div>
-        `);
-
+      const marker = L.marker([p.lat, p.lng], { icon }).addTo(map)
+        .bindPopup(`<div style="font-family:sans-serif;min-width:160px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">📦 ${p.name}</div><div style="font-size:11px;color:#555">📍 ${p.address}, ${p.city}</div><div style="font-size:11px;color:#555">Capacidade: ${p.capacity} itens</div></div>`);
       markersRef.current[p.id] = marker;
     });
-
-    // Foca no ponto selecionado
     if (selectedId && markersRef.current[selectedId]) {
-      const m = markersRef.current[selectedId];
-      map.setView(m.getLatLng(), 15, { animate: true });
-      m.openPopup();
+      map.setView(markersRef.current[selectedId].getLatLng(), 15, { animate: true });
+      markersRef.current[selectedId].openPopup();
     }
-
-    return () => {
-      // Não destrói o mapa no cleanup de re-render — só no unmount
-    };
   }, [points, selectedId]);
 
-  // Destrói o mapa ao desmontar o componente
   useEffect(() => {
-    return () => {
-      if (instanceRef.current) {
-        instanceRef.current.remove();
-        instanceRef.current = null;
-      }
-    };
+    return () => { if (instanceRef.current) { instanceRef.current.remove(); instanceRef.current = null; } };
   }, []);
 
   return <div ref={mapRef} style={{ height: "100%", width: "100%", borderRadius: 8 }} />;
 }
 
-// ─── Seção 2: Visualização de Pontos de Coleta com Mapa ──────────────────────
-export function CollectionMapSection({ collectionPoints }) {
-  const [search, setSearch] = useState("");
-  const validated = collectionPoints
-  .filter(p => p.status === "validado")
-  .filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
-  const [selId, setSelId] = useState(null);
-  const selected   = validated.find(p => p.id === selId) || null;
+// ─── VolunteersSection ────────────────────────────────────────────────────────
+export function VolunteersSection({ volunteers, setVolunteers, events }) {
+  const [tab, setTab]     = useState("validacao");
+  const [selVol, setSelVol] = useState(null);
+
+  const pendingCount  = volunteers.filter(v => v.status === "pendente").length;
+  const approvedCount = volunteers.filter(v => v.status === "aprovado").length;
+
+  const approve = id => setVolunteers(vols => vols.map(v => v.id === id ? { ...v, status: "aprovado" } : v));
+  const reject  = id => setVolunteers(vols => vols.filter(v => v.id !== id));
+
+  const volColors = [
+    "linear-gradient(135deg,#FF6B1A,#FF3B3B)",
+    "linear-gradient(135deg,#3B82F6,#8B5CF6)",
+    "linear-gradient(135deg,#22c55e,#16a34a)",
+    "linear-gradient(135deg,#F5C518,#FF8C00)",
+  ];
+
+  // Eventos associados a um voluntário
+  function eventsForVolunteer(volId) {
+    return (events || []).filter(e => (e.volunteerIds || []).includes(volId));
+  }
+
+  const selectedVolEvents = selVol ? eventsForVolunteer(selVol.id) : [];
 
   return (
-    <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-      {/* Header */}
-      <div className="card-header" style={{ padding: "18px 20px 14px" }}>
-        <div style={{ padding: "0 20px 14px", borderBottom: "1px solid var(--border)" }}>
-          <input
-            className="search-input"
-            placeholder="🔍 Buscar ponto de coleta..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: "100%" }}
-          />
-        </div>
+    <div className="card">
+      <div className="card-header">
         <div>
-          <div className="card-title">🗺️ Pontos de Coleta</div>
-          <div className="card-subtitle">Pontos validados — clique na lista para localizar no mapa</div>
+          <div className="card-title">🙋 Voluntários</div>
+          <div className="card-subtitle">RF10, RF11 — Validação e visualização de voluntários</div>
         </div>
-        <div className="text-sm text-muted mono">{validated.length} ponto(s) validado(s)</div>
+        <div className="text-sm text-muted mono">{pendingCount} pendente(s) · {approvedCount} aprovado(s)</div>
       </div>
 
-      {/* Corpo: lista à esquerda + mapa à direita */}
-      <div style={{ display: "flex", height: 480, borderTop: "1px solid var(--border)" }}>
-
-        {/* Lista de pontos validados */}
-        <div style={{
-          width: 700, flexShrink: 0, overflowY: "auto",
-          borderRight: "1px solid var(--border)",
-          display: "flex", flexDirection: "column",
-        }}>
-          {validated.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">📦</div>
-              <div className="empty-state-text">Nenhum ponto validado ainda</div>
-            </div>
-          ) : validated.map(p => (
-            <div
-              key={p.id}
-              onClick={() => setSelId(prev => prev === p.id ? null : p.id)}
-              style={{
-                padding: "13px 16px",
-                borderBottom: "1px solid var(--border)",
-                cursor: "pointer",
-                background: selId === p.id ? "var(--bg-hover)" : "transparent",
-                borderLeft: `3px solid ${selId === p.id ? "var(--accent)" : "transparent"}`,
-                transition: "all 0.15s",
-              }}
-            >
-              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 3, color: "var(--text-primary)" }}>
-                {p.name}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>
-                📍 {p.address}, {p.city}
-              </div>
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
-                {p.items.map(item => (
-                  <span key={item} style={{
-                    background: "rgba(59,130,246,0.1)", color: "#3B82F6",
-                    border: "1px solid rgba(59,130,246,0.2)", borderRadius: "99px",
-                    fontSize: 9, padding: "1px 7px", fontWeight: 600,
-                  }}>{item}</span>
-                ))}
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span className="mono text-sm" style={{ color: "var(--accent2)" }}>{p.capacity} itens</span>
-                <span style={{ fontSize: 10, color: selId === p.id ? "var(--accent)" : "var(--text-muted)" }}>
-                  {selId === p.id ? "📍 no mapa ✓" : "ver no mapa →"}
-                </span>
-              </div>
-            </div>
-          ))}
+      {/* Tabs */}
+      <div className="tabs">
+        <div className={`tab ${tab === "validacao" ? "active" : ""}`} onClick={() => setTab("validacao")}>
+          ⏳ Validação {pendingCount > 0 && <span className="nav-badge" style={{ marginLeft: 6 }}>{pendingCount}</span>}
         </div>
+        <div className={`tab ${tab === "visualizacao" ? "active" : ""}`} onClick={() => { setTab("visualizacao"); setSelVol(null); }}>
+          👥 Voluntários ({approvedCount})
+        </div>
+      </div>
 
-        {/* Mapa */}
-        <div style={{ flex: 1, position: "relative" }}>
-          {validated.length === 0 ? (
-            <div className="empty-state" style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-              <div className="empty-state-icon">🗺️</div>
-              <div className="empty-state-text">Nenhum ponto para exibir</div>
+      {/* ── Aba: Validação ── */}
+      {tab === "validacao" && (
+        <>
+          {volunteers.filter(v => v.status === "pendente").length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">✅</div>
+              <div className="empty-state-text">Nenhum voluntário pendente</div>
             </div>
           ) : (
-            <CollectionMap points={validated} selectedId={selId} />
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Profissional</th><th>Especialidade</th><th>Região</th><th>CPF</th><th>Cadastro</th><th>Ações</th></tr>
+                </thead>
+                <tbody>
+                  {volunteers.filter(v => v.status === "pendente").map((v, i) => (
+                    <tr key={v.id}>
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                          <div className="vol-avatar" style={{ background: volColors[i % volColors.length] }}>{v.name[0]}</div>
+                          <span style={{ fontWeight: 600 }}>{v.name}</span>
+                        </div>
+                      </td>
+                      <td><span className="text-secondary text-sm">{v.specialty}</span></td>
+                      <td><span className="text-muted text-sm mono">📍 {v.region}</span></td>
+                      <td><span className="mono text-sm text-muted">{v.cpf}</span></td>
+                      <td><span className="mono text-sm text-muted">{v.registered}</span></td>
+                      <td>
+                        <div className="btn-group">
+                          <button className="btn btn-success btn-sm" onClick={() => approve(v.id)}>✓ Aprovar</button>
+                          <button className="btn btn-danger btn-sm"  onClick={() => reject(v.id)}>✕ Rejeitar</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
+        </>
+      )}
+
+      {/* ── Aba: Visualização ── */}
+      {tab === "visualizacao" && (
+        <div style={{ display: "flex", gap: 0, minHeight: 400 }}>
+
+          {/* Lista de voluntários aprovados */}
+          <div style={{ width: 300, flexShrink: 0, borderRight: "1px solid var(--border)", overflowY: "auto" }}>
+            {volunteers.filter(v => v.status === "aprovado").length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">🙋</div>
+                <div className="empty-state-text">Nenhum voluntário aprovado</div>
+              </div>
+            ) : volunteers.filter(v => v.status === "aprovado").map((v, i) => {
+              const volEvs  = eventsForVolunteer(v.id);
+              const isSelected = selVol?.id === v.id;
+              return (
+                <div
+                  key={v.id}
+                  onClick={() => setSelVol(prev => prev?.id === v.id ? null : v)}
+                  style={{
+                    padding: "13px 16px", borderBottom: "1px solid var(--border)",
+                    cursor: "pointer", transition: "all 0.15s",
+                    background: isSelected ? "var(--bg-hover)" : "transparent",
+                    borderLeft: `3px solid ${isSelected ? "var(--accent)" : "transparent"}`,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div className="vol-avatar" style={{ background: volColors[i % volColors.length], flexShrink: 0 }}>
+                      {v.name[0]}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 1 }}>{v.name}</div>
+                      {/* Contagem de eventos logo abaixo do nome */}
+                      <div style={{
+                        fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)",
+                        color: volEvs.length > 0 ? "var(--accent)" : "var(--text-muted)",
+                        letterSpacing: "0.06em", marginBottom: 3,
+                      }}>
+                        {volEvs.length > 0 ? `${volEvs.length} EVENTO${volEvs.length > 1 ? "S" : ""} ASSOCIADO${volEvs.length > 1 ? "S" : ""}` : "SEM EVENTOS ATIVOS"}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{v.specialty}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>📍 {v.region}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Painel de detalhe */}
+          <div style={{ flex: 1, padding: "20px 24px", overflowY: "auto" }}>
+            {!selVol ? (
+              <div className="empty-state" style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <div className="empty-state-icon">👈</div>
+                <div className="empty-state-text">Selecione um voluntário para ver os detalhes</div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+                {/* Header do voluntário */}
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div className="vol-avatar" style={{ width: 48, height: 48, fontSize: 18, background: volColors[volunteers.filter(v => v.status === "aprovado").findIndex(v => v.id === selVol.id) % volColors.length] }}>
+                    {selVol.name[0]}
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16 }}>{selVol.name}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{selVol.specialty}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>📍 {selVol.region} · cadastro: {selVol.registered}</div>
+                  </div>
+                </div>
+
+                {/* Eventos associados */}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10, fontFamily: "var(--font-mono)" }}>
+                    Eventos Associados ({selectedVolEvents.length})
+                  </div>
+                  {selectedVolEvents.length === 0 ? (
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "16px 0" }}>
+                      Este voluntário não está associado a nenhum evento no momento.
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {selectedVolEvents.map(e => (
+                        <div key={e.id} style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                            <span style={{ fontSize: 16 }}>{typeIcon[e.type] || "⚠️"}</span>
+                            <span style={{ fontWeight: 600, fontSize: 13, flex: 1 }}>{e.title}</span>
+                            {severityBadge(e.severity)}
+                            {statusBadge(e.status)}
+                          </div>
+                          <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                            📍 {e.city} · 📅 {e.date} · 👥 {e.victims} vítimas
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CollectionPointsSection ──────────────────────────────────────────────────
+export function CollectionPointsSection({ collectionPoints, setCollectionPoints }) {
+  const [tab, setTab]   = useState("validacao");
+  const [selId, setSelId] = useState(null);
+  const [search, setSearch] = useState("");
+
+  const pendingCount   = collectionPoints.filter(p => p.status === "pendente").length;
+  const validatedCount = collectionPoints.filter(p => p.status === "validado").length;
+
+  const validate = id => setCollectionPoints(pts => pts.map(p => p.id === id ? { ...p, status: "validado" } : p));
+  const reject   = id => setCollectionPoints(pts => pts.filter(p => p.id !== id));
+
+  const validatedFiltered = collectionPoints
+    .filter(p => p.status === "validado")
+    .filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <div>
+          <div className="card-title">📦 Pontos de Coleta</div>
+          <div className="card-subtitle">RF07, RF08 — Validação e visualização de pontos de coleta</div>
+        </div>
+        <div className="text-sm text-muted mono">{pendingCount} pendente(s) · {validatedCount} validado(s)</div>
+      </div>
+
+      {/* Tabs */}
+      <div className="tabs">
+        <div className={`tab ${tab === "validacao" ? "active" : ""}`} onClick={() => setTab("validacao")}>
+          ⏳ Validação {pendingCount > 0 && <span className="nav-badge blue" style={{ marginLeft: 6 }}>{pendingCount}</span>}
+        </div>
+        <div className={`tab ${tab === "visualizacao" ? "active" : ""}`} onClick={() => { setTab("visualizacao"); setSelId(null); }}>
+          🗺️ Pontos de Coleta ({validatedCount})
         </div>
       </div>
+
+      {/* ── Aba: Validação ── */}
+      {tab === "validacao" && (
+        <>
+          {collectionPoints.filter(p => p.status === "pendente").length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">✅</div>
+              <div className="empty-state-text">Nenhum ponto pendente</div>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Nome</th><th>Endereço</th><th>Capacidade</th><th>Itens Aceitos</th><th>Status</th><th>Ações</th></tr>
+                </thead>
+                <tbody>
+                  {collectionPoints.filter(p => p.status === "pendente").map(p => (
+                    <tr key={p.id}>
+                      <td><span style={{ fontWeight: 600 }}>{p.name}</span></td>
+                      <td><span className="text-secondary text-sm">📍 {p.address}, {p.city}</span></td>
+                      <td><span className="mono" style={{ color: "var(--accent2)" }}>{p.capacity} itens</span></td>
+                      <td>
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          {p.items.map(item => (
+                            <span key={item} style={{ background: "rgba(59,130,246,0.1)", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "99px", fontSize: 10, padding: "2px 8px", fontWeight: 600 }}>{item}</span>
+                          ))}
+                        </div>
+                      </td>
+                      <td>{statusBadge(p.status)}</td>
+                      <td>
+                        <div className="btn-group">
+                          <button className="btn btn-success btn-sm" onClick={() => validate(p.id)}>✓ Validar</button>
+                          <button className="btn btn-danger btn-sm"  onClick={() => reject(p.id)}>✕ Recusar</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Aba: Visualização com mapa ── */}
+      {tab === "visualizacao" && (
+        <div style={{ display: "flex", height: 480 }}>
+
+          {/* Lista */}
+          <div style={{ width: 300, flexShrink: 0, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            {/* Search */}
+            <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+              <input
+                className="search-input"
+                placeholder="🔍 Buscar ponto..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ width: "100%" }}
+              />
+            </div>
+            <div style={{ overflowY: "auto", flex: 1 }}>
+              {validatedFiltered.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon">📦</div>
+                  <div className="empty-state-text">Nenhum ponto validado</div>
+                </div>
+              ) : validatedFiltered.map(p => (
+                <div
+                  key={p.id}
+                  onClick={() => setSelId(prev => prev === p.id ? null : p.id)}
+                  style={{
+                    padding: "13px 16px", borderBottom: "1px solid var(--border)",
+                    cursor: "pointer", transition: "all 0.15s",
+                    background: selId === p.id ? "var(--bg-hover)" : "transparent",
+                    borderLeft: `3px solid ${selId === p.id ? "var(--accent)" : "transparent"}`,
+                  }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 3 }}>{p.name}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>📍 {p.address}, {p.city}</div>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
+                    {p.items.map(item => (
+                      <span key={item} style={{ background: "rgba(59,130,246,0.1)", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.2)", borderRadius: "99px", fontSize: 9, padding: "1px 7px", fontWeight: 600 }}>{item}</span>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span className="mono text-sm" style={{ color: "var(--accent2)" }}>{p.capacity} itens</span>
+                    <span style={{ fontSize: 10, color: selId === p.id ? "var(--accent)" : "var(--text-muted)" }}>
+                      {selId === p.id ? "📍 no mapa ✓" : "ver no mapa →"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Mapa */}
+          <div style={{ flex: 1 }}>
+            {validatedFiltered.length === 0 ? (
+              <div className="empty-state" style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <div className="empty-state-icon">🗺️</div>
+                <div className="empty-state-text">Nenhum ponto para exibir</div>
+              </div>
+            ) : (
+              <CollectionMap points={validatedFiltered} selectedId={selId} />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1126,18 +1970,16 @@ export default function AdminDashboard() {
     { id: "overview",             icon: "◉",  label: "Visão Geral" },
     { id: "events",               icon: "🌊", label: "Eventos",              badge: events.filter(e => e.status === "ativo").length },
     { id: "critical",             icon: "⚠️", label: "Pontos Críticos",       badge: criticalPoints.length },
-    { id: "volunteers",           icon: "🙋", label: "Voluntários",           badge: pendingVols },
-    { id: "collection-validate",  icon: "✅", label: "Validar Coletas",       badge: pendingCols, badgeClass: "blue" },
-    { id: "collection-map",       icon: "🗺️", label: "Pontos de Coleta" },
+    { id: "collection", icon: "📦", label: "Pontos de Coleta", badge: pendingCols, badgeClass: "blue" },
+    { id: "volunteers", icon: "🙋", label: "Voluntários", badge: pendingVols },
   ];
 
   const sectionTitles = {
     overview: "Visão Geral",
     events: "Eventos Oficiais",
     critical: "Pontos Críticos",
-    volunteers: "Voluntários",
-    "collection-validate": "Validação de Pontos de Coleta",
-    "collection-map":      "Pontos de Coleta",
+    "volunteers": "Voluntários",
+    "collection": "Pontos de Coleta",
   };
 
   return (
@@ -1147,11 +1989,11 @@ export default function AdminDashboard() {
         {/* Sidebar */}
         <aside className="sidebar">
           <div className="sidebar-logo">
-            <div className="logo-mark">🆘</div>
-            <div>
-              <div className="logo-text">BASE</div>
-              <div className="logo-sub">Operações • Admin</div>
-            </div>
+            <img
+              src="/resources/logo.png"
+              alt="Logo"
+              style={{ width: 100, height: 100, borderRadius: 8, objectFit: "contain" }}
+            />
           </div>
           <nav className="sidebar-nav">
             <div className="nav-section-label">Painel</div>
@@ -1178,7 +2020,7 @@ export default function AdminDashboard() {
           <div className="topbar">
             <div>
               <div className="topbar-title">{sectionTitles[section]}</div>
-              <div className="topbar-breadcrumb">RespostaTotal / {sectionTitles[section]}</div>
+              <div className="topbar-breadcrumb">BASE / {sectionTitles[section]}</div>
             </div>
             <div className="topbar-spacer" />
             <div className="topbar-status"><div className="status-dot" />Sistema Online</div>
@@ -1195,11 +2037,17 @@ export default function AdminDashboard() {
                 onNewPoint={() => setShowNewPoint(true)}
               />
             )}
-            {section === "events" && <EventsSection events={events} setEvents={setEvents} />}
+            {section === "events" && (
+              <EventsSection
+                events={events}
+                setEvents={setEvents}
+                criticalPoints={criticalPoints}   // ← adicionar esta prop
+              />
+            )}
+
             {section === "critical" && <CriticalPointsSection criticalPoints={criticalPoints} setCriticalPoints={setCriticalPoints} />}
-            {section === "volunteers" && <VolunteersSection volunteers={volunteers} setVolunteers={setVolunteers} />}
-            {section === "collection-validate" && <CollectionValidationSection collectionPoints={collectionPoints} setCollectionPoints={setCollectionPoints} />}
-            {section === "collection-map"      && <CollectionMapSection collectionPoints={collectionPoints} />}
+            {section === "volunteers"  && <VolunteersSection  volunteers={volunteers}  setVolunteers={setVolunteers}  events={events} />}
+            {section === "collection"  && <CollectionPointsSection collectionPoints={collectionPoints} setCollectionPoints={setCollectionPoints} />}
           </div>
         </main>
       </div>
