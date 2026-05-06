@@ -98,7 +98,7 @@ export default function App() {
       {/* Rota pública: login */}
       <Route path="/login" element={<TelaLogin onLogin={handleLogin} />} />
 
-      <Route path="/form" element={<Form to="/form" replace/>} />
+      <Route path="/form" element={<Form />} />
 
       {/* Rotas públicas sem layout — formulários anônimos ficam aqui */}
       {/* <Route path="/doar" element={<FormDoadores />} /> */}

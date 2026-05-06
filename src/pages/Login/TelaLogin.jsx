@@ -1,4 +1,6 @@
+import {Link} from "react-router-dom";
 export default function TelaLogin({ onLogin }) {
+
   return (
     <div style={{
       minHeight: "100vh",
@@ -60,7 +62,20 @@ export default function TelaLogin({ onLogin }) {
           </button>
         ))}
       </div>
+      
+      <Link to="/form" style={{
+        marginTop: 32,
+        color: "#5992C4",
+        fontSize: 13,
+        fontFamily: "monospace",
+        textDecoration: "none",
+        letterSpacing: 1,
+      }}>
+        Quero fazer uma doação →
+      </Link>
+
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
     </div>
   );
+  
 }

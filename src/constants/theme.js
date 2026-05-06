@@ -27,3 +27,12 @@ export const statusColor = {
   "Ativo": "#f97316",
   "Encerrado": "#10b981",
 };
+
+  export const colors = {
+    gold: "#F0DE98",      // Ouro metálico (Destaques/Botão)
+    lightGold: "#EFD35C", // Ouro claro (Hovers/Bordas)
+    cream: "#EFD35C",     // Névoa de Marfim (Textos principais)
+    alabaster: "#E2E2DC",  // Cinza Alabastro (Textos secundários/Labels)
+    navy: "#15438d",      // Azul da Prússia (Fundo do Card)
+    sky: "#5992C4",       // Céu nublado (Bordas suaves/Focus)
+  };
