@@ -1,0 +1,99 @@
+package com.pird.pirdBackend.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.pird.pirdBackend.dto.LoginRequestDTO;
+import com.pird.pirdBackend.dto.LoginResponseDTO;
+import com.pird.pirdBackend.dto.RegistroAdminDTO;
+import com.pird.pirdBackend.model.Administrador;
+import com.pird.pirdBackend.repository.AdministradorRepository;
+import com.pird.pirdBackend.security.TokenService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+
+/**
+ * Controller responsável pelos endpoints públicos de autenticação.
+ *
+ * POST /auth/login    → autentica e retorna o token JWT
+ * POST /auth/registrar → cria um novo administrador (proteger em produção)
+ */
+@RestController
+@RequestMapping("/auth")
+@Tag(name = "Autenticação", description = "Endpoints de login e registro de administradores")
+public class AuthController {
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private TokenService tokenService;
+
+    @Autowired
+    private AdministradorRepository administradorRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    /**
+     * Autentica um administrador e retorna um token JWT.
+     *
+     * @param dto e-mail e senha do administrador
+     * @return token JWT válido por 8 horas
+     */
+    @PostMapping("/login")
+    @Operation(summary = "Autenticar administrador", description = "Retorna um token JWT para uso nas rotas protegidas")
+    public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDTO dto) {
+        try {
+            var credenciais = new UsernamePasswordAuthenticationToken(dto.getEmail(), dto.getSenha());
+            Authentication auth = authenticationManager.authenticate(credenciais);
+
+            Administrador administrador = (Administrador) auth.getPrincipal();
+            String token = tokenService.gerarToken(administrador);
+
+            return ResponseEntity.ok(new LoginResponseDTO(token, administrador.getNome(), administrador.getEmail()));
+
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("E-mail ou senha inválidos.");
+        }
+    }
+
+    /**
+     * Registra um novo administrador com senha criptografada via BCrypt.
+     * ⚠️ Em produção, considere proteger ou remover este endpoint.
+     *
+     * @param dto dados do novo administrador
+     * @return 201 Created em caso de sucesso
+     */
+    @PostMapping("/registrar")
+    @Operation(summary = "Registrar administrador", description = "Cria um novo administrador com senha hasheada (BCrypt)")
+    public ResponseEntity<?> registrar(@RequestBody @Valid RegistroAdminDTO dto) {
+        if (administradorRepository.existsByEmail(dto.getEmail())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("E-mail já cadastrado.");
+        }
+
+        Administrador administrador = new Administrador();
+        administrador.setNome(dto.getNome());
+        administrador.setEmail(dto.getEmail());
+        administrador.setSenhaHash(passwordEncoder.encode(dto.getSenha()));
+
+        administradorRepository.save(administrador);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body("Administrador registrado com sucesso.");
+    }
+}
