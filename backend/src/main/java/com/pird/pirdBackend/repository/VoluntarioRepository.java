@@ -7,7 +7,7 @@ import com.pird.pirdBackend.model.Voluntario;
 
 @Repository
 public interface VoluntarioRepository extends JpaRepository <Voluntario, Integer>{
-
+    Voluntario findByEmail(String email);
     boolean existsByEmail(String email);
 
 }
