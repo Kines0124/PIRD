@@ -52,6 +52,9 @@ public class Voluntario implements UserDetails {
     @Column(nullable = false)
     private boolean validado = false;
 
+    @Column(name = "criado_em", nullable = false, updatable = false)
+    private LocalDateTime criadoEm = LocalDateTime.now();
+
     @Column(name = "validado_em")
     private LocalDateTime validadoEm;
 

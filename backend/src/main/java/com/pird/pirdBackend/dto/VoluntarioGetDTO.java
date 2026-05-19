@@ -1,5 +1,6 @@
 package com.pird.pirdBackend.dto;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import com.pird.pirdBackend.model.Voluntario;
@@ -17,22 +18,33 @@ public class VoluntarioGetDTO {
     private String especialidade;
     private double latitude;
     private double longitude;
+    private String name;
+    private String specialty;
+    private String status;
+    private String region;
+    private String registered;
+    private boolean validado;
 
-    
-    public VoluntarioGetDTO(){
+    public VoluntarioGetDTO() {}
+
+    public VoluntarioGetDTO(Voluntario v) {
+        this.id           = v.getId();
+        this.nome         = v.getNome();
+        this.email        = v.getEmail();
+        this.especialidade = v.getEspecialidade();
+        this.latitude     = v.getLocalizacao().getY();
+        this.longitude    = v.getLocalizacao().getX();
+        this.name         = v.getNome();
+        this.specialty    = v.getEspecialidade();
+        this.validado     = v.isValidado();
+        this.status       = v.isValidado() ? "aprovado" : "pendente";
+        this.region       = "";
+        this.registered   = v.getCriadoEm() != null
+                            ? v.getCriadoEm().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                            : "";
     }
 
-    public VoluntarioGetDTO( Voluntario voluntario){
-        this.id = voluntario.getId();
-        this.nome = voluntario.getNome();
-        this.email = voluntario.getEmail();
-        this.especialidade = voluntario.getEspecialidade();
-        this.latitude = voluntario.getLocalizacao().getY();
-        this.longitude = voluntario.getLocalizacao().getX();
-    }
-
-    public static List<VoluntarioGetDTO> convert(List<Voluntario> lista){
+    public static List<VoluntarioGetDTO> convert(List<Voluntario> lista) {
         return lista.stream().map(VoluntarioGetDTO::new).toList();
     }
-
 }

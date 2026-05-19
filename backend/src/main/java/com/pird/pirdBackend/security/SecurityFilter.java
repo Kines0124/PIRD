@@ -10,17 +10,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.pird.pirdBackend.repository.AdministradorRepository;
+import com.pird.pirdBackend.repository.PontoColetaRepository;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-/**
- * Filtro executado uma vez por requisição (OncePerRequestFilter).
- * Extrai o Bearer token do cabeçalho Authorization, valida e popula
- * o SecurityContext com a autenticação do administrador.
- */
 @Component
 public class SecurityFilter extends OncePerRequestFilter {
 
@@ -29,6 +25,9 @@ public class SecurityFilter extends OncePerRequestFilter {
 
     @Autowired
     private AdministradorRepository administradorRepository;
+
+    @Autowired
+    private PontoColetaRepository pontoColetaRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -42,13 +41,12 @@ public class SecurityFilter extends OncePerRequestFilter {
             String subject = tokenService.validarToken(token);
 
             if (!subject.isBlank()) {
-                UserDetails administrador = administradorRepository.findByEmail(subject);
+                UserDetails user = administradorRepository.findByEmail(subject);
+                if (user == null) user = pontoColetaRepository.findByEmail(subject);
 
-                if (administrador != null) {
+                if (user != null) {
                     var authentication = new UsernamePasswordAuthenticationToken(
-                            administrador,
-                            null,
-                            administrador.getAuthorities()
+                            user, null, user.getAuthorities()
                     );
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }

@@ -12,6 +12,8 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.pird.pirdBackend.model.Administrador;
+import com.pird.pirdBackend.model.PontoColeta;
+import org.springframework.security.core.userdetails.UserDetails;
 
 @Service
 public class TokenService {
@@ -21,19 +23,25 @@ public class TokenService {
     @Value("${api.security.token.secret}")
     private String secret;
 
-    /**
-     * Gera um token JWT assinado com HMAC256 para o administrador autenticado.
-     * O token expira em 8 horas a partir da geração.
-     */
-    public String gerarToken(Administrador administrador) {
+    public String gerarToken(UserDetails userDetails) {
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
 
+            int id = 0;
+            String nome = "";
+            if (userDetails instanceof Administrador admin) {
+                id = admin.getId();
+                nome = admin.getNome();
+            } else if (userDetails instanceof PontoColeta pc) {
+                id = pc.getId();
+                nome = pc.getNomeLocal();
+            }
+
             return JWT.create()
                     .withIssuer(ISSUER)
-                    .withSubject(administrador.getEmail())
-                    .withClaim("id", administrador.getId())
-                    .withClaim("nome", administrador.getNome())
+                    .withSubject(userDetails.getUsername())
+                    .withClaim("id", id)
+                    .withClaim("nome", nome)
                     .withExpiresAt(gerarDataExpiracao())
                     .sign(algorithm);
 

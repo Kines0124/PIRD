@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:3003";
+const BASE_URL = "http://localhost:8080";
 
 export async function registrarEvento(payload) {
   const response = await fetch(`${BASE_URL}/api/evento`, {

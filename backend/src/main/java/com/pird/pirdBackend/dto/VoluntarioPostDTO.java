@@ -13,7 +13,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.locationtech.jts.geom.Point;
 
-@Getter 
+@Getter
 @Setter
 public class VoluntarioPostDTO {
 
@@ -26,7 +26,7 @@ public class VoluntarioPostDTO {
     private String email;
 
     @NotBlank
-    private String senhaHash;
+    private String senha;
 
     @NotBlank
     @Length(max = 100)
@@ -38,19 +38,16 @@ public class VoluntarioPostDTO {
     @NotNull
     private double longitude;
 
-
-    public Voluntario convert(){
+    public Voluntario convert() {
         Voluntario voluntario = new Voluntario();
         GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
         Point ponto = gf.createPoint(new Coordinate(this.longitude, this.latitude));
 
         voluntario.setNome(this.nome);
         voluntario.setEmail(this.email);
-        voluntario.setSenhaHash(this.senhaHash);
         voluntario.setEspecialidade(this.especialidade);
         voluntario.setLocalizacao(ponto);
-
+        // senha_hash é preenchida pelo VoluntarioService após BCrypt
         return voluntario;
     }
-
 }

@@ -17,8 +17,10 @@ import com.pird.pirdBackend.dto.LoginRequestDTO;
 import com.pird.pirdBackend.dto.LoginResponseDTO;
 import com.pird.pirdBackend.dto.RegistroAdminDTO;
 import com.pird.pirdBackend.model.Administrador;
+import com.pird.pirdBackend.model.PontoColeta;
 import com.pird.pirdBackend.repository.AdministradorRepository;
 import com.pird.pirdBackend.security.TokenService;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -60,10 +62,19 @@ public class AuthController {
             var credenciais = new UsernamePasswordAuthenticationToken(dto.getEmail(), dto.getSenha());
             Authentication auth = authenticationManager.authenticate(credenciais);
 
-            Administrador administrador = (Administrador) auth.getPrincipal();
-            String token = tokenService.gerarToken(administrador);
+            UserDetails user = (UserDetails) auth.getPrincipal();
+            String token = tokenService.gerarToken(user);
 
-            return ResponseEntity.ok(new LoginResponseDTO(token, administrador.getNome(), administrador.getEmail()));
+            String nome;
+            if (user instanceof Administrador admin) {
+                nome = admin.getNome();
+            } else if (user instanceof PontoColeta pc) {
+                nome = pc.getNomeLocal();
+            } else {
+                nome = user.getUsername();
+            }
+
+            return ResponseEntity.ok(new LoginResponseDTO(token, nome, user.getUsername()));
 
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

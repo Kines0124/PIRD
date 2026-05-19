@@ -7,26 +7,25 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import com.pird.pirdBackend.repository.AdministradorRepository;
+import com.pird.pirdBackend.repository.PontoColetaRepository;
 
-/**
- * Serviço responsável por carregar os dados do usuário (Administrador)
- * a partir do banco de dados durante a autenticação.
- * Integra-se ao mecanismo padrão do Spring Security.
- */
 @Service
 public class AuthorizationService implements UserDetailsService {
 
     @Autowired
     private AdministradorRepository administradorRepository;
 
+    @Autowired
+    private PontoColetaRepository pontoColetaRepository;
+
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        UserDetails administrador = administradorRepository.findByEmail(email);
+        UserDetails admin = administradorRepository.findByEmail(email);
+        if (admin != null) return admin;
 
-        if (administrador == null) {
-            throw new UsernameNotFoundException("Administrador não encontrado com e-mail: " + email);
-        }
+        UserDetails pontoColeta = pontoColetaRepository.findByEmail(email);
+        if (pontoColeta != null) return pontoColeta;
 
-        return administrador;
+        throw new UsernameNotFoundException("Usuário não encontrado com e-mail: " + email);
     }
 }

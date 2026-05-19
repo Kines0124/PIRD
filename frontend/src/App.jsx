@@ -85,6 +85,10 @@ export default function App() {
   const navigate = useNavigate();
 
   function handleLogin(p) {
+    if (p === "defesa") {
+      navigate("/admin", { replace: true });
+      return;
+    }
     setPerfil(p);
     navigate("/app/dashboard", { replace: true });
   }

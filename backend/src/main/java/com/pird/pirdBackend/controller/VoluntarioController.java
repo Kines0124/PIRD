@@ -6,8 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.pird.pirdBackend.dto.VoluntarioGetDTO;
 import com.pird.pirdBackend.dto.VoluntarioPostDTO;
 import com.pird.pirdBackend.dto.VoluntarioPutDTO;
+import com.pird.pirdBackend.model.Administrador;
 import com.pird.pirdBackend.service.VoluntarioService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -70,6 +73,14 @@ public class VoluntarioController {
     public ResponseEntity<VoluntarioGetDTO> atualizar(@PathVariable Integer id,
                                                        @RequestBody @Valid VoluntarioPutDTO dto) {
         return ResponseEntity.ok(voluntarioService.atualizar(id, dto));
+    }
+
+    @PatchMapping("/{id}/validar")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @Operation(summary = "Validar voluntário", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<VoluntarioGetDTO> validar(@PathVariable Integer id,
+                                                     @AuthenticationPrincipal Administrador admin) {
+        return ResponseEntity.ok(voluntarioService.validar(id, admin));
     }
 
     @DeleteMapping("/{id}")
