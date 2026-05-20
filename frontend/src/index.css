@@ -2,14 +2,28 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
 
-  /* Remove a box de aumentar e diminuir no input de type number*/
-  input[type=number]::-webkit-outer-spin-button,
-  input[type=number]::-webkit-inner-spin-button {
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-  
+
+:root {
+  --bg-base:      #0a0c10;
+  --bg-surface:   #111318;
+  --bg-elevated:  #181c23;
+  --bg-hover:     #1e2330;
+  --border:       rgba(255,255,255,0.07);
+  --text-primary:   #eef0f5;
+  --text-secondary: #7a8099;
+  --text-muted:     #4a5068;
+  --accent:   #FF6B1A;
+  --accent2:  #3B82F6;
+  --success:  #22c55e;
+  --warning:  #F5C518;
+  --danger:   #ef4444;
 }
 
 body {
@@ -18,9 +32,4 @@ body {
   font-family: 'Segoe UI', system-ui, sans-serif;
 }
 
-/* Corrige altura do mapa Leaflet dentro de containers flex */
-.leaflet-container {
-  height: 100%;
-  width: 100%;
-
-}
+.mapboxgl-canvas { display: block; }

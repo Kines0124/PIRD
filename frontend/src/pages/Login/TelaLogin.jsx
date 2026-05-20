@@ -63,16 +63,27 @@ export default function TelaLogin({ onLogin }) {
         ))}
       </div>
       
-      <Link to="/form" style={{
-        marginTop: 32,
-        color: "#5992C4",
-        fontSize: 13,
-        fontFamily: "monospace",
-        textDecoration: "none",
-        letterSpacing: 1,
-      }}>
-        Quero fazer uma doação →
-      </Link>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: 32 }}>
+        <Link to="/form" style={{
+          color: "#5992C4",
+          fontSize: 13,
+          fontFamily: "monospace",
+          textDecoration: "none",
+          letterSpacing: 1,
+        }}>
+          📦 Quero fazer uma doação →
+        </Link>
+
+        <Link to="/especialistas/cadastro" style={{
+          color: "#10b981",
+          fontSize: 13,
+          fontFamily: "monospace",
+          textDecoration: "none",
+          letterSpacing: 1,
+        }}>
+          ⚕️ Sou especialista e quero me cadastrar →
+        </Link>
+      </div>
 
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
     </div>

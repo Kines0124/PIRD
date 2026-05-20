@@ -217,8 +217,11 @@ export const styles = `
   .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
 
   #admin-map { width: 100%; height: 320px; border-radius: var(--radius-sm); overflow: hidden; background: #0d1117; }
-  .leaflet-container { background: #0d1117 !important; font-family: var(--font-body) !important; }
-  .leaflet-tile { filter: brightness(0.75) saturate(0.7) hue-rotate(180deg) !important; }
+  .mapboxgl-ctrl-group { background: #1a1f2e !important; border: 1px solid var(--border) !important; border-radius: 8px !important; }
+  .mapboxgl-ctrl-group button { background: #1a1f2e !important; border-bottom: 1px solid var(--border) !important; }
+  .mapboxgl-ctrl-group button:hover { background: var(--bg-hover) !important; }
+  .mapboxgl-popup-content { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: var(--font-body); font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+  .mapboxgl-popup-tip { border-top-color: var(--bg-elevated) !important; border-bottom-color: var(--bg-elevated) !important; }
 
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;

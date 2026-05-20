@@ -61,6 +61,8 @@ public class EventoService {
         evento.setDescricao(dto.getDescription());
         evento.setStatus(dto.getStatus());
         evento.setVitimasEstimadas(dto.getVictims());
+        evento.setEndereco(dto.getAddress());
+        evento.setProfissionaisNecessarios(dto.getNeededProfiles());
         GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
         evento.setLocalizacao(gf.createPoint(new Coordinate(dto.getLng(), dto.getLat())));
         if (dto.getCriticalPointId() != null) {

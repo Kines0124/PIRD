@@ -51,3 +51,8 @@ export const deletarVoluntario  = (id)    => req("DELETE", `/voluntarios/${id}`)
 export const getPontosColeta    = ()      => req("GET",    "/pontos-coleta");
 export const validarPontoColeta = (id)    => req("PATCH",  `/pontos-coleta/${id}/validar`);
 export const deletarPontoColeta = (id)    => req("DELETE", `/pontos-coleta/${id}`);
+
+export const getEspecialistas     = ()         => req("GET",    "/especialistas");
+export const aprovarEspecialista  = (id)       => req("PATCH",  `/especialistas/${id}/aprovar`);
+export const reprovarEspecialista = (id, obs)  => req("PATCH",  `/especialistas/${id}/reprovar`, { observacao: obs });
+export const deletarEspecialista  = (id)       => req("DELETE", `/especialistas/${id}`);

@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { styles } from "./adminTheme.jsx";
 import * as adminApi from "../../services/adminApi.js";
 import OverviewSection         from "./sections/OverviewSection.jsx";
+import DashboardSection        from "./sections/DashboardSection.jsx";
 import EventsSection           from "./sections/EventsSection.jsx";
+import CampoSection            from "./sections/CampoSection.jsx";
 import CriticalPointsSection   from "./sections/CriticalPointsSection.jsx";
-import VolunteersSection       from "./sections/VolunteersSection.jsx";
+import ValidacoesSection       from "./sections/ValidacoesSection.jsx";
 import CollectionPointsSection from "./sections/CollectionPointsSection.jsx";
 import EventModal              from "./modals/EventModal.jsx";
 import CriticalPointModal      from "./modals/CriticalPointModal.jsx";
@@ -12,10 +14,10 @@ import CriticalPointModal      from "./modals/CriticalPointModal.jsx";
 // ─── Login gate ───────────────────────────────────────────────────────────────
 
 function LoginGate({ onLogin }) {
-  const [email,    setEmail]    = useState("");
-  const [senha,    setSenha]    = useState("");
-  const [error,    setError]    = useState(null);
-  const [loading,  setLoading]  = useState(false);
+  const [email,   setEmail]   = useState("");
+  const [senha,   setSenha]   = useState("");
+  const [error,   setError]   = useState(null);
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -48,36 +50,21 @@ function LoginGate({ onLogin }) {
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div className="form-group">
                 <label className="form-label">E-mail</label>
-                <input
-                  className="form-input"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="admin@pird.com"
-                  autoFocus
-                />
+                <input className="form-input" type="email" value={email}
+                  onChange={e => setEmail(e.target.value)} placeholder="admin@pird.com" autoFocus />
               </div>
               <div className="form-group">
                 <label className="form-label">Senha</label>
-                <input
-                  className="form-input"
-                  type="password"
-                  value={senha}
-                  onChange={e => setSenha(e.target.value)}
-                  placeholder="••••••••"
-                />
+                <input className="form-input" type="password" value={senha}
+                  onChange={e => setSenha(e.target.value)} placeholder="••••••••" />
               </div>
               {error && (
                 <div style={{ color: "var(--danger)", fontSize: 13, background: "rgba(255,59,59,0.08)", border: "1px solid rgba(255,59,59,0.25)", borderRadius: 6, padding: "8px 12px" }}>
                   {error}
                 </div>
               )}
-              <button
-                className="btn btn-primary"
-                type="submit"
-                disabled={loading || !email || !senha}
-                style={{ opacity: loading || !email || !senha ? 0.5 : 1 }}
-              >
+              <button className="btn btn-primary" type="submit"
+                disabled={loading || !email || !senha} style={{ opacity: loading || !email || !senha ? 0.5 : 1 }}>
                 {loading ? "Entrando…" : "Entrar"}
               </button>
             </form>
@@ -97,6 +84,7 @@ function AdminPanel({ onLogout }) {
   const [criticalPoints,   setCriticalPoints]   = useState([]);
   const [volunteers,       setVolunteers]       = useState([]);
   const [collectionPoints, setCollectionPoints] = useState([]);
+  const [specialists,      setSpecialists]      = useState([]);
   const [loadError,        setLoadError]        = useState(null);
 
   const [showNewEvent, setShowNewEvent] = useState(false);
@@ -104,16 +92,18 @@ function AdminPanel({ onLogout }) {
 
   async function loadAll() {
     try {
-      const [evts, pts, vols, cols] = await Promise.all([
+      const [evts, pts, vols, cols, specs] = await Promise.all([
         adminApi.getEventos(),
         adminApi.getPontosCriticos(),
         adminApi.getVoluntarios(),
         adminApi.getPontosColeta(),
+        adminApi.getEspecialistas(),
       ]);
       setEvents(evts);
       setCriticalPoints(pts);
       setVolunteers(vols);
       setCollectionPoints(cols);
+      setSpecialists(specs);
       setLoadError(null);
     } catch (e) {
       setLoadError("Erro ao carregar dados: " + e.message);
@@ -145,20 +135,6 @@ function AdminPanel({ onLogout }) {
     } catch (e) { alert("Erro ao deletar ponto crítico: " + e.message); }
   }
 
-  async function handleApproveVol(id) {
-    try {
-      await adminApi.validarVoluntario(id);
-      setVolunteers(await adminApi.getVoluntarios());
-    } catch (e) { alert("Erro ao aprovar voluntário: " + e.message); }
-  }
-
-  async function handleRejectVol(id) {
-    try {
-      await adminApi.deletarVoluntario(id);
-      setVolunteers(vols => vols.filter(v => v.id !== id));
-    } catch (e) { alert("Erro ao rejeitar voluntário: " + e.message); }
-  }
-
   async function handleValidateColeta(id) {
     try {
       await adminApi.validarPontoColeta(id);
@@ -173,23 +149,48 @@ function AdminPanel({ onLogout }) {
     } catch (e) { alert("Erro ao recusar ponto de coleta: " + e.message); }
   }
 
-  const pendingVols = volunteers.filter(v => v.status === "pendente").length;
-  const pendingCols = collectionPoints.filter(p => p.status === "pendente").length;
+  async function handleAprovarEspecialista(id) {
+    try {
+      await adminApi.aprovarEspecialista(id);
+      setSpecialists(await adminApi.getEspecialistas());
+    } catch (e) { alert("Erro ao aprovar especialista: " + e.message); }
+  }
+
+  async function handleReprovarEspecialista(id, obs) {
+    try {
+      await adminApi.reprovarEspecialista(id, obs);
+      setSpecialists(await adminApi.getEspecialistas());
+    } catch (e) { alert("Erro ao reprovar especialista: " + e.message); }
+  }
+
+  async function handleDeletarEspecialista(id) {
+    try {
+      await adminApi.deletarEspecialista(id);
+      setSpecialists(specs => specs.filter(s => s.id !== id));
+    } catch (e) { alert("Erro ao deletar especialista: " + e.message); }
+  }
+
+  const pendingCols          = collectionPoints.filter(p => p.status === "pendente").length;
+  const pendingEspecialistas = specialists.filter(s => s.status === "pendente").length;
 
   const navItems = [
     { id: "overview",   icon: "◉",  label: "Visão Geral" },
+    { id: "dashboard",  icon: "📊", label: "Dashboard" },
     { id: "events",     icon: "🌊", label: "Eventos",          badge: events.filter(e => e.status === "ativo").length },
+    { id: "campo",      icon: "🗺️", label: "Campo" },
     { id: "critical",   icon: "⚠️", label: "Pontos Críticos",  badge: criticalPoints.length },
-    { id: "collection", icon: "📦", label: "Pontos de Coleta", badge: pendingCols,  badgeClass: "blue" },
-    { id: "volunteers", icon: "🙋", label: "Voluntários",      badge: pendingVols },
+    { id: "collection", icon: "📦", label: "Pontos de Coleta", badge: pendingCols, badgeClass: "blue" },
+    { id: "validacoes", icon: "🙋", label: "Validações",       badge: pendingEspecialistas },
   ];
 
   const sectionTitles = {
     overview:   "Visão Geral",
+    dashboard:  "Dashboard",
     events:     "Eventos Oficiais",
+    campo:      "Campo",
     critical:   "Pontos Críticos",
-    volunteers: "Voluntários",
     collection: "Pontos de Coleta",
+    validacoes: "Validações de Cadastro",
   };
 
   const adminNome = adminApi.getAdminNome();
@@ -201,20 +202,14 @@ function AdminPanel({ onLogout }) {
 
         <aside className="sidebar">
           <div className="sidebar-logo">
-            <img
-              src="/resources/logo.png"
-              alt="Logo"
-              style={{ width: 100, height: 100, borderRadius: 8, objectFit: "contain" }}
-            />
+            <img src="/resources/logo.png" alt="Logo"
+              style={{ width: 100, height: 100, borderRadius: 8, objectFit: "contain" }} />
           </div>
           <nav className="sidebar-nav">
             <div className="nav-section-label">Painel</div>
             {navItems.map(item => (
-              <div
-                key={item.id}
-                className={`nav-item ${section === item.id ? "active" : ""}`}
-                onClick={() => setSection(item.id)}
-              >
+              <div key={item.id} className={`nav-item ${section === item.id ? "active" : ""}`}
+                onClick={() => setSection(item.id)}>
                 <span className="nav-icon">{item.icon}</span>
                 <span>{item.label}</span>
                 {item.badge > 0 && <span className={`nav-badge ${item.badgeClass || ""}`}>{item.badge}</span>}
@@ -227,13 +222,8 @@ function AdminPanel({ onLogout }) {
               <div className="avatar-name">{adminNome}</div>
               <div className="avatar-role">ADMIN</div>
             </div>
-            <span
-              title="Sair"
-              onClick={onLogout}
-              style={{ color: "var(--text-muted)", cursor: "pointer", fontSize: 14 }}
-            >
-              ⇤
-            </span>
+            <span title="Sair" onClick={onLogout}
+              style={{ color: "var(--text-muted)", cursor: "pointer", fontSize: 14 }}>⇤</span>
           </div>
         </aside>
 
@@ -255,49 +245,64 @@ function AdminPanel({ onLogout }) {
             <button className="topbar-btn" title="Configurações">⚙️</button>
           </div>
 
-          <div className="content">
-            {section === "overview" && (
-              <OverviewSection
-                events={events}
-                criticalPoints={criticalPoints}
-                volunteers={volunteers}
-                collectionPoints={collectionPoints}
-                onNewEvent={() => setShowNewEvent(true)}
-                onNewPoint={() => setShowNewPoint(true)}
-              />
-            )}
-            {section === "events" && (
-              <EventsSection
-                events={events}
-                onSaveEvent={handleSaveEvent}
-                criticalPoints={criticalPoints}
-                collectionPoints={collectionPoints}
-                volunteers={volunteers}
-              />
-            )}
-            {section === "critical" && (
-              <CriticalPointsSection
-                criticalPoints={criticalPoints}
-                onSavePoint={handleSavePoint}
-                onDeletePoint={handleDeletePoint}
-              />
-            )}
-            {section === "volunteers" && (
-              <VolunteersSection
-                volunteers={volunteers}
-                onApprove={handleApproveVol}
-                onReject={handleRejectVol}
-                events={events}
-              />
-            )}
-            {section === "collection" && (
-              <CollectionPointsSection
-                collectionPoints={collectionPoints}
-                onValidate={handleValidateColeta}
-                onReject={handleRejectColeta}
-              />
-            )}
-          </div>
+          {section === "campo" ? (
+            <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <CampoSection events={events} volunteers={volunteers} />
+            </div>
+          ) : (
+            <div className="content">
+              {section === "overview" && (
+                <OverviewSection
+                  events={events}
+                  criticalPoints={criticalPoints}
+                  volunteers={volunteers}
+                  collectionPoints={collectionPoints}
+                  onNewEvent={() => setShowNewEvent(true)}
+                  onNewPoint={() => setShowNewPoint(true)}
+                />
+              )}
+              {section === "dashboard" && (
+                <DashboardSection
+                  events={events}
+                  criticalPoints={criticalPoints}
+                  collectionPoints={collectionPoints}
+                  specialists={specialists}
+                  volunteers={volunteers}
+                />
+              )}
+              {section === "events" && (
+                <EventsSection
+                  events={events}
+                  onSaveEvent={handleSaveEvent}
+                  criticalPoints={criticalPoints}
+                  collectionPoints={collectionPoints}
+                  volunteers={volunteers}
+                />
+              )}
+              {section === "critical" && (
+                <CriticalPointsSection
+                  criticalPoints={criticalPoints}
+                  onSavePoint={handleSavePoint}
+                  onDeletePoint={handleDeletePoint}
+                />
+              )}
+              {section === "collection" && (
+                <CollectionPointsSection
+                  collectionPoints={collectionPoints}
+                  onValidate={handleValidateColeta}
+                  onReject={handleRejectColeta}
+                />
+              )}
+              {section === "validacoes" && (
+                <ValidacoesSection
+                  specialists={specialists}
+                  onAprovar={handleAprovarEspecialista}
+                  onReprovar={handleReprovarEspecialista}
+                  onDeletar={handleDeletarEspecialista}
+                />
+              )}
+            </div>
+          )}
         </main>
       </div>
 

@@ -1,65 +1,85 @@
 import { useState, useEffect, useRef } from "react";
+import mapboxgl from "mapbox-gl";
+import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { severityColor, typeIcon, riskColor, severityBadge, statusBadge } from "../adminTheme.jsx";
 import EventModal from "../modals/EventModal.jsx";
 
-// ─── Mini-mapa do drawer ───────────────────────────────────────────────────────
+// ─── Mini-mapa Mapbox do drawer ───────────────────────────────────────────────
 function EventDetailMap({ event, collectionPoints, criticalPoints }) {
-  const mapRef = useRef(null);
-  const instanceRef = useRef(null);
+  const containerRef = useRef(null);
+  const mapRef       = useRef(null);
 
   useEffect(() => {
-    if (!mapRef.current || !window.L) return;
-    if (instanceRef.current) { instanceRef.current.remove(); instanceRef.current = null; }
+    const lat = parseFloat(event.lat);
+    const lng = parseFloat(event.lng);
+    if (!containerRef.current || !MAPBOX_TOKEN || isNaN(lat) || isNaN(lng)) return;
 
-    const L = window.L;
-    const map = L.map(mapRef.current, { center: [event.lat, event.lng], zoom: 13, zoomControl: true });
-    instanceRef.current = map;
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap", maxZoom: 18,
-    }).addTo(map);
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    const map = new mapboxgl.Map({
+      container: containerRef.current,
+      style: "mapbox://styles/mapbox/streets-v12",
+      center: [lng, lat],
+      zoom: 13,
+    });
+    mapRef.current = map;
 
     const color = severityColor[event.severity] || "#FF6B1A";
-    const eventIcon = L.divIcon({
-      className: "",
-      html: `<div style="width:34px;height:34px;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 16px ${color}88;">${typeIcon[event.type] || "⚠️"}</div>`,
-      iconSize: [34, 34], iconAnchor: [17, 17],
-    });
-    L.marker([event.lat, event.lng], { icon: eventIcon }).addTo(map)
-      .bindPopup(`<b>${event.title}</b><br/>${event.city}`)
-      .openPopup();
+    const eventEl = document.createElement("div");
+    eventEl.innerHTML = `<div style="width:34px;height:34px;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 16px ${color}88;cursor:pointer">${typeIcon[event.type] || "⚠️"}</div>`;
+    new mapboxgl.Marker({ element: eventEl, anchor: "center" })
+      .setLngLat([lng, lat])
+      .setPopup(new mapboxgl.Popup().setHTML(`<b>${event.title}</b><br/>${event.city || ""}`))
+      .addTo(map);
 
     (event.nearbyCollectionIds || []).forEach(cid => {
       const cp = (collectionPoints || []).find(p => p.id === cid);
-      if (!cp) return;
-      const cpIcon = L.divIcon({
-        className: "",
-        html: `<div style="width:22px;height:22px;border-radius:4px;background:#3B82F6;border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;">📦</div>`,
-        iconSize: [22, 22], iconAnchor: [11, 11],
-      });
-      L.marker([cp.lat, cp.lng], { icon: cpIcon }).addTo(map)
-        .bindPopup(`<b>📦 ${cp.name}</b><br/>${cp.address}`);
+      if (!cp || !cp.lat || !cp.lng) return;
+      const el = document.createElement("div");
+      el.innerHTML = `<div style="width:22px;height:22px;border-radius:4px;background:#3B82F6;border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;">📦</div>`;
+      new mapboxgl.Marker({ element: el, anchor: "center" })
+        .setLngLat([parseFloat(cp.lng), parseFloat(cp.lat)])
+        .setPopup(new mapboxgl.Popup().setHTML(`<b>📦 ${cp.name}</b><br/>${cp.address || ""}`))
+        .addTo(map);
     });
 
     if (event.criticalPointId) {
       const cp = (criticalPoints || []).find(p => p.id === event.criticalPointId);
-      if (cp) {
-        const cpIcon = L.divIcon({
-          className: "",
-          html: `<div style="width:22px;height:22px;transform:rotate(45deg);background:#FF3B3B;border:2px solid rgba(255,255,255,0.3);box-shadow:0 0 10px #FF3B3B44;"></div>`,
-          iconSize: [22, 22], iconAnchor: [11, 11],
-        });
-        L.marker([cp.lat, cp.lng], { icon: cpIcon }).addTo(map)
-          .bindPopup(`<b>⚠️ ${cp.name}</b><br/>${cp.description}`);
+      if (cp && cp.lat && cp.lng) {
+        const el = document.createElement("div");
+        el.innerHTML = `<div style="width:22px;height:22px;transform:rotate(45deg);background:#FF3B3B;border:2px solid rgba(255,255,255,0.3);box-shadow:0 0 10px #FF3B3B44;"></div>`;
+        new mapboxgl.Marker({ element: el, anchor: "center" })
+          .setLngLat([parseFloat(cp.lng), parseFloat(cp.lat)])
+          .setPopup(new mapboxgl.Popup().setHTML(`<b>⚠️ ${cp.name}</b>`))
+          .addTo(map);
       }
     }
 
-    return () => { if (instanceRef.current) { instanceRef.current.remove(); instanceRef.current = null; } };
+    return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
   }, [event, collectionPoints, criticalPoints]);
+
+  if (!MAPBOX_TOKEN) {
+    return (
+      <div style={{ borderRadius: 8, height: 300, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, border: "1px solid var(--border)" }}>
+        <span style={{ fontSize: 28 }}>🗺️</span>
+        <div style={{ fontSize: 12, color: "var(--text-secondary)", textAlign: "center" }}>
+          Configure <code>VITE_MAPBOX_TOKEN</code> para visualizar o mapa.
+        </div>
+      </div>
+    );
+  }
+
+  if (!event.lat || !event.lng) {
+    return (
+      <div style={{ borderRadius: 8, height: 300, background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, border: "1px solid var(--border)" }}>
+        <span style={{ fontSize: 28 }}>📍</span>
+        <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>Evento sem coordenadas registradas.</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ borderRadius: 8, overflow: "hidden", height: 300 }}>
-      <div ref={mapRef} style={{ height: "100%", width: "100%" }} />
+      <div ref={containerRef} style={{ height: "100%", width: "100%" }} />
     </div>
   );
 }
@@ -71,12 +91,13 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
   const nearbyPoints     = (event.nearbyCollectionIds || []).map(id => (collectionPoints || []).find(p => p.id === id)).filter(p => p && p.status === "validado");
   const activeVolunteers = (event.volunteerIds || []).map(id => (volunteers || []).find(v => v.id === id)).filter(v => v && v.status === "aprovado");
   const linkedCritical   = event.criticalPointId ? (criticalPoints || []).find(p => p.id === event.criticalPointId) : null;
+  const neededProfiles   = event.neededProfiles || [];
 
   const tabs = [
-    { id: "mapa",         label: "🗺️ Mapa" },
-    { id: "fotos",        label: `📷 Fotos${event.photos?.length ? ` (${event.photos.length})` : ""}` },
-    { id: "coleta",       label: `📦 Coleta (${nearbyPoints.length})` },
-    { id: "voluntarios",  label: `🙋 Voluntários (${activeVolunteers.length})` },
+    { id: "mapa",        label: "🗺️ Mapa" },
+    { id: "fotos",       label: `📷 Fotos${event.photos?.length ? ` (${event.photos.length})` : ""}` },
+    { id: "coleta",      label: `📦 Coleta (${nearbyPoints.length})` },
+    { id: "voluntarios", label: `🙋 Voluntários (${activeVolunteers.length})` },
   ];
 
   return (
@@ -84,12 +105,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 300, display: "flex", justifyContent: "flex-end" }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
-      <div style={{
-        width: 580, maxWidth: "95vw", height: "100vh", overflowY: "auto",
-        background: "var(--bg-surface)", borderLeft: "1px solid var(--border)",
-        display: "flex", flexDirection: "column",
-        animation: "slideInRight 0.22s ease",
-      }}>
+      <div style={{ width: 580, maxWidth: "95vw", height: "100vh", overflowY: "auto", background: "var(--bg-surface)", borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", animation: "slideInRight 0.22s ease" }}>
 
         <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
@@ -98,7 +114,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
                 <span style={{ fontSize: 22 }}>{typeIcon[event.type] || "⚠️"}</span>
                 <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17 }}>{event.title}</span>
                 {linkedCritical && (
-                  <span style={{ background: "rgba(255,59,59,0.15)", color: "#FF3B3B", border: "1px solid rgba(255,59,59,0.3)", borderRadius: "99px", fontSize: 10, padding: "2px 8px", fontWeight: 700, fontFamily: "var(--font-mono)" }}>
+                  <span style={{ background: "rgba(255,59,59,0.15)", color: "#FF3B3B", border: "1px solid rgba(255,59,59,0.3)", borderRadius: 99, fontSize: 10, padding: "2px 8px", fontWeight: 700, fontFamily: "var(--font-mono)" }}>
                     ⚠️ PONTO CRÍTICO
                   </span>
                 )}
@@ -106,7 +122,11 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                 {severityBadge(event.severity)}
                 {statusBadge(event.status)}
-                <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>📍 {event.city}</span>
+                {(event.address || event.city) && (
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                    📍 {event.address || event.city}
+                  </span>
+                )}
                 <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>📅 {event.date}</span>
               </div>
             </div>
@@ -118,9 +138,9 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 14 }}>
             {[
-              { label: "Vítimas",          value: event.victims,              color: "var(--warning)" },
-              { label: "Voluntários",      value: activeVolunteers.length,    color: "var(--success)" },
-              { label: "Pontos de Coleta", value: nearbyPoints.length,        color: "var(--accent2)" },
+              { label: "Vítimas",          value: event.victims,           color: "var(--warning)" },
+              { label: "Voluntários",      value: activeVolunteers.length, color: "var(--success)" },
+              { label: "Pontos de Coleta", value: nearbyPoints.length,     color: "var(--accent2)" },
             ].map((k, i) => (
               <div key={i} style={{ background: "var(--bg-elevated)", borderRadius: 8, padding: "10px 14px", border: "1px solid var(--border)" }}>
                 <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{k.label}</div>
@@ -128,6 +148,21 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
               </div>
             ))}
           </div>
+
+          {neededProfiles.length > 0 && (
+            <div style={{ marginTop: 12, background: "rgba(59,130,246,0.07)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 8, padding: "10px 14px" }}>
+              <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8, fontFamily: "var(--font-mono)" }}>
+                Profissionais necessários ({neededProfiles.length})
+              </div>
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                {neededProfiles.map(p => (
+                  <span key={p} style={{ background: "rgba(59,130,246,0.1)", color: "var(--accent2)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: 99, fontSize: 10, padding: "2px 9px", fontWeight: 600 }}>
+                    {p}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {linkedCritical && (
             <div style={{ marginTop: 12, background: "rgba(255,59,59,0.07)", border: "1px solid rgba(255,59,59,0.25)", borderRadius: 8, padding: "10px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
@@ -171,10 +206,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
           {tab === "fotos" && (
             <div>
               {!event.photos || event.photos.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-state-icon">📷</div>
-                  <div className="empty-state-text">Nenhuma foto registrada para este evento</div>
-                </div>
+                <div className="empty-state"><div className="empty-state-icon">📷</div><div className="empty-state-text">Nenhuma foto registrada para este evento</div></div>
               ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
                   {event.photos.map((url, i) => (
@@ -190,10 +222,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
           {tab === "coleta" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {nearbyPoints.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-state-icon">📦</div>
-                  <div className="empty-state-text">Nenhum ponto de coleta vinculado</div>
-                </div>
+                <div className="empty-state"><div className="empty-state-icon">📦</div><div className="empty-state-text">Nenhum ponto de coleta vinculado</div></div>
               ) : nearbyPoints.map(p => (
                 <div key={p.id} style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px" }}>
                   <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{p.name}</div>
@@ -206,18 +235,15 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
           {tab === "voluntarios" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {activeVolunteers.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-state-icon">🙋</div>
-                  <div className="empty-state-text">Nenhum voluntário vinculado a este evento</div>
-                </div>
+                <div className="empty-state"><div className="empty-state-icon">🙋</div><div className="empty-state-text">Nenhum voluntário vinculado a este evento</div></div>
               ) : activeVolunteers.map((v, i) => {
                 const colors = ["linear-gradient(135deg,#FF6B1A,#FF3B3B)", "linear-gradient(135deg,#3B82F6,#8B5CF6)", "linear-gradient(135deg,#22c55e,#16a34a)", "linear-gradient(135deg,#F5C518,#FF8C00)"];
                 return (
                   <div key={v.id} style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ width: 38, height: 38, borderRadius: "50%", background: colors[i % colors.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>{v.name[0]}</div>
+                    <div style={{ width: 38, height: 38, borderRadius: "50%", background: colors[i % colors.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>{(v.name || v.nome || "?")[0]}</div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{v.name}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{v.specialty}</div>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{v.name || v.nome}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{v.specialty || v.especialidade}</div>
                     </div>
                     {statusBadge(v.status)}
                   </div>
@@ -233,10 +259,10 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
 
 // ─── EventsSection ─────────────────────────────────────────────────────────────
 export default function EventsSection({ events, onSaveEvent, criticalPoints, collectionPoints, volunteers }) {
-  const [filter, setFilter]       = useState("todos");
-  const [search, setSearch]       = useState("");
-  const [editEvent, setEditEvent] = useState(null);
-  const [showNew, setShowNew]     = useState(false);
+  const [filter, setFilter]           = useState("todos");
+  const [search, setSearch]           = useState("");
+  const [editEvent, setEditEvent]     = useState(null);
+  const [showNew, setShowNew]         = useState(false);
   const [detailEvent, setDetailEvent] = useState(null);
 
   const severityOrder = { critico: 0, alto: 1, medio: 2, baixo: 3 };
@@ -245,8 +271,9 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
   const filtered = events
     .filter(e => filter === "todos" || e.status === filter)
     .filter(e =>
-      (e.title || "").toLowerCase().includes(search.toLowerCase()) ||
-      (e.city  || "").toLowerCase().includes(search.toLowerCase())
+      (e.title   || "").toLowerCase().includes(search.toLowerCase()) ||
+      (e.city    || "").toLowerCase().includes(search.toLowerCase()) ||
+      (e.address || "").toLowerCase().includes(search.toLowerCase())
     )
     .sort((a, b) => {
       const aIsCritical = a.criticalPointId && criticalIds.has(a.criticalPointId) ? 0 : 1;
@@ -272,12 +299,8 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </span>
           ))}
-          <input
-            className="search-input"
-            placeholder="🔍 Buscar evento..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+          <input className="search-input" placeholder="🔍 Buscar evento..."
+            value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
         <div className="table-wrap">
@@ -296,7 +319,8 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
               </thead>
               <tbody>
                 {filtered.map(e => {
-                  const isOnCritical = e.criticalPointId && criticalIds.has(e.criticalPointId);
+                  const isOnCritical   = e.criticalPointId && criticalIds.has(e.criticalPointId);
+                  const neededProfiles = e.neededProfiles || [];
                   return (
                     <tr key={e.id} onClick={() => setDetailEvent(e)} style={{ cursor: "pointer" }}>
                       <td>
@@ -304,11 +328,21 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
                           {isOnCritical && <span title="Evento em ponto crítico" style={{ fontSize: 12, color: "#FF3B3B", flexShrink: 0 }}>⚠️</span>}
                           <div>
                             <div style={{ fontWeight: 600 }}>{e.title}</div>
-                            <div className="text-muted text-sm mono">📍 {e.city}</div>
+                            <div className="text-muted text-sm mono">📍 {e.address || e.city}</div>
+                            {neededProfiles.length > 0 && (
+                              <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginTop: 3 }}>
+                                {neededProfiles.slice(0, 3).map(p => (
+                                  <span key={p} style={{ background: "rgba(59,130,246,0.1)", color: "var(--accent2)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 4, fontSize: 9, padding: "1px 5px" }}>{p}</span>
+                                ))}
+                                {neededProfiles.length > 3 && (
+                                  <span style={{ fontSize: 9, color: "var(--text-muted)", padding: "1px 3px" }}>+{neededProfiles.length - 3}</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
-                      <td><span style={{ fontSize: 18 }}>{typeIcon[e.type]}</span></td>
+                      <td><span style={{ fontSize: 18 }}>{typeIcon[e.type] || "⚠️"}</span></td>
                       <td>{severityBadge(e.severity)}</td>
                       <td>{statusBadge(e.status)}</td>
                       <td><span className="mono" style={{ color: "var(--warning)" }}>{e.victims}</span></td>

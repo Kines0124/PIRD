@@ -1,5 +1,27 @@
 import { useState } from "react";
 import { SEVERITY_OPTIONS } from "../adminTheme.jsx";
+import { useGeocodingAutocomplete } from "../../../hooks/useGeocodingAutocomplete.js";
+
+const TIPO_OPTIONS = [
+  { value: "enchente",         label: "🌊 Enchente" },
+  { value: "deslizamento",     label: "⛰️ Deslizamento" },
+  { value: "alagamento",       label: "💧 Alagamento" },
+  { value: "incendio",         label: "🔥 Incêndio" },
+  { value: "desabamento",      label: "🏚️ Desabamento" },
+  { value: "acidente_transito",label: "🚗 Acidente de Trânsito" },
+  { value: "intoxicacao",      label: "☣️ Intoxicação" },
+  { value: "outro",            label: "⚠️ Outro" },
+];
+
+const PROFISSOES_NECESSARIAS = [
+  "Médico Clínico Geral", "Médico Emergencista", "Médico Cardiologista",
+  "Médico Neurologista", "Médico Ortopedista", "Médico Intensivista (UTI)",
+  "Enfermeiro(a)", "Técnico de Enfermagem",
+  "Bombeiro Civil", "Bombeiro Militar", "Paramédico / SAMU",
+  "Psicólogo", "Assistente Social",
+  "Engenheiro de Segurança", "Engenheiro Civil",
+  "Técnico em Resgate", "Socorrista", "Defesa Civil",
+];
 
 export default function EventModal({ event, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -17,41 +39,40 @@ export default function EventModal({ event, onClose, onSave }) {
     nearbyCollectionIds: [],
     volunteerIds: [],
     ...event,
+    neededProfiles: event?.neededProfiles ?? [],
   });
 
-  const [geoStatus, setGeoStatus] = useState(null);
+  const [addrQuery, setAddrQuery] = useState(event?.address || "");
+  const [showSugs,  setShowSugs]  = useState(false);
+
+  const { sugestoes, carregando } = useGeocodingAutocomplete(addrQuery);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  async function geocodificar() {
-    if (!form.address.trim()) return;
-    setGeoStatus("buscando");
-    try {
-      const query = encodeURIComponent(form.address);
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`,
-        { headers: { "Accept-Language": "pt-BR" } }
-      );
-      const data = await res.json();
-      if (data.length === 0) { setGeoStatus("erro"); return; }
-      const { lat, lon, display_name } = data[0];
-      setForm(f => ({
-        ...f,
-        lat: parseFloat(lat).toFixed(6),
-        lng: parseFloat(lon).toFixed(6),
-        city: f.city || display_name.split(",").slice(-3, -1).join(",").trim(),
-      }));
-      setGeoStatus("ok");
-    } catch {
-      setGeoStatus("erro");
-    }
+  function toggleProfile(prof) {
+    set("neededProfiles",
+      form.neededProfiles.includes(prof)
+        ? form.neededProfiles.filter(p => p !== prof)
+        : [...form.neededProfiles, prof]
+    );
+  }
+
+  function selectSugestao(sug) {
+    setAddrQuery(sug.placeName);
+    setForm(f => ({
+      ...f,
+      address: sug.placeName,
+      lat: sug.coordenadas.lat.toFixed(6),
+      lng: sug.coordenadas.lng.toFixed(6),
+    }));
+    setShowSugs(false);
   }
 
   const canSave = form.title.trim() && form.lat && form.lng;
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
+      <div className="modal" style={{ maxWidth: 620 }}>
         <div className="modal-header">
           <div className="modal-title">{event ? "Editar Evento" : "Cadastrar Novo Evento"}</div>
           <button className="modal-close" onClick={onClose}>✕</button>
@@ -73,10 +94,7 @@ export default function EventModal({ event, onClose, onSave }) {
             <div className="form-group">
               <label className="form-label">Tipo</label>
               <select className="form-select" value={form.type} onChange={e => set("type", e.target.value)}>
-                <option value="enchente">🌊 Enchente</option>
-                <option value="deslizamento">⛰️ Deslizamento</option>
-                <option value="alagamento">💧 Alagamento</option>
-                <option value="incendio">🔥 Incêndio</option>
+                {TIPO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div className="form-group">
@@ -98,17 +116,12 @@ export default function EventModal({ event, onClose, onSave }) {
                   key={opt.value}
                   onClick={() => set("severity", opt.value)}
                   style={{
-                    padding: "8px 0",
-                    borderRadius: 8,
+                    padding: "8px 0", borderRadius: 8, textAlign: "center",
                     border: `2px solid ${form.severity === opt.value ? opt.color : "var(--border)"}`,
                     background: form.severity === opt.value ? opt.bg : "var(--bg-elevated)",
                     color: form.severity === opt.value ? opt.color : "var(--text-muted)",
-                    textAlign: "center",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                    userSelect: "none",
+                    fontSize: 12, fontWeight: 700, cursor: "pointer",
+                    transition: "all 0.15s", userSelect: "none",
                   }}
                 >
                   <div style={{ fontSize: 16, marginBottom: 2 }}>
@@ -132,50 +145,79 @@ export default function EventModal({ event, onClose, onSave }) {
 
           <div className="form-group">
             <label className="form-label">Endereço *</label>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ position: "relative" }}>
               <input
                 className="form-input"
-                style={{ flex: 1 }}
-                value={form.address}
-                onChange={e => { set("address", e.target.value); setGeoStatus(null); }}
-                placeholder="Ex: Av. Charles Schnneider"
-                onKeyDown={e => e.key === "Enter" && geocodificar()}
+                value={addrQuery}
+                onChange={e => {
+                  setAddrQuery(e.target.value);
+                  set("address", e.target.value);
+                  set("lat", ""); set("lng", "");
+                  setShowSugs(true);
+                }}
+                onFocus={() => sugestoes.length > 0 && setShowSugs(true)}
+                onBlur={() => setTimeout(() => setShowSugs(false), 150)}
+                placeholder="Ex: Av. Charles Schneider, Taubaté"
               />
-              <button
-                className="btn btn-secondary"
-                onClick={geocodificar}
-                disabled={geoStatus === "buscando" || !form.address.trim()}
-                style={{ flexShrink: 0, opacity: !form.address.trim() ? 0.4 : 1 }}
-              >
-                {geoStatus === "buscando" ? "📡…" : "📍 Geocodificar"}
-              </button>
+              {carregando && (
+                <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--text-muted)" }}>
+                  📡…
+                </span>
+              )}
+              {showSugs && sugestoes.length > 0 && (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 200, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
+                  {sugestoes.map((s, i) => (
+                    <div
+                      key={s.id || i}
+                      onMouseDown={() => selectSugestao(s)}
+                      style={{ padding: "9px 12px", fontSize: 12.5, cursor: "pointer", color: "var(--text-primary)", borderBottom: i < sugestoes.length - 1 ? "1px solid var(--border)" : "none" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "var(--bg-hover)"}
+                      onMouseLeave={e => e.currentTarget.style.background = ""}
+                    >
+                      📍 {s.placeName}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            {geoStatus === "ok"   && <div style={{ fontSize: 11, color: "var(--success)",    marginTop: 5 }}>✓ Coordenadas obtidas com sucesso via OpenStreetMap</div>}
-            {geoStatus === "erro" && <div style={{ fontSize: 11, color: "var(--danger)",     marginTop: 5 }}>✗ Endereço não encontrado — tente ser mais específico ou insira as coordenadas manualmente</div>}
-            {geoStatus === null   && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>Digite o endereço completo e clique em Geocodificar para obter as coordenadas automaticamente.</div>}
+            {form.lat && form.lng
+              ? <div style={{ fontSize: 11, color: "var(--success)", marginTop: 5 }}>✓ Coordenadas obtidas: {form.lat}, {form.lng}</div>
+              : <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>Digite o endereço para ver sugestões com autocomplete.</div>
+            }
           </div>
 
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Latitude</label>
-              <input
-                className="form-input mono"
-                value={form.lat}
-                readOnly
-                placeholder="— preenchido automaticamente —"
-                style={{ color: form.lat ? "var(--accent2)" : "var(--text-muted)", cursor: "default", opacity: 0.8 }}
-              />
+              <input className="form-input mono" value={form.lat} readOnly placeholder="— autocomplete —"
+                style={{ color: form.lat ? "var(--accent2)" : "var(--text-muted)", cursor: "default", opacity: 0.8 }} />
             </div>
             <div className="form-group">
               <label className="form-label">Longitude</label>
-              <input
-                className="form-input mono"
-                value={form.lng}
-                readOnly
-                placeholder="— preenchido automaticamente —"
-                style={{ color: form.lng ? "var(--accent2)" : "var(--text-muted)", cursor: "default", opacity: 0.8 }}
-              />
+              <input className="form-input mono" value={form.lng} readOnly placeholder="— autocomplete —"
+                style={{ color: form.lng ? "var(--accent2)" : "var(--text-muted)", cursor: "default", opacity: 0.8 }} />
             </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Profissionais necessários</label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, background: "var(--bg-elevated)", borderRadius: 8, padding: "10px 12px", border: "1px solid var(--border)" }}>
+              {PROFISSOES_NECESSARIAS.map(prof => {
+                const checked = form.neededProfiles.includes(prof);
+                return (
+                  <label key={prof} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, cursor: "pointer", color: checked ? "var(--accent)" : "var(--text-secondary)", fontWeight: checked ? 600 : 400 }}>
+                    <input type="checkbox" checked={checked} onChange={() => toggleProfile(prof)}
+                      style={{ accentColor: "var(--accent)", cursor: "pointer", flexShrink: 0 }} />
+                    {prof}
+                  </label>
+                );
+              })}
+            </div>
+            {form.neededProfiles.length > 0 && (
+              <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 5 }}>
+                {form.neededProfiles.length} profissional(is) selecionado(s)
+              </div>
+            )}
           </div>
 
           <div className="form-group">

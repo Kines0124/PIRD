@@ -51,6 +51,10 @@ public class SecurityConfigurations {
                         // Cadastro de voluntário é público (auto-cadastro)
                         .requestMatchers(HttpMethod.POST, "/voluntarios").permitAll()
 
+                        // Cadastro de especialista é público; consulta individual permite polling de status
+                        .requestMatchers(HttpMethod.POST, "/especialistas").permitAll()
+                        .requestMatchers(HttpMethod.GET,  "/especialistas/*").permitAll()
+
                         // Swagger / OpenAPI — apenas em ambientes de desenvolvimento
                         .requestMatchers(
                                 "/swagger-ui/**",

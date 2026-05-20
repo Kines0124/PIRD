@@ -6,7 +6,9 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.locationtech.jts.geom.Point;
 
+import com.pird.pirdBackend.model.converter.StringListConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ForeignKey;
@@ -18,6 +20,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "evento")
@@ -75,4 +80,11 @@ public class Evento {
 
     @Column(name = "data_fim")
     private LocalDateTime dataFim;
+
+    @Column(name = "endereco", length = 255)
+    private String endereco;
+
+    @Column(name = "profissionais_necessarios", columnDefinition = "TEXT")
+    @Convert(converter = StringListConverter.class)
+    private List<String> profissionaisNecessarios = new ArrayList<>();
 }
