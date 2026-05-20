@@ -8,6 +8,7 @@ import CampoSection            from "./sections/CampoSection.jsx";
 import CriticalPointsSection   from "./sections/CriticalPointsSection.jsx";
 import ValidacoesSection       from "./sections/ValidacoesSection.jsx";
 import CollectionPointsSection from "./sections/CollectionPointsSection.jsx";
+import EspecialistasSection    from "./sections/EspecialistasSection.jsx";
 import EventModal              from "./modals/EventModal.jsx";
 import CriticalPointModal      from "./modals/CriticalPointModal.jsx";
 
@@ -90,6 +91,11 @@ function AdminPanel({ onLogout }) {
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [showNewPoint, setShowNewPoint] = useState(false);
 
+  // Statuses de campo dos especialistas (local — provisório)
+  const [specialistStatuses, setSpecialistStatuses] = useState({});
+  // ID de evento a abrir automaticamente em EventsSection
+  const [pendingOpenEventId, setPendingOpenEventId] = useState(null);
+
   async function loadAll() {
     try {
       const [evts, pts, vols, cols, specs] = await Promise.all([
@@ -111,6 +117,10 @@ function AdminPanel({ onLogout }) {
   }
 
   useEffect(() => { loadAll(); }, []);
+
+  function handleUpdateSpecialistStatus(id, status) {
+    setSpecialistStatuses(prev => ({ ...prev, [String(id)]: status }));
+  }
 
   async function handleSaveEvent(editEvent, form) {
     try {
@@ -174,23 +184,25 @@ function AdminPanel({ onLogout }) {
   const pendingEspecialistas = specialists.filter(s => s.status === "pendente").length;
 
   const navItems = [
-    { id: "overview",   icon: "◉",  label: "Visão Geral" },
-    { id: "dashboard",  icon: "📊", label: "Dashboard" },
-    { id: "events",     icon: "🌊", label: "Eventos",          badge: events.filter(e => e.status === "ativo").length },
-    { id: "campo",      icon: "🗺️", label: "Campo" },
-    { id: "critical",   icon: "⚠️", label: "Pontos Críticos",  badge: criticalPoints.length },
-    { id: "collection", icon: "📦", label: "Pontos de Coleta", badge: pendingCols, badgeClass: "blue" },
-    { id: "validacoes", icon: "🙋", label: "Validações",       badge: pendingEspecialistas },
+    { id: "overview",      icon: "◉",  label: "Visão Geral" },
+    { id: "dashboard",    icon: "📊", label: "Dashboard" },
+    { id: "events",       icon: "🌊", label: "Eventos",          badge: events.filter(e => e.status === "ativo").length },
+    { id: "campo",        icon: "🗺️", label: "Campo" },
+    { id: "especialistas",icon: "⚕️", label: "Especialistas",    badge: specialists.filter(s => s.status === "aprovado").length, badgeClass: "blue" },
+    { id: "critical",     icon: "⚠️", label: "Pontos Críticos",  badge: criticalPoints.length },
+    { id: "collection",   icon: "📦", label: "Pontos de Coleta", badge: pendingCols, badgeClass: "blue" },
+    { id: "validacoes",   icon: "🙋", label: "Validações",       badge: pendingEspecialistas },
   ];
 
   const sectionTitles = {
-    overview:   "Visão Geral",
-    dashboard:  "Dashboard",
-    events:     "Eventos Oficiais",
-    campo:      "Campo",
-    critical:   "Pontos Críticos",
-    collection: "Pontos de Coleta",
-    validacoes: "Validações de Cadastro",
+    overview:       "Visão Geral",
+    dashboard:      "Dashboard",
+    events:         "Eventos Oficiais",
+    campo:          "Campo",
+    especialistas:  "Especialistas Aprovados",
+    critical:       "Pontos Críticos",
+    collection:     "Pontos de Coleta",
+    validacoes:     "Validações de Cadastro",
   };
 
   const adminNome = adminApi.getAdminNome();
@@ -247,7 +259,12 @@ function AdminPanel({ onLogout }) {
 
           {section === "campo" ? (
             <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-              <CampoSection events={events} volunteers={volunteers} />
+              <CampoSection
+                events={events}
+                specialists={specialists}
+                specialistStatuses={specialistStatuses}
+                onGoToEvent={(id) => { setPendingOpenEventId(String(id)); setSection("events"); }}
+              />
             </div>
           ) : (
             <div className="content">
@@ -257,6 +274,7 @@ function AdminPanel({ onLogout }) {
                   criticalPoints={criticalPoints}
                   volunteers={volunteers}
                   collectionPoints={collectionPoints}
+                  specialists={specialists}
                   onNewEvent={() => setShowNewEvent(true)}
                   onNewPoint={() => setShowNewPoint(true)}
                 />
@@ -277,6 +295,11 @@ function AdminPanel({ onLogout }) {
                   criticalPoints={criticalPoints}
                   collectionPoints={collectionPoints}
                   volunteers={volunteers}
+                  specialists={specialists}
+                  specialistStatuses={specialistStatuses}
+                  onUpdateStatus={handleUpdateSpecialistStatus}
+                  openEventId={pendingOpenEventId}
+                  onEventOpened={() => setPendingOpenEventId(null)}
                 />
               )}
               {section === "critical" && (
@@ -291,6 +314,13 @@ function AdminPanel({ onLogout }) {
                   collectionPoints={collectionPoints}
                   onValidate={handleValidateColeta}
                   onReject={handleRejectColeta}
+                />
+              )}
+              {section === "especialistas" && (
+                <EspecialistasSection
+                  specialists={specialists}
+                  specialistStatuses={specialistStatuses}
+                  onUpdateStatus={handleUpdateSpecialistStatus}
                 />
               )}
               {section === "validacoes" && (

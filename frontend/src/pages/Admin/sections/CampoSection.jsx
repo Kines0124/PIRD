@@ -1,78 +1,82 @@
+import { useState, useMemo } from "react";
 import MapaCampo from "../components/MapaCampo";
 
-const PROF_COLORS = {
-  "Médico": "#2563eb", "Médico Clínico Geral": "#2563eb", "Médico Emergencista": "#2563eb",
-  "Enfermeiro(a)": "#16a34a", "Bombeiro Civil": "#dc2626", "Bombeiro Militar": "#dc2626",
-  "Paramédico / SAMU": "#7c3aed", "Psicólogo": "#0891b2",
-  "Engenheiro de Segurança": "#d97706", "Técnico em Resgate": "#71717a",
+
+
+const TIPO_LABEL = {
+  enchente: "Enchente", deslizamento: "Deslizamento", alagamento: "Alagamento",
+  incendio: "Incêndio", desabamento: "Desabamento", acidente_transito: "Acidente de Trânsito",
+  intoxicacao: "Intoxicação", outro: "Outro",
 };
 
-const STATUS_MAP = {
-  disponivel: { label: "Disponível", color: "#16a34a", bg: "rgba(22,163,74,0.1)" },
-  a_caminho:  { label: "A caminho",  color: "#ca8a04", bg: "rgba(202,138,4,0.1)" },
-  no_local:   { label: "No local",   color: "#dc2626", bg: "rgba(220,38,38,0.1)" },
-};
 
-function timeAgo(iso) {
-  if (!iso) return "";
-  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return `${s}s atrás`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}min atrás`;
-  return `${Math.floor(m / 60)}h atrás`;
-}
+export default function CampoSection({ events, specialists, specialistStatuses = {}, onGoToEvent }) {
+  const [filterTipo,       setFilterTipo]       = useState("");
+  const [filterSeveridade, setFilterSeveridade] = useState("todos");
+  const [flyTo,            setFlyTo]            = useState(null);
 
-function ProfCard({ prof }) {
-  const color = PROF_COLORS[prof.especialidade] || "#71717a";
-  const st    = STATUS_MAP.disponivel;
+  const aprovados = specialists.filter(s => s.status === "aprovado");
 
-  return (
-    <div style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-      <div style={{ width: 40, height: 40, borderRadius: "50%", backgroundColor: color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
-        {prof.nome.charAt(0)}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-primary)", marginBottom: 2 }}>{prof.nome}</div>
-        <div style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 6 }}>{prof.especialidade}</div>
-        <span style={{ backgroundColor: st.bg, color: st.color, borderRadius: 99, fontSize: 10, fontWeight: 600, padding: "2px 8px" }}>{st.label}</span>
-      </div>
-    </div>
+  function getEffectiveStatus(spec) {
+    return specialistStatuses[String(spec.id)] || spec.statusCampo || "disponivel";
+  }
+
+  const tipos = useMemo(
+    () => [...new Set(events.map(e => e.type).filter(Boolean))].sort(),
+    [events]
   );
-}
 
-export default function CampoSection({ events, volunteers }) {
-  const ativos = events.filter(e => e.status === "ativo");
-  const aprovados = volunteers.filter(v => v.status === "aprovado" && v.latitude != null);
+  const eventosFiltrados = useMemo(() => {
+    let list = events;
+    if (filterTipo) list = list.filter(e => e.type === filterTipo);
+    if (filterSeveridade !== "todos") {
+      list = list.filter(e => {
+        if (filterSeveridade === "critico")  return e.severity === "critico";
+        if (filterSeveridade === "alto")     return e.severity === "alto" || e.severity === "grave";
+        if (filterSeveridade === "moderado") return !["critico", "alto", "grave"].includes(e.severity);
+        return true;
+      });
+    }
+    return list;
+  }, [events, filterTipo, filterSeveridade]);
 
-  const profissionais = aprovados.map(v => ({
-    id: v.id,
-    nome: v.nome || v.name,
-    profissao: v.especialidade || v.specialty,
-    coordenadas: { lat: v.latitude, lng: v.longitude },
-    alertaAtendendo: null,
-    ultimaAtualizacao: v.registered || new Date().toISOString(),
-    statusCampo: "disponivel",
-  }));
+  const disponiveis = aprovados.filter(s => getEffectiveStatus(s) === "disponivel").length;
+  const aCaminho    = aprovados.filter(s => getEffectiveStatus(s) === "a_caminho").length;
+  const noLocal     = aprovados.filter(s => getEffectiveStatus(s) === "no_local").length;
 
-  const alertas = ativos.map(e => ({
+  const alertas = eventosFiltrados.map(e => ({
     id: String(e.id),
     titulo: e.title,
     endereco: e.address || e.city || "",
     tipo: e.type,
     criticidade: e.severity === "critico" ? "critico" : e.severity === "alto" ? "grave" : "moderado",
     profissionaisNecessarios: e.neededProfiles || [],
-    coordenadas: e.lat ? { lat: e.lat, lng: e.lng } : null,
+    coordenadas: e.lat ? { lat: parseFloat(e.lat), lng: parseFloat(e.lng) } : null,
     criadoEm: e.date || new Date().toISOString(),
-    status: "ativo",
+    status: e.status,
   }));
+
+  const selectStyle = {
+    backgroundColor: "var(--bg-elevated)",
+    border: "1px solid var(--border)",
+    borderRadius: 6,
+    color: "var(--text-primary)",
+    fontSize: 12,
+    padding: "6px 8px",
+    width: "100%",
+    cursor: "pointer",
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-      {/* Summary */}
-      <div style={{ padding: "12px 24px", backgroundColor: "var(--bg-elevated)", borderBottom: "1px solid var(--border)", display: "flex", gap: 20 }}>
+
+      {/* Summary bar */}
+      <div style={{ padding: "12px 24px", backgroundColor: "var(--bg-elevated)", borderBottom: "1px solid var(--border)", display: "flex", gap: 24, flexWrap: "wrap" }}>
         {[
-          { label: "Voluntários aprovados", value: aprovados.length, icon: "👥" },
-          { label: "Eventos ativos",        value: ativos.length,    icon: "🚨" },
+          { label: "Eventos no mapa",        value: eventosFiltrados.length, icon: "🗂️" },
+          { label: "Especialistas aprovados", value: aprovados.length,        icon: "👥" },
+          { label: "Disponíveis",            value: disponiveis,              icon: "✅" },
+          { label: "Em deslocamento",        value: aCaminho + noLocal,       icon: "⚡" },
         ].map(s => (
           <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 18 }}>{s.icon}</span>
@@ -82,27 +86,88 @@ export default function CampoSection({ events, volunteers }) {
             </div>
           </div>
         ))}
-        <div style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-muted)", alignSelf: "center" }}>
-          Localização de cadastro — estática
-        </div>
       </div>
 
-      {/* Map + list */}
+      {/* Map + sidebar */}
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+
+        {/* Map */}
         <div style={{ flex: 1, padding: 16, display: "flex", overflow: "hidden" }}>
-          <MapaCampo alertas={alertas} profissionais={profissionais} />
+          <MapaCampo alertas={alertas} profissionais={[]} onVerMaisEvento={onGoToEvent} flyTo={flyTo} />
         </div>
 
+        {/* Sidebar */}
         <div style={{ width: 300, borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+          {/* Filters */}
           <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)" }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)" }}>Voluntários Aprovados</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)", marginBottom: 10 }}>
+              Filtrar Eventos
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)} style={selectStyle}>
+                <option value="">Todos os tipos</option>
+                {tipos.map(t => <option key={t} value={t}>{TIPO_LABEL[t] ?? t}</option>)}
+              </select>
+              <select value={filterSeveridade} onChange={e => setFilterSeveridade(e.target.value)} style={selectStyle}>
+                <option value="todos">Toda severidade</option>
+                <option value="critico">Crítico</option>
+                <option value="alto">Alto / Grave</option>
+                <option value="moderado">Moderado</option>
+              </select>
+            </div>
+            {(filterTipo || filterSeveridade !== "todos") && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  {eventosFiltrados.length} de {events.length} eventos
+                </span>
+                <button
+                  onClick={() => { setFilterTipo(""); setFilterSeveridade("todos"); }}
+                  style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 11, cursor: "pointer", padding: 0 }}
+                >
+                  ✕ Limpar filtros
+                </button>
+              </div>
+            )}
           </div>
 
+          {/* Events list */}
           <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-            {profissionais.length === 0
-              ? <div style={{ textAlign: "center", color: "var(--text-secondary)", fontSize: 13, padding: "30px 0" }}>Nenhum voluntário com localização</div>
-              : profissionais.map(p => <ProfCard key={p.id} prof={{ nome: p.nome, especialidade: p.profissao }} />)
-            }
+            {eventosFiltrados.length === 0 ? (
+              <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 13, padding: "30px 0" }}>
+                {events.length === 0
+                  ? "Nenhum evento cadastrado"
+                  : "Nenhum evento para os filtros aplicados"}
+              </div>
+            ) : (
+              eventosFiltrados.map(e => {
+                const sevColor = e.severity === "critico" ? "#FF4444" : e.severity === "alto" || e.severity === "grave" ? "#FF6B00" : "#F5A623";
+                return (
+                  <div
+                    key={e.id}
+                    onClick={() => {
+                      if (e.lat && e.lng) setFlyTo({ lat: parseFloat(e.lat), lng: parseFloat(e.lng), _t: Date.now() });
+                    }}
+                    style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", borderLeft: `3px solid ${sevColor}`, borderRadius: 10, padding: "10px 12px", cursor: e.lat ? "pointer" : "default" }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-primary)", marginBottom: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {e.title}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 5 }}>
+                      {TIPO_LABEL[e.type] ?? e.type}
+                    </div>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: sevColor, backgroundColor: `${sevColor}18`, borderRadius: 99, padding: "2px 8px" }}>
+                        {e.severity === "critico" ? "Crítico" : e.severity === "alto" || e.severity === "grave" ? "Alto" : "Moderado"}
+                      </span>
+                      {(e.address || e.city) && (
+                        <span style={{ fontSize: 10, color: "var(--text-muted)" }}>📍 {e.address || e.city}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
 
           {/* Legend */}
@@ -112,6 +177,7 @@ export default function CampoSection({ events, volunteers }) {
               { color: "#FF4444", label: "Evento Crítico" },
               { color: "#FF6B00", label: "Evento Grave" },
               { color: "#F5A623", label: "Evento Moderado" },
+              { color: "#16a34a", label: "Especialista disponível" },
             ].map(i => (
               <div key={i.label} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                 <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: i.color }} />

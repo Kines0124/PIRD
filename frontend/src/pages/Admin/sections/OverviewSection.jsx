@@ -70,20 +70,21 @@ function MapView({ events, criticalPoints, collectionPoints }) {
   return <div id="admin-map" ref={containerRef} />;
 }
 
-export default function OverviewSection({ events, criticalPoints, volunteers, collectionPoints, onNewEvent, onNewPoint }) {
+export default function OverviewSection({ events, criticalPoints, volunteers, collectionPoints, specialists = [], onNewEvent, onNewPoint }) {
   const activeEvents  = events.filter(e => e.status === "ativo").length;
-  const pendingVols   = volunteers.filter(v => v.status === "pendente").length;
+  const pendingSpecs  = specialists.filter(s => s.status === "pendente").length;
+  const approvedSpecs = specialists.filter(s => s.status === "aprovado").length;
   const pendingCols   = collectionPoints.filter(p => p.status === "pendente").length;
   const totalVictims  = events.reduce((s, e) => s + (e.victims || 0), 0);
 
   return (
     <>
-      {(pendingVols > 0 || pendingCols > 0) && (
+      {(pendingSpecs > 0 || pendingCols > 0) && (
         <div className="alert-strip">
           <span className="alert-icon">🔴</span>
           <span>
             <b>Atenção:</b>
-            {pendingVols > 0 && <> <b>{pendingVols}</b> voluntário(s) aguardando aprovação. </>}
+            {pendingSpecs > 0 && <> <b>{pendingSpecs}</b> especialista(s) aguardando aprovação. </>}
             {pendingCols > 0 && <><b>{pendingCols}</b> ponto(s) de coleta aguardando validação.</>}
           </span>
         </div>
@@ -91,10 +92,10 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
 
       <div className="kpi-grid">
         {[
-          { label: "Eventos Ativos",    value: activeEvents,                                                 icon: "🌊", color: "#ef4444", delta: `${events.length} total`,          deltaClass: activeEvents > 0 ? "up" : "ok" },
-          { label: "Vítimas Afetadas",  value: totalVictims.toLocaleString("pt-BR"),                         icon: "👥", color: "#F5C518", delta: `${events.length} eventos`,          deltaClass: "ok" },
-          { label: "Voluntários Ativos",value: volunteers.filter(v => v.status === "aprovado").length,       icon: "🙋", color: "#22c55e", delta: `${pendingVols} pendentes`,          deltaClass: pendingVols > 0 ? "up" : "ok" },
-          { label: "Pontos de Coleta",  value: collectionPoints.filter(p => p.status === "validado").length, icon: "📦", color: "#3B82F6", delta: `${pendingCols} para validar`,      deltaClass: pendingCols > 0 ? "up" : "ok" },
+          { label: "Eventos Ativos",    value: activeEvents,                                                 icon: "🌊", color: "#ef4444", delta: `${events.length} total`,             deltaClass: activeEvents > 0 ? "up" : "ok" },
+          { label: "Vítimas Afetadas",  value: totalVictims.toLocaleString("pt-BR"),                         icon: "👥", color: "#F5C518", delta: `${events.length} eventos`,             deltaClass: "ok" },
+          { label: "Especialistas",     value: approvedSpecs,                                                icon: "⚕️", color: "#22c55e", delta: `${pendingSpecs} pendentes`,            deltaClass: pendingSpecs > 0 ? "up" : "ok" },
+          { label: "Pontos de Coleta",  value: collectionPoints.filter(p => p.status === "validado").length, icon: "📦", color: "#3B82F6", delta: `${pendingCols} para validar`,         deltaClass: pendingCols > 0 ? "up" : "ok" },
         ].map((k, i) => (
           <div className="kpi-card" key={i}>
             <div className="kpi-accent-bar" style={{ background: k.color }} />
@@ -189,22 +190,22 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
 
         <div className="card">
           <div className="card-header">
-            <div><div className="card-title">🙋 Voluntários Pendentes</div><div className="card-subtitle">Aguardando aprovação</div></div>
+            <div><div className="card-title">⚕️ Especialistas Pendentes</div><div className="card-subtitle">Aguardando aprovação</div></div>
           </div>
-          {volunteers.filter(v => v.status === "pendente").length === 0 ? (
+          {specialists.filter(s => s.status === "pendente").length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">✅</div>
-              <div className="empty-state-text">Nenhum pendente</div>
+              <div className="empty-state-text">Nenhum especialista pendente</div>
             </div>
-          ) : volunteers.filter(v => v.status === "pendente").map(v => (
-            <div className="volunteer-row" key={v.id}>
+          ) : specialists.filter(s => s.status === "pendente").map(s => (
+            <div className="volunteer-row" key={s.id}>
               <div className="vol-avatar" style={{ background: "linear-gradient(135deg,#FF6B1A,#FF3B3B)" }}>
-                {(v.name || v.nome || "?")[0]}
+                {(s.nome || "?")[0].toUpperCase()}
               </div>
               <div className="vol-info">
-                <div className="vol-name">{v.name || v.nome}</div>
-                <div className="vol-spec">{v.specialty || v.especialidade}</div>
-                <div className="vol-region">📍 {v.region || v.cidade || ""}</div>
+                <div className="vol-name">{s.nome}</div>
+                <div className="vol-spec">{s.profissao}</div>
+                <div className="vol-region">📍 {s.uf || "—"}</div>
               </div>
             </div>
           ))}

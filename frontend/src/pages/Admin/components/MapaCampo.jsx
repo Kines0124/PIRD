@@ -74,7 +74,7 @@ function createProfEl(p) {
   return el;
 }
 
-export default function MapaCampo({ alertas = [], profissionais = [] }) {
+export default function MapaCampo({ alertas = [], profissionais = [], onVerMaisEvento, flyTo }) {
   const containerRef     = useRef(null);
   const mapRef           = useRef(null);
   const alertMarkersRef  = useRef(new Map());
@@ -97,6 +97,11 @@ export default function MapaCampo({ alertas = [], profissionais = [] }) {
     mapRef.current = map;
     return () => { map.remove(); setMapReady(false); };
   }, []);
+
+  useEffect(() => {
+    if (!flyTo || !mapRef.current || !mapReady) return;
+    mapRef.current.flyTo({ center: [flyTo.lng, flyTo.lat], zoom: 15, speed: 1.4, curve: 1.2 });
+  }, [flyTo, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -162,6 +167,14 @@ export default function MapaCampo({ alertas = [], profissionais = [] }) {
                   {selAlerta.profissionaisNecessarios.map(p => <span key={p} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 99, padding: "2px 8px", fontSize: 10, color: "#4b5563" }}>{p}</span>)}
                 </div>
               </div>
+            )}
+            {onVerMaisEvento && (
+              <button
+                onClick={() => { onVerMaisEvento(selAlerta.id); setSelAlerta(null); }}
+                style={{ marginTop: 8, width: "100%", background: "#FF6B1A", color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+              >
+                Ver mais →
+              </button>
             )}
           </div>
         );

@@ -4,6 +4,64 @@ import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { severityColor, typeIcon, riskColor, severityBadge, statusBadge } from "../adminTheme.jsx";
 import EventModal from "../modals/EventModal.jsx";
 
+const PROF_COLORS = {
+  "Médico Clínico Geral":      "#2563eb",
+  "Médico Emergencista":       "#2563eb",
+  "Médico Cardiologista":      "#2563eb",
+  "Médico Neurologista":       "#2563eb",
+  "Médico Ortopedista":        "#2563eb",
+  "Médico Intensivista (UTI)": "#2563eb",
+  "Enfermeiro(a)":             "#16a34a",
+  "Técnico de Enfermagem":     "#16a34a",
+  "Bombeiro Civil":            "#dc2626",
+  "Bombeiro Militar":          "#dc2626",
+  "Paramédico / SAMU":         "#7c3aed",
+  "Psicólogo":                 "#0891b2",
+  "Assistente Social":         "#0891b2",
+  "Engenheiro de Segurança":   "#d97706",
+  "Engenheiro Civil":          "#d97706",
+  "Técnico em Resgate":        "#71717a",
+  "Socorrista":                "#71717a",
+  "Defesa Civil":              "#FF6B1A",
+};
+
+const FIELD_STATUS_MAP = {
+  disponivel: { label: "Disponível",    color: "#16a34a", bg: "rgba(22,163,74,0.12)" },
+  a_caminho:  { label: "Já convocado",  color: "#ca8a04", bg: "rgba(202,138,4,0.12)" },
+  no_local:   { label: "No local",      color: "#dc2626", bg: "rgba(220,38,38,0.12)" },
+};
+
+// ─── Linha de especialista na aba Posicionar ──────────────────────────────────
+function SpecialistAssignRow({ spec, effectiveStatus, onAssign }) {
+  const color = PROF_COLORS[spec.profissao] || "#71717a";
+  const st    = FIELD_STATUS_MAP[effectiveStatus] || FIELD_STATUS_MAP.disponivel;
+  const canAssign = effectiveStatus === "disponivel";
+
+  return (
+    <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ width: 36, height: 36, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff", fontSize: 13, flexShrink: 0 }}>
+        {spec.nome.charAt(0).toUpperCase()}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{spec.nome}</div>
+        <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{spec.profissao}{spec.uf ? ` · ${spec.uf}` : ""}</div>
+      </div>
+      {canAssign ? (
+        <button
+          onClick={onAssign}
+          style={{ background: "#FF6B1A", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
+        >
+          Posicionar →
+        </button>
+      ) : (
+        <span style={{ backgroundColor: st.bg, color: st.color, borderRadius: 99, fontSize: 10, fontWeight: 600, padding: "3px 10px", flexShrink: 0, whiteSpace: "nowrap" }}>
+          {st.label}
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ─── Mini-mapa Mapbox do drawer ───────────────────────────────────────────────
 function EventDetailMap({ event, collectionPoints, criticalPoints }) {
   const containerRef = useRef(null);
@@ -85,7 +143,7 @@ function EventDetailMap({ event, collectionPoints, criticalPoints }) {
 }
 
 // ─── Drawer de detalhes do evento ─────────────────────────────────────────────
-function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers, onClose, onEdit }) {
+function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, onClose, onEdit }) {
   const [tab, setTab] = useState("mapa");
 
   const nearbyPoints     = (event.nearbyCollectionIds || []).map(id => (collectionPoints || []).find(p => p.id === id)).filter(p => p && p.status === "validado");
@@ -93,11 +151,22 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
   const linkedCritical   = event.criticalPointId ? (criticalPoints || []).find(p => p.id === event.criticalPointId) : null;
   const neededProfiles   = event.neededProfiles || [];
 
+  function getEffectiveStatus(spec) {
+    return (specialistStatuses || {})[String(spec.id)] || spec.statusCampo || "disponivel";
+  }
+
+  const eligibleSpecialists = (specialists || [])
+    .filter(s => s.status === "aprovado")
+    .filter(s => neededProfiles.length === 0 || neededProfiles.includes(s.profissao));
+
+  const assignedSpecialists = eligibleSpecialists.filter(s => getEffectiveStatus(s) !== "disponivel");
+
   const tabs = [
-    { id: "mapa",        label: "🗺️ Mapa" },
-    { id: "fotos",       label: `📷 Fotos${event.photos?.length ? ` (${event.photos.length})` : ""}` },
-    { id: "coleta",      label: `📦 Coleta (${nearbyPoints.length})` },
-    { id: "voluntarios", label: `🙋 Voluntários (${activeVolunteers.length})` },
+    { id: "mapa",         label: "🗺️ Mapa" },
+    { id: "fotos",        label: `📷 Fotos${event.photos?.length ? ` (${event.photos.length})` : ""}` },
+    { id: "coleta",       label: `📦 Coleta (${nearbyPoints.length})` },
+    { id: "especialistas", label: `⚕️ Especialistas (${assignedSpecialists.length})` },
+    { id: "posicionar",   label: "🎯 Posicionar" },
   ];
 
   return (
@@ -138,9 +207,9 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 14 }}>
             {[
-              { label: "Vítimas",          value: event.victims,           color: "var(--warning)" },
-              { label: "Voluntários",      value: activeVolunteers.length, color: "var(--success)" },
-              { label: "Pontos de Coleta", value: nearbyPoints.length,     color: "var(--accent2)" },
+              { label: "Vítimas",          value: event.victims,               color: "var(--warning)" },
+              { label: "Especialistas",    value: assignedSpecialists.length,  color: "var(--success)" },
+              { label: "Pontos de Coleta", value: nearbyPoints.length,         color: "var(--accent2)" },
             ].map((k, i) => (
               <div key={i} style={{ background: "var(--bg-elevated)", borderRadius: 8, padding: "10px 14px", border: "1px solid var(--border)" }}>
                 <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{k.label}</div>
@@ -232,23 +301,54 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
             </div>
           )}
 
-          {tab === "voluntarios" && (
+          {tab === "especialistas" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {activeVolunteers.length === 0 ? (
-                <div className="empty-state"><div className="empty-state-icon">🙋</div><div className="empty-state-text">Nenhum voluntário vinculado a este evento</div></div>
-              ) : activeVolunteers.map((v, i) => {
-                const colors = ["linear-gradient(135deg,#FF6B1A,#FF3B3B)", "linear-gradient(135deg,#3B82F6,#8B5CF6)", "linear-gradient(135deg,#22c55e,#16a34a)", "linear-gradient(135deg,#F5C518,#FF8C00)"];
+              {assignedSpecialists.length === 0 ? (
+                <div className="empty-state"><div className="empty-state-icon">⚕️</div><div className="empty-state-text">Nenhum especialista designado ainda. Use a aba Posicionar.</div></div>
+              ) : assignedSpecialists.map(s => {
+                const color = PROF_COLORS[s.profissao] || "#71717a";
+                const effStatus = getEffectiveStatus(s);
+                const st = FIELD_STATUS_MAP[effStatus] || FIELD_STATUS_MAP.disponivel;
                 return (
-                  <div key={v.id} style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ width: 38, height: 38, borderRadius: "50%", background: colors[i % colors.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>{(v.name || v.nome || "?")[0]}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{v.name || v.nome}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{v.specialty || v.especialidade}</div>
+                  <div key={s.id} style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 38, height: 38, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, color: "#fff", flexShrink: 0 }}>
+                      {s.nome.charAt(0).toUpperCase()}
                     </div>
-                    {statusBadge(v.status)}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.nome}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{s.profissao}{s.uf ? ` · ${s.uf}` : ""}</div>
+                    </div>
+                    <span style={{ backgroundColor: st.bg, color: st.color, borderRadius: 99, fontSize: 10, fontWeight: 600, padding: "3px 10px", flexShrink: 0, whiteSpace: "nowrap" }}>
+                      {st.label}
+                    </span>
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {tab === "posicionar" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>
+                {neededProfiles.length > 0
+                  ? `Especialistas compatíveis com as ${neededProfiles.length} profissão(ões) requerida(s)`
+                  : "Todos os especialistas aprovados"}
+              </div>
+              {eligibleSpecialists.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon">⚕️</div>
+                  <div className="empty-state-text">Nenhum especialista aprovado{neededProfiles.length > 0 ? " e compatível" : ""} cadastrado.</div>
+                </div>
+              ) : (
+                eligibleSpecialists.map(s => (
+                  <SpecialistAssignRow
+                    key={s.id}
+                    spec={s}
+                    effectiveStatus={getEffectiveStatus(s)}
+                    onAssign={() => onUpdateStatus && onUpdateStatus(s.id, "a_caminho")}
+                  />
+                ))
+              )}
             </div>
           )}
         </div>
@@ -258,12 +358,22 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
 }
 
 // ─── EventsSection ─────────────────────────────────────────────────────────────
-export default function EventsSection({ events, onSaveEvent, criticalPoints, collectionPoints, volunteers }) {
+export default function EventsSection({ events, onSaveEvent, criticalPoints, collectionPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, openEventId, onEventOpened }) {
   const [filter, setFilter]           = useState("todos");
   const [search, setSearch]           = useState("");
   const [editEvent, setEditEvent]     = useState(null);
   const [showNew, setShowNew]         = useState(false);
   const [detailEvent, setDetailEvent] = useState(null);
+
+  // Abre automaticamente o drawer quando navegado via "Ver mais" no Campo
+  useEffect(() => {
+    if (!openEventId || events.length === 0) return;
+    const evt = events.find(e => String(e.id) === String(openEventId));
+    if (evt) {
+      setDetailEvent(evt);
+      if (onEventOpened) onEventOpened();
+    }
+  }, [openEventId, events]);
 
   const severityOrder = { critico: 0, alto: 1, medio: 2, baixo: 3 };
   const criticalIds   = new Set((criticalPoints || []).map(p => p.id));
@@ -367,6 +477,9 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
           collectionPoints={collectionPoints}
           criticalPoints={criticalPoints}
           volunteers={volunteers}
+          specialists={specialists}
+          specialistStatuses={specialistStatuses}
+          onUpdateStatus={onUpdateStatus}
           onClose={() => setDetailEvent(null)}
           onEdit={() => { setEditEvent(detailEvent); setDetailEvent(null); }}
         />
