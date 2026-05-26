@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.pird.pirdBackend.repository.AdministradorRepository;
+import com.pird.pirdBackend.repository.EspecialistaRepository;
 import com.pird.pirdBackend.repository.PontoColetaRepository;
 
 import jakarta.servlet.FilterChain;
@@ -29,6 +30,9 @@ public class SecurityFilter extends OncePerRequestFilter {
     @Autowired
     private PontoColetaRepository pontoColetaRepository;
 
+    @Autowired
+    private EspecialistaRepository especialistaRepository;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -43,6 +47,7 @@ public class SecurityFilter extends OncePerRequestFilter {
             if (!subject.isBlank()) {
                 UserDetails user = administradorRepository.findByEmail(subject);
                 if (user == null) user = pontoColetaRepository.findByEmail(subject);
+                if (user == null) user = especialistaRepository.findByEmail(subject);
 
                 if (user != null) {
                     var authentication = new UsernamePasswordAuthenticationToken(
@@ -56,10 +61,6 @@ public class SecurityFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Extrai o token JWT do cabeçalho "Authorization: Bearer <token>".
-     * Retorna null se o cabeçalho estiver ausente ou mal formatado.
-     */
     private String recuperarToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {

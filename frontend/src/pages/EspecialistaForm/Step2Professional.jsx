@@ -25,6 +25,25 @@ const PROFISSOES = [
 
 const UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"];
 
+function AddrField({ label, placeholder, inputMode, value, onChange, error, errorMsg, style, inputSt, labelSt }) {
+  return (
+    <div style={style}>
+      <label style={{ ...labelSt, color: error ? "var(--accent)" : "var(--text-secondary)" }}>
+        {label}{error && " *"}
+      </label>
+      <input
+        type="text"
+        inputMode={inputMode}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        style={{ ...inputSt, borderColor: error ? "var(--accent)" : "var(--border)" }}
+      />
+      {error && <p style={{ fontSize: 12, color: "var(--accent)", marginTop: 5 }}>{errorMsg}</p>}
+    </div>
+  );
+}
+
 function validateRegistroFormat(registro, tipo) {
   const clean = registro.trim();
   if (clean.length < 4) return false;
@@ -34,17 +53,37 @@ function validateRegistroFormat(registro, tipo) {
   return clean.length >= 4;
 }
 
+function maskCEP(v) {
+  const d = v.replace(/\D/g, "").slice(0, 8);
+  return d.length > 5 ? d.slice(0, 5) + "-" + d.slice(5) : d;
+}
+
 export default function Step2Professional({ userData, onNext }) {
   const [profissao, setProfissao]   = useState("");
   const [registro,  setRegistro]    = useState("");
   const [uf,        setUf]          = useState("SP");
   const [validated, setValidated]   = useState(false);
   const [fmtError,  setFmtError]    = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
 
-  const prof    = PROFISSOES.find(p => p.id === profissao);
+  const [cep,    setCep]    = useState("");
+  const [rua,    setRua]    = useState("");
+  const [numero, setNumero] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [cidade, setCidade] = useState("");
+
+  const [showAddrErr,  setShowAddrErr]  = useState(false);
+  const [submitting,   setSubmitting]   = useState(false);
+  const [submitError,  setSubmitError]  = useState(null);
+
+  const prof     = PROFISSOES.find(p => p.id === profissao);
   const isMedico = prof?.tipo === "CRM";
+
+  const addressComplete =
+    cep.replace(/\D/g, "").length === 8 &&
+    rua.trim().length >= 3 &&
+    numero.trim().length >= 1 &&
+    bairro.trim().length >= 2 &&
+    cidade.trim().length >= 2;
 
   function handleRegistroChange(v) {
     setRegistro(v.replace(/[^A-Za-z0-9\-.]/g, ""));
@@ -64,6 +103,7 @@ export default function Step2Professional({ userData, onNext }) {
 
   async function handleConfirm() {
     if (!prof || submitting) return;
+    if (!addressComplete) { setShowAddrErr(true); return; }
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -74,9 +114,15 @@ export default function Step2Professional({ userData, onNext }) {
           nome: userData.nome,
           cpf: userData.cpf,
           telefone: userData.telefone,
+          email: userData.email,
           profissao: prof.label,
           numeroRegistro: `${prof.tipo === "CRM" ? `CRM/${uf}` : prof.tipo} ${registro}`,
           uf,
+          rua: rua.trim(),
+          numero: numero.trim(),
+          bairro: bairro.trim(),
+          cidade: cidade.trim(),
+          cep,
         }),
       });
       if (!res.ok) throw new Error("Erro ao enviar cadastro.");
@@ -91,9 +137,9 @@ export default function Step2Professional({ userData, onNext }) {
   }
 
   const canValidate = !!profissao && registro.length >= 4 && !validated;
-  const canConfirm  = validated;
+  const canConfirm  = validated && addressComplete;
 
-  const inputSt = { width: "100%", padding: "12px 14px", background: "var(--bg-surface)", border: "1.5px solid var(--border)", borderRadius: 8, color: "var(--text-primary)", fontSize: 15, outline: "none" };
+  const inputSt  = { width: "100%", padding: "12px 14px", background: "var(--bg-surface)", border: "1.5px solid var(--border)", borderRadius: 8, color: "var(--text-primary)", fontSize: 15, outline: "none", boxSizing: "border-box" };
   const selectSt = { ...inputSt, cursor: "pointer" };
   const labelSt  = { display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 };
 
@@ -178,20 +224,66 @@ export default function Step2Professional({ userData, onNext }) {
           </div>
         )}
 
+        {validated && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ height: 1, background: "var(--border)" }} />
+            <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", letterSpacing: "0.1em", textTransform: "uppercase", margin: 0 }}>
+              Endereço residencial
+            </p>
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <AddrField
+                label="CEP" placeholder="00000-000" inputMode="numeric"
+                value={cep} onChange={e => { setCep(maskCEP(e.target.value)); setShowAddrErr(false); }}
+                error={showAddrErr && cep.replace(/\D/g,"").length !== 8} errorMsg="CEP obrigatório (8 dígitos)."
+                style={{ flex: "0 0 140px" }} inputSt={inputSt} labelSt={labelSt}
+              />
+              <AddrField
+                label="Cidade" placeholder="São Paulo"
+                value={cidade} onChange={e => { setCidade(e.target.value); setShowAddrErr(false); }}
+                error={showAddrErr && cidade.trim().length < 2} errorMsg="Cidade obrigatória."
+                style={{ flex: 1 }} inputSt={inputSt} labelSt={labelSt}
+              />
+            </div>
+
+            <AddrField
+              label="Rua / Avenida" placeholder="Rua das Flores"
+              value={rua} onChange={e => { setRua(e.target.value); setShowAddrErr(false); }}
+              error={showAddrErr && rua.trim().length < 3} errorMsg="Rua obrigatória."
+              inputSt={inputSt} labelSt={labelSt}
+            />
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <AddrField
+                label="Número" placeholder="123"
+                value={numero} onChange={e => { setNumero(e.target.value); setShowAddrErr(false); }}
+                error={showAddrErr && numero.trim().length < 1} errorMsg="Obrigatório."
+                style={{ flex: "0 0 100px" }} inputSt={inputSt} labelSt={labelSt}
+              />
+              <AddrField
+                label="Bairro" placeholder="Centro"
+                value={bairro} onChange={e => { setBairro(e.target.value); setShowAddrErr(false); }}
+                error={showAddrErr && bairro.trim().length < 2} errorMsg="Bairro obrigatório."
+                style={{ flex: 1 }} inputSt={inputSt} labelSt={labelSt}
+              />
+            </div>
+          </div>
+        )}
+
         {submitError && (
           <div style={{ background: "rgba(255,59,59,0.08)", border: "1px solid rgba(255,59,59,0.25)", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#ef4444" }}>
             {submitError}
           </div>
         )}
 
-        {canConfirm && (
-          <button onClick={handleConfirm} disabled={submitting}
+        {validated && (
+          <button onClick={handleConfirm} disabled={!canConfirm || submitting}
             style={{
               padding: "14px", borderRadius: 10, border: "none",
-              background: submitting ? "var(--bg-hover)" : "var(--accent)",
-              color: submitting ? "var(--text-muted)" : "#fff",
+              background: canConfirm && !submitting ? "var(--accent)" : "var(--bg-hover)",
+              color: canConfirm && !submitting ? "#fff" : "var(--text-muted)",
               fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 700,
-              cursor: submitting ? "not-allowed" : "pointer", letterSpacing: "0.08em",
+              cursor: canConfirm && !submitting ? "pointer" : "not-allowed", letterSpacing: "0.08em",
             }}
           >
             {submitting ? "Enviando..." : "✓ Enviar para Validação"}

@@ -1,5 +1,6 @@
-import {Link} from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 export default function TelaLogin({ onLogin }) {
+  const navigate = useNavigate();
 
   return (
     <div style={{
@@ -27,12 +28,12 @@ export default function TelaLogin({ onLogin }) {
       </div>
       <div style={{ display: "flex", gap: 16 }}>
         {[
-          { id: "defesa", icon: "🛡️", label: "Defesa Civil", desc: "Painel de comando e controle", cor: "#ef4444" },
-          { id: "usuario", icon: "👤", label: "Cidadão", desc: "Doe, voluntarie-se ou reporte riscos", cor: "#0ea5e9" },
+          { id: "defesa",       icon: "🛡️", label: "Defesa Civil",  desc: "Painel de comando e controle",  cor: "#ef4444" },
+          { id: "especialista", icon: "⚕️", label: "Especialista",  desc: "Acesse seu painel e convocações", cor: "#10b981" },
         ].map(p => (
           <button
             key={p.id}
-            onClick={() => onLogin(p.id)}
+            onClick={() => p.id === "especialista" ? navigate("/especialistas/painel") : onLogin(p.id)}
             style={{
               display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
               padding: "28px 36px", background: "#0a1628",

@@ -17,6 +17,7 @@ import com.pird.pirdBackend.dto.LoginRequestDTO;
 import com.pird.pirdBackend.dto.LoginResponseDTO;
 import com.pird.pirdBackend.dto.RegistroAdminDTO;
 import com.pird.pirdBackend.model.Administrador;
+import com.pird.pirdBackend.model.Especialista;
 import com.pird.pirdBackend.model.PontoColeta;
 import com.pird.pirdBackend.repository.AdministradorRepository;
 import com.pird.pirdBackend.security.TokenService;
@@ -70,6 +71,8 @@ public class AuthController {
                 nome = admin.getNome();
             } else if (user instanceof PontoColeta pc) {
                 nome = pc.getNomeLocal();
+            } else if (user instanceof Especialista esp) {
+                nome = esp.getNome();
             } else {
                 nome = user.getUsername();
             }

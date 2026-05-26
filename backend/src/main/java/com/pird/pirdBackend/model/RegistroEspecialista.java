@@ -39,6 +39,28 @@ public class RegistroEspecialista {
     @Column(length = 2)
     private String uf;
 
+    @Column(length = 200)
+    private String rua;
+
+    @Column(length = 20)
+    private String numero;
+
+    @Column(length = 100)
+    private String bairro;
+
+    @Column(length = 100)
+    private String cidade;
+
+    @Column(length = 10)
+    private String cep;
+
+    // Credenciais fornecidas no cadastro; transferidas para Especialista na aprovação
+    @Column(length = 100)
+    private String email;
+
+    @Column(name = "senha_hash")
+    private String senhaHash;
+
     @Column(nullable = false, length = 20)
     private String status = "pendente";
 
@@ -81,6 +103,27 @@ public class RegistroEspecialista {
 
     public String getUf() { return uf; }
     public void setUf(String uf) { this.uf = uf; }
+
+    public String getRua() { return rua; }
+    public void setRua(String rua) { this.rua = rua; }
+
+    public String getNumero() { return numero; }
+    public void setNumero(String numero) { this.numero = numero; }
+
+    public String getBairro() { return bairro; }
+    public void setBairro(String bairro) { this.bairro = bairro; }
+
+    public String getCidade() { return cidade; }
+    public void setCidade(String cidade) { this.cidade = cidade; }
+
+    public String getCep() { return cep; }
+    public void setCep(String cep) { this.cep = cep; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getSenhaHash() { return senhaHash; }
+    public void setSenhaHash(String senhaHash) { this.senhaHash = senhaHash; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

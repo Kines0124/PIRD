@@ -12,6 +12,7 @@ import PortalDoador from "./pages/Portal/PortalDoador";
 import Form from "./pages/FormDoadores/Form"
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import EspecialistaForm from "./pages/EspecialistaForm/EspecialistaForm";
+import EspecialistaDashboard from "./pages/Especialista/EspecialistaDashboard";
 
 // ---------------------------------------------------------------------------
 // Layout protegido — envolve todas as telas que exigem login (têm Sidebar)
@@ -103,6 +104,7 @@ export default function App() {
     <Routes>
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/especialistas/cadastro" element={<EspecialistaForm />} />
+      <Route path="/especialistas/painel" element={<EspecialistaDashboard />} />
       {/* Rota pública: login */}
       <Route path="/login" element={<TelaLogin onLogin={handleLogin} />} />
 

@@ -1,29 +1,44 @@
 import { useState } from "react";
 import { validateCPF, maskCPF, validatePhone, maskPhone, validateName } from "../../utils/cpfValidator";
 
-export default function Step1Identity({ onNext }) {
-  const [nome, setNome] = useState({ value: "", touched: false, valid: null });
-  const [cpf,  setCpf]  = useState({ value: "", touched: false, valid: null });
-  const [tel,  setTel]  = useState({ value: "", touched: false, valid: null });
+function validateEmail(v) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+}
 
-  const allValid = nome.valid === true && cpf.valid === true && tel.valid === true;
+export default function Step1Identity({ onNext }) {
+  const [nome,  setNome]  = useState({ value: "", touched: false, valid: null });
+  const [cpf,   setCpf]   = useState({ value: "", touched: false, valid: null });
+  const [tel,   setTel]   = useState({ value: "", touched: false, valid: null });
+  const [email, setEmail] = useState({ value: "", touched: false, valid: null });
+
+  const allValid = nome.valid === true && cpf.valid === true && tel.valid === true && email.valid === true;
 
   function handleNome(v) {
     setNome({ value: v, touched: true, valid: validateName(v) });
   }
   function handleCpf(v) {
     const masked = maskCPF(v);
-    setCpf({ value: masked, touched: true, valid: masked.length === 14 ? validateCPF(masked) : null });
+    setCpf({ value: masked, touched: true, valid: masked.length === 14 ? validateCPF(masked) : false });
   }
   function handleTel(v) {
     const masked = maskPhone(v);
     setTel({ value: masked, touched: true, valid: validatePhone(masked) });
   }
+  function handleEmail(v) {
+    setEmail({ value: v, touched: true, valid: validateEmail(v) });
+  }
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (!allValid) return;
-    onNext({ nome: nome.value.trim(), cpf: cpf.value, telefone: tel.value });
+    if (!allValid) {
+      // Reveal errors on all fields the user hasn't touched yet
+      setNome(f => ({ ...f, touched: true, valid: validateName(f.value) }));
+      setCpf(f => ({ ...f, touched: true, valid: f.value.length === 14 ? validateCPF(f.value) : false }));
+      setTel(f => ({ ...f, touched: true, valid: validatePhone(f.value) }));
+      setEmail(f => ({ ...f, touched: true, valid: validateEmail(f.value) }));
+      return;
+    }
+    onNext({ nome: nome.value.trim(), cpf: cpf.value, telefone: tel.value, email: email.value.trim() });
   }
 
   return (
@@ -70,15 +85,18 @@ export default function Step1Identity({ onNext }) {
           onChange={e => handleTel(e.target.value)} valid={tel.touched ? tel.valid : null}
           errorMsg="DDD inválido ou número incorreto." />
 
+        <Field label="E-mail" placeholder="seu@email.com" value={email.value}
+          onChange={e => handleEmail(e.target.value)} valid={email.touched ? email.valid : null}
+          errorMsg="E-mail inválido." />
+
         <button
           type="submit"
-          disabled={!allValid}
           style={{
             marginTop: 8, padding: "14px", borderRadius: 10, border: "none",
             background: allValid ? "var(--accent)" : "var(--bg-hover)",
             color: allValid ? "#fff" : "var(--text-muted)",
             fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 700,
-            letterSpacing: "0.08em", cursor: allValid ? "pointer" : "not-allowed",
+            letterSpacing: "0.08em", cursor: "pointer",
             transition: "all 0.2s ease",
           }}
         >
@@ -95,8 +113,8 @@ function Field({ label, placeholder, inputMode, value, onChange, valid, errorMsg
 
   return (
     <div>
-      <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
-        {label}
+      <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: valid === false ? "var(--accent)" : "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
+        {label}{valid === false && " *"}
       </label>
       <div style={{ position: "relative" }}>
         <input
@@ -112,6 +130,7 @@ function Field({ label, placeholder, inputMode, value, onChange, valid, errorMsg
             borderRadius: 8, color: "var(--text-primary)",
             fontSize: 15, outline: "none",
             transition: "border-color 0.2s ease",
+            boxSizing: "border-box",
           }}
         />
         {valid !== null && (
