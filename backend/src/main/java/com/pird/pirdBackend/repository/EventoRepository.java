@@ -8,4 +8,5 @@ import com.pird.pirdBackend.model.Evento;
 
 public interface EventoRepository extends JpaRepository<Evento, Integer> {
     boolean existsByStatusIn(List<String> statuses);
+    List<Evento> findByStatus(String status);
 }

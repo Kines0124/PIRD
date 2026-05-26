@@ -34,6 +34,12 @@ public class EventoController {
         return ResponseEntity.ok(eventoService.listar());
     }
 
+    @GetMapping("/ativos")
+    @PreAuthorize("hasAnyRole('ESPECIALISTA', 'ADMINISTRADOR')")
+    public ResponseEntity<List<EventoGetDTO>> listarAtivos() {
+        return ResponseEntity.ok(eventoService.listarAtivos());
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<EventoGetDTO> criar(@RequestBody EventoPostDTO dto,

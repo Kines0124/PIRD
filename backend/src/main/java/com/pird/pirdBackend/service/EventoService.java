@@ -45,6 +45,10 @@ public class EventoService {
         return EventoGetDTO.convert(eventoRepository.findAll());
     }
 
+    public List<EventoGetDTO> listarAtivos() {
+        return EventoGetDTO.convert(eventoRepository.findByStatus("ativo"));
+    }
+
     public EventoGetDTO buscarPorId(Integer id) {
         Evento evento = eventoRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado"));

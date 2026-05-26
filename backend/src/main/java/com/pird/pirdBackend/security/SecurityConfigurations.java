@@ -54,6 +54,9 @@ public class SecurityConfigurations {
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/convocacoes/*/aceitar")).hasRole("ESPECIALISTA")
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/convocacoes/*/recusar")).hasRole("ESPECIALISTA")
 
+                        // Eventos ativos (visíveis ao especialista)
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET, "/eventos/ativos")).hasAnyRole("ESPECIALISTA", "ADMINISTRADOR")
+
                         // Swagger / OpenAPI
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/swagger-ui/**")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/swagger-ui.html")).permitAll()

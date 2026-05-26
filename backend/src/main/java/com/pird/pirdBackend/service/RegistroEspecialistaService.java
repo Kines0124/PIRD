@@ -7,6 +7,9 @@ import com.pird.pirdBackend.model.Especialista;
 import com.pird.pirdBackend.model.RegistroEspecialista;
 import com.pird.pirdBackend.repository.EspecialistaRepository;
 import com.pird.pirdBackend.repository.RegistroEspecialistaRepository;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -80,6 +83,9 @@ public class RegistroEspecialistaService {
         especialista.setBairro(r.getBairro());
         especialista.setCidade(r.getCidade());
         especialista.setCep(r.getCep());
+        // Default location: Taubaté center — refined later via PUT /especialistas/aprovados/{id}
+        GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
+        especialista.setLocalizacao(gf.createPoint(new Coordinate(-45.5533, -23.0268)));
         especialistaRepository.save(especialista);
 
         r.setStatus("aprovado");
