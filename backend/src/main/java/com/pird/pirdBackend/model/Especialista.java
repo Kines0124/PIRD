@@ -86,6 +86,9 @@ public class Especialista implements UserDetails {
     @Column(name = "criado_em", nullable = false, updatable = false)
     private LocalDateTime criadoEm = LocalDateTime.now();
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean deletado = false;
+
     public Especialista() {}
 
     @Override
@@ -102,7 +105,7 @@ public class Especialista implements UserDetails {
     @Override public boolean isAccountNonExpired()     { return true; }
     @Override public boolean isAccountNonLocked()      { return true; }
     @Override public boolean isCredentialsNonExpired() { return true; }
-    @Override public boolean isEnabled()               { return true; }
+    @Override public boolean isEnabled()               { return !deletado; }
 
     public Integer getId()                    { return id; }
     public void setId(Integer id)             { this.id = id; }
@@ -154,4 +157,7 @@ public class Especialista implements UserDetails {
 
     public LocalDateTime getCriadoEm()        { return criadoEm; }
     public void setCriadoEm(LocalDateTime dt) { this.criadoEm = dt; }
+
+    public boolean isDeletado()              { return deletado; }
+    public void setDeletado(boolean deletado){ this.deletado = deletado; }
 }

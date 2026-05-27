@@ -1,6 +1,5 @@
 package com.pird.pirdBackend.service;
 
-import com.pird.pirdBackend.config.ConvocacaoConfig;
 import com.pird.pirdBackend.dto.ConvocacaoGetDTO;
 import com.pird.pirdBackend.model.Convocacao;
 import com.pird.pirdBackend.model.Especialista;
@@ -34,82 +33,46 @@ public class ConvocacaoService {
     // ── Convocação automática ─────────────────────────────────────────────────
 
     /**
-     * Executa a convocação automática para um evento:
+     * Convoca automaticamente todos os especialistas disponíveis cujas profissões
+     * estejam em {@code evento.profissionaisNecessarios} e residam na mesma cidade
+     * do evento (comparação case-insensitive).
      *
-     *  1. Especialistas são buscados em raio crescente (1→2→4→...→32km).
-     *  2. Dentro de cada raio, profissões são percorridas em ordem de prioridade
-     *     (P1, P2, P3) conforme ConvocacaoConfig.
-     *  3. Apenas especialistas sem convocação ativa (pendente/aceita) são elegíveis.
-     *  4. Psicólogo e Assistente Social: máximo 1 por evento.
-     *  5. Teto absoluto por severidade: moderado=5, alto=8, crítico=10.
-     *  6. Mínimos por tier variam com a criticidade.
+     * Pré-requisitos: evento deve ter profissionaisNecessarios e cidade preenchidos.
      */
     @Transactional
     public List<ConvocacaoGetDTO> convocarAutomaticamente(Integer eventoId) {
         Evento evento = eventoRepository.findById(eventoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado"));
 
-        String tipo      = evento.getTipo();
-        String severidade = evento.getSeveridade();
-        int sevIdx = ConvocacaoConfig.SEV_INDEX.getOrDefault(severidade, 0);
-        int teto   = ConvocacaoConfig.TETO.getOrDefault(severidade, 5);
+        List<String> profissoes = evento.getProfissionaisNecessarios();
+        String cidade = evento.getCidade();
 
-        List<List<String>> tiers = ConvocacaoConfig.PRIORIDADE.getOrDefault(tipo, List.of());
-
-        if (evento.getLocalizacao() == null) {
+        if (profissoes == null || profissoes.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Evento sem coordenadas — não é possível calcular raio de busca.");
+                    "Evento sem profissionais necessários definidos — defina-os antes de convocar.");
+        }
+        if (cidade == null || cidade.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Evento sem cidade definida — necessário para convocação automática por cidade.");
         }
 
-        double lat = evento.getLocalizacao().getY();
-        double lng = evento.getLocalizacao().getX();
-
         List<Convocacao> resultado = new ArrayList<>();
-        double raioKm = ConvocacaoConfig.RAIO_INICIAL_KM;
 
-        while (resultado.size() < teto && raioKm <= ConvocacaoConfig.RAIO_MAXIMO_KM) {
-            double raioMetros = raioKm * 1000;
+        for (String profissao : profissoes) {
+            List<Especialista> candidatos =
+                    especialistaRepository.findDisponivelPorProfissaoECidade(profissao, cidade);
 
-            for (int t = 0; t < tiers.size() && resultado.size() < teto; t++) {
-                int minimoTier = ConvocacaoConfig.MINIMO_POR_TIER[sevIdx][Math.min(t, 2)];
-
-                for (String profissao : tiers.get(t)) {
-                    if (resultado.size() >= teto) break;
-
-                    Set<String> elegivel = ConvocacaoConfig.ELEGIBILIDADE.getOrDefault(profissao, Set.of());
-                    if (!elegivel.contains(tipo)) continue;
-
-                    // Profissões com limite de 1 por evento
-                    if (ConvocacaoConfig.LIMITE_UM_POR_EVENTO.contains(profissao)) {
-                        long jaConvocados = contarProfissaoNoEvento(resultado, profissao)
-                                + convocacaoRepository.countByEventoIdAndEspecialistaProfissaoAndStatusIn(
-                                    eventoId, profissao, List.of("pendente", "aceita"));
-                        if (jaConvocados >= 1) continue;
-                    }
-
-                    int vagasDisponiveis = teto - resultado.size();
-                    int solicitar = Math.max(minimoTier, 1);
-                    int limite = Math.min(solicitar, vagasDisponiveis);
-
-                    List<Especialista> candidatos = especialistaRepository
-                            .findDisponiveisDentroDoRaio(profissao, lat, lng, raioMetros);
-
-                    for (Especialista e : candidatos.stream().limit(limite).toList()) {
-                        // Evita duplicata caso o mesmo especialista apareça em tiers diferentes
-                        if (convocacaoRepository.existsByEventoIdAndEspecialistaId(eventoId, e.getId())) {
-                            continue;
-                        }
-                        Convocacao c = new Convocacao();
-                        c.setEvento(evento);
-                        c.setEspecialista(e);
-                        c.setStatus("pendente");
-                        c.setTipo("auto");
-                        resultado.add(convocacaoRepository.save(c));
-                    }
+            for (Especialista e : candidatos) {
+                if (convocacaoRepository.existsByEventoIdAndEspecialistaId(eventoId, e.getId())) {
+                    continue;
                 }
+                Convocacao c = new Convocacao();
+                c.setEvento(evento);
+                c.setEspecialista(e);
+                c.setStatus("pendente");
+                c.setTipo("auto");
+                resultado.add(convocacaoRepository.save(c));
             }
-
-            raioKm *= 2;
         }
 
         return ConvocacaoGetDTO.convert(resultado);
@@ -136,6 +99,26 @@ public class ConvocacaoService {
         return new ConvocacaoGetDTO(convocacaoRepository.save(c));
     }
 
+    // ── Voluntariado (especialista vai sem convocação formal) ─────────────────
+
+    @Transactional
+    public ConvocacaoGetDTO voluntariar(Integer eventoId, Especialista especialista) {
+        Evento evento = eventoRepository.findById(eventoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado"));
+
+        if (convocacaoRepository.existsByEventoIdAndEspecialistaId(eventoId, especialista.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Você já possui uma convocação para este evento.");
+        }
+
+        Convocacao c = new Convocacao();
+        c.setEvento(evento);
+        c.setEspecialista(especialista);
+        c.setStatus("a_caminho");
+        c.setTipo("voluntario");
+        c.setRespondidoEm(LocalDateTime.now());
+        return new ConvocacaoGetDTO(convocacaoRepository.save(c));
+    }
+
     // ── Resposta do especialista ──────────────────────────────────────────────
 
     @Transactional
@@ -144,7 +127,7 @@ public class ConvocacaoService {
         if (!"pendente".equals(c.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Convocação não está pendente.");
         }
-        c.setStatus("aceita");
+        c.setStatus("a_caminho");
         c.setRespondidoEm(LocalDateTime.now());
         return new ConvocacaoGetDTO(convocacaoRepository.save(c));
     }

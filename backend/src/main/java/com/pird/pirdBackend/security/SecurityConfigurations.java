@@ -36,6 +36,9 @@ public class SecurityConfigurations {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
 
+                        // Preflight CORS
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.OPTIONS, "/**")).permitAll()
+
                         // Autenticação pública
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/auth/login")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/auth/registrar")).permitAll()
@@ -54,8 +57,9 @@ public class SecurityConfigurations {
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/convocacoes/*/aceitar")).hasRole("ESPECIALISTA")
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/convocacoes/*/recusar")).hasRole("ESPECIALISTA")
 
-                        // Eventos ativos (visíveis ao especialista)
+                        // Eventos ativos e pontos críticos (visíveis ao especialista)
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET, "/eventos/ativos")).hasAnyRole("ESPECIALISTA", "ADMINISTRADOR")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET, "/pontos-criticos")).hasAnyRole("ESPECIALISTA", "ADMINISTRADOR")
 
                         // Swagger / OpenAPI
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/swagger-ui/**")).permitAll()

@@ -1,33 +1,62 @@
 import { useState, useEffect, useRef } from "react";
+import mapboxgl from "mapbox-gl";
+import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { riskColor, severityBadge } from "../adminTheme.jsx";
 import CriticalPointModal from "../modals/CriticalPointModal.jsx";
 
 function CriticalPointMap({ point }) {
-  const mapRef = useRef(null);
-  const instanceRef = useRef(null);
+  const containerRef = useRef(null);
+  const mapRef       = useRef(null);
 
   useEffect(() => {
-    if (!mapRef.current || !window.L) return;
-    if (instanceRef.current) { instanceRef.current.remove(); instanceRef.current = null; }
-    const L = window.L;
-    const map = L.map(mapRef.current, { center: [point.lat, point.lng], zoom: 15 });
-    instanceRef.current = map;
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap", maxZoom: 18,
-    }).addTo(map);
-    const color = riskColor[point.risk] || "#FF8C00";
-    const icon = L.divIcon({
-      className: "",
-      html: `<div style="width:28px;height:28px;transform:rotate(45deg);background:${color};border:2px solid rgba(255,255,255,0.3);box-shadow:0 0 14px ${color}88;"></div>`,
-      iconSize: [28, 28], iconAnchor: [14, 14],
+    if (!containerRef.current || !MAPBOX_TOKEN) return;
+    if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    const map = new mapboxgl.Map({
+      container: containerRef.current,
+      style: "mapbox://styles/mapbox/streets-v12",
+      center: [parseFloat(point.lng), parseFloat(point.lat)],
+      zoom: 15, pitch: 45, antialias: true,
     });
-    L.marker([point.lat, point.lng], { icon }).addTo(map)
-      .bindPopup(`<b>⚠️ ${point.name}</b><br/>${point.description || ""}`)
-      .openPopup();
-    return () => { if (instanceRef.current) { instanceRef.current.remove(); instanceRef.current = null; } };
+    mapRef.current = map;
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
+    map.on("style.load", () => {
+      const layers = map.getStyle().layers;
+      const labelLayer = layers.find(l => l.type === "symbol" && l.layout?.["text-field"]);
+      map.addLayer({
+        id: "3d-buildings", source: "composite", "source-layer": "building",
+        filter: ["==", "extrude", "true"], type: "fill-extrusion", minzoom: 15,
+        paint: {
+          "fill-extrusion-color": "#aaa",
+          "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.05, ["get", "height"]],
+          "fill-extrusion-base": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.05, ["get", "min_height"]],
+          "fill-extrusion-opacity": 0.6,
+        },
+      }, labelLayer?.id);
+    });
+    const color = riskColor[point.risk] || "#FF8C00";
+    const el = document.createElement("div");
+    el.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${color}22;border:2.5px solid ${color};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:${color};box-shadow:0 0 10px ${color}66;cursor:pointer">!</div>`;
+    const popup = new mapboxgl.Popup({ offset: 18, closeOnClick: false }).setHTML(
+      `<div style="font-family:sans-serif;min-width:140px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">⚠️ ${point.name}</div>${point.description ? `<div style="font-size:11px;color:#555">${point.description}</div>` : ""}</div>`
+    );
+    const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
+      .setLngLat([parseFloat(point.lng), parseFloat(point.lat)])
+      .setPopup(popup)
+      .addTo(map);
+    map.once("load", () => marker.togglePopup());
+    return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
   }, [point]);
 
-  return <div ref={mapRef} style={{ height: 300, borderRadius: 8, overflow: "hidden" }} />;
+  if (!MAPBOX_TOKEN) {
+    return (
+      <div style={{ height: 300, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-elevated)", borderRadius: 8 }}>
+        <div style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center" }}>Configure VITE_MAPBOX_TOKEN para visualizar o mapa.</div>
+      </div>
+    );
+  }
+
+  return <div ref={containerRef} style={{ height: 300, borderRadius: 8, overflow: "hidden" }} />;
 }
 
 export default function CriticalPointsSection({ criticalPoints, onSavePoint, onDeletePoint }) {

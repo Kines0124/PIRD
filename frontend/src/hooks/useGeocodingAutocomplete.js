@@ -30,12 +30,20 @@ export function useGeocodingAutocomplete(query) {
         const data = await res.json();
         const features = data.features ?? [];
         setSugestoes(
-          features.map(f => ({
-            id: f.id,
-            placeName: f.place_name,
-            shortName: f.text,
-            coordenadas: { lat: f.center[1], lng: f.center[0] },
-          }))
+          features.map(f => {
+            const ctx = f.context || [];
+            const placeCtx  = ctx.find(c => c.id.startsWith("place."));
+            const regionCtx = ctx.find(c => c.id.startsWith("region."));
+            const cityName  = placeCtx?.text ?? (f.id.startsWith("place.") ? f.text : "");
+            const stateCode = regionCtx?.short_code?.replace("BR-", "") ?? "";
+            return {
+              id: f.id,
+              placeName: f.place_name,
+              shortName: f.text,
+              coordenadas: { lat: f.center[1], lng: f.center[0] },
+              cidade: cityName && stateCode ? `${cityName}, ${stateCode}` : cityName,
+            };
+          })
         );
         setSemResultados(features.length === 0);
       } catch {

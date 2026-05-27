@@ -55,4 +55,9 @@ export const deletarPontoColeta = (id)    => req("DELETE", `/pontos-coleta/${id}
 export const getEspecialistas     = ()         => req("GET",    "/especialistas");
 export const aprovarEspecialista  = (id)       => req("PATCH",  `/especialistas/${id}/aprovar`);
 export const reprovarEspecialista = (id, obs)  => req("PATCH",  `/especialistas/${id}/reprovar`, { observacao: obs });
-export const deletarEspecialista  = (id)       => req("DELETE", `/especialistas/${id}`);
+export const deletarEspecialista  = (id)       => req("DELETE", `/especialistas/aprovados/${id}`);
+
+export const convocarManual       = (eventoId, especialistaId) => req("POST", `/convocacoes/evento/${eventoId}/manual`, { especialistaId });
+
+export const getAdminPerfil    = ()     => req("GET", "/admin/perfil");
+export const updateAdminPerfil = (data) => req("PUT", "/admin/perfil", data);

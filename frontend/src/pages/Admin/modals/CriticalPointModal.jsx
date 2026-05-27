@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useGeocodingAutocomplete } from "../../../hooks/useGeocodingAutocomplete.js";
 
 export default function CriticalPointModal({ point, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -12,30 +13,24 @@ export default function CriticalPointModal({ point, onClose, onSave }) {
     description: "",
     ...point,
   });
-  const [geoStatus, setGeoStatus] = useState(null);
+
+  const [addrQuery, setAddrQuery] = useState(point?.address || "");
+  const [showSugs,  setShowSugs]  = useState(false);
+
+  const { sugestoes, carregando } = useGeocodingAutocomplete(showSugs ? addrQuery : "");
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  async function geocodificar() {
-    if (!form.address.trim()) return;
-    setGeoStatus("buscando");
-    try {
-      const query = encodeURIComponent(form.address);
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`,
-        { headers: { "Accept-Language": "pt-BR" } }
-      );
-      const data = await res.json();
-      if (data.length === 0) { setGeoStatus("erro"); return; }
-      const { lat, lon } = data[0];
-      setForm(f => ({
-        ...f,
-        lat: parseFloat(lat).toFixed(6),
-        lng: parseFloat(lon).toFixed(6),
-      }));
-      setGeoStatus("ok");
-    } catch {
-      setGeoStatus("erro");
-    }
+  function selectSugestao(sug) {
+    setAddrQuery(sug.shortName);
+    setForm(f => ({
+      ...f,
+      address: sug.shortName,
+      city: sug.cidade || f.city,
+      lat: sug.coordenadas.lat.toFixed(6),
+      lng: sug.coordenadas.lng.toFixed(6),
+    }));
+    setShowSugs(false);
   }
 
   const canSave = form.name.trim() && form.lat && form.lng;
@@ -75,49 +70,57 @@ export default function CriticalPointModal({ point, onClose, onSave }) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Cidade / UF</label>
-            <input
-              className="form-input"
-              value={form.city}
-              onChange={e => set("city", e.target.value)}
-              placeholder="Ex: Taubaté, SP"
-            />
-          </div>
-
-          <div className="form-group">
             <label className="form-label">Endereço *</label>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ position: "relative" }}>
               <input
                 className="form-input"
-                style={{ flex: 1 }}
-                value={form.address}
-                onChange={e => { set("address", e.target.value); setGeoStatus(null); }}
-                placeholder="Ex: Encosta Norte"
-                onKeyDown={e => e.key === "Enter" && geocodificar()}
+                value={addrQuery}
+                onChange={e => {
+                  setAddrQuery(e.target.value);
+                  set("address", e.target.value);
+                  set("lat", ""); set("lng", "");
+                  setShowSugs(true);
+                }}
+                onFocus={() => setShowSugs(true)}
+                onBlur={() => setTimeout(() => setShowSugs(false), 150)}
+                placeholder="Ex: Encosta Norte, Taubaté"
               />
-              <button
-                className="btn btn-secondary"
-                onClick={geocodificar}
-                disabled={geoStatus === "buscando" || !form.address.trim()}
-                style={{ flexShrink: 0, opacity: !form.address.trim() ? 0.4 : 1 }}
-              >
-                {geoStatus === "buscando" ? "📡…" : "📍 Geocodificar"}
-              </button>
+              {carregando && (
+                <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--text-muted)" }}>
+                  📡…
+                </span>
+              )}
+              {showSugs && sugestoes.length > 0 && (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 200, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
+                  {sugestoes.map((s, i) => (
+                    <div
+                      key={s.id || i}
+                      onMouseDown={() => selectSugestao(s)}
+                      style={{ padding: "9px 12px", fontSize: 12.5, cursor: "pointer", color: "var(--text-primary)", borderBottom: i < sugestoes.length - 1 ? "1px solid var(--border)" : "none" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "var(--bg-hover)"}
+                      onMouseLeave={e => e.currentTarget.style.background = ""}
+                    >
+                      📍 {s.placeName}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            {geoStatus === "ok"   && <div style={{ fontSize: 11, color: "var(--success)",    marginTop: 5 }}>✓ Coordenadas obtidas com sucesso</div>}
-            {geoStatus === "erro" && <div style={{ fontSize: 11, color: "var(--danger)",     marginTop: 5 }}>✗ Endereço não encontrado — tente ser mais específico</div>}
-            {geoStatus === null   && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>Digite o endereço e clique em Geocodificar.</div>}
+            {form.lat && form.lng
+              ? <div style={{ fontSize: 11, color: "var(--success)", marginTop: 5 }}>✓ Coordenadas obtidas: {form.lat}, {form.lng}{form.city ? ` — ${form.city}` : ""}</div>
+              : <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>Digite o endereço para ver sugestões com autocomplete.</div>
+            }
           </div>
 
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Latitude</label>
-              <input className="form-input mono" value={form.lat} readOnly placeholder="— preenchido automaticamente —"
+              <input className="form-input mono" value={form.lat} readOnly placeholder="— autocomplete —"
                 style={{ color: form.lat ? "var(--accent2)" : "var(--text-muted)", cursor: "default", opacity: 0.8 }} />
             </div>
             <div className="form-group">
               <label className="form-label">Longitude</label>
-              <input className="form-input mono" value={form.lng} readOnly placeholder="— preenchido automaticamente —"
+              <input className="form-input mono" value={form.lng} readOnly placeholder="— autocomplete —"
                 style={{ color: form.lng ? "var(--accent2)" : "var(--text-muted)", cursor: "default", opacity: 0.8 }} />
             </div>
           </div>

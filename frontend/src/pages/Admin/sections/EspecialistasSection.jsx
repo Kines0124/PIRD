@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { deletarEspecialista } from "../../../services/adminApi.js";
 
 const PROF_COLORS = {
   "Médico Clínico Geral":      "#2563eb",
@@ -9,16 +10,14 @@ const PROF_COLORS = {
   "Médico Intensivista (UTI)": "#2563eb",
   "Enfermeiro(a)":             "#16a34a",
   "Técnico de Enfermagem":     "#16a34a",
-  "Bombeiro Civil":            "#dc2626",
-  "Bombeiro Militar":          "#dc2626",
-  "Paramédico / SAMU":         "#7c3aed",
   "Psicólogo":                 "#0891b2",
   "Assistente Social":         "#0891b2",
   "Engenheiro de Segurança":   "#d97706",
   "Engenheiro Civil":          "#d97706",
   "Técnico em Resgate":        "#71717a",
-  "Socorrista":                "#71717a",
-  "Defesa Civil":              "#FF6B1A",
+  "Técnico Defesa Civil":      "#FF6B1A",
+  "Guia de Cão de Resgate":    "#71717a",
+  "Mergulhador de Resgate":    "#71717a",
 };
 
 const STATUS_MAP = {
@@ -38,9 +37,12 @@ function fmt(iso) {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-function DetailDrawer({ spec, effectiveStatus, onClose, onUpdateStatus }) {
-  const color     = PROF_COLORS[spec.profissao] || "#71717a";
+function DetailDrawer({ spec, effectiveStatus, onClose, onUpdateStatus, onDelete }) {
+  const color      = PROF_COLORS[spec.profissao] || "#71717a";
   const statusInfo = STATUS_MAP[effectiveStatus] || STATUS_MAP.disponivel;
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [confirmText,     setConfirmText]     = useState("");
+  const [deleting,        setDeleting]        = useState(false);
 
   return (
     <div
@@ -146,18 +148,66 @@ function DetailDrawer({ spec, effectiveStatus, onClose, onUpdateStatus }) {
           </div>
         </div>
 
-        {/* Cheguei button (provisório) */}
-        {effectiveStatus !== "no_local" && (
-          <div style={{ padding: "16px 24px", borderTop: "1px solid var(--border)" }}>
-            <button
-              onClick={() => onUpdateStatus && onUpdateStatus(spec.id, "no_local")}
-              style={{ width: "100%", background: "#dc2626", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
-            >
-              📍 Cheguei — Marcar como "No local"
-            </button>
-          </div>
-        )}
+        {/* Excluir */}
+        <div style={{ padding: "16px 24px", borderTop: "1px solid var(--border)" }}>
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            style={{ width: "100%", background: "transparent", color: "#ef4444", border: "1px solid rgba(239,68,68,0.4)", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; e.currentTarget.style.borderColor = "#ef4444"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.4)"; }}
+          >
+            🗑 Excluir Especialista
+          </button>
+        </div>
       </div>
+
+      {/* Modal de confirmação de exclusão */}
+      {showDeleteModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)" }}>
+          <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "28px 28px 24px", maxWidth: 400, width: "90%", display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>
+              Excluir Especialista
+            </div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+              O especialista <strong style={{ color: "var(--text-primary)" }}>{spec.nome}</strong> perderá o acesso ao sistema, mas seus dados históricos serão preservados.
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              Para confirmar, digite <strong style={{ color: "#ef4444", fontFamily: "var(--font-mono)" }}>confirmar</strong> abaixo:
+            </div>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={e => setConfirmText(e.target.value)}
+              placeholder="confirmar"
+              style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 7, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", fontFamily: "var(--font-mono)" }}
+            />
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => { setShowDeleteModal(false); setConfirmText(""); }}
+                style={{ padding: "8px 18px", background: "none", border: "1px solid var(--border)", borderRadius: 7, color: "var(--text-secondary)", fontSize: 13, cursor: "pointer" }}
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={confirmText !== "confirmar" || deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    await deletarEspecialista(spec.especialistaId);
+                    onDelete(spec.id);
+                    onClose();
+                  } catch {
+                    setDeleting(false);
+                  }
+                }}
+                style={{ padding: "8px 18px", background: confirmText === "confirmar" ? "#ef4444" : "var(--bg-elevated)", border: "none", borderRadius: 7, color: confirmText === "confirmar" ? "#fff" : "var(--text-muted)", fontSize: 13, fontWeight: 700, cursor: confirmText === "confirmar" ? "pointer" : "not-allowed", transition: "all 0.15s" }}
+              >
+                {deleting ? "Excluindo..." : "Excluir"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -200,7 +250,7 @@ function EspecialistaCard({ spec, effectiveStatus, onClick }) {
   );
 }
 
-export default function EspecialistasSection({ specialists, specialistStatuses = {}, onUpdateStatus }) {
+export default function EspecialistasSection({ specialists, specialistStatuses = {}, onUpdateStatus, onDelete }) {
   const [selected,   setSelected]   = useState(null);
   const [search,     setSearch]     = useState("");
   const [filterProf, setFilterProf] = useState("");
@@ -351,6 +401,7 @@ export default function EspecialistasSection({ specialists, specialistStatuses =
           effectiveStatus={getEffectiveStatus(selected)}
           onClose={() => setSelected(null)}
           onUpdateStatus={onUpdateStatus}
+          onDelete={id => { onDelete && onDelete(id); setSelected(null); }}
         />
       )}
     </div>

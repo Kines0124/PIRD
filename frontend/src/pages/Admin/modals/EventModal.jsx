@@ -3,24 +3,23 @@ import { SEVERITY_OPTIONS } from "../adminTheme.jsx";
 import { useGeocodingAutocomplete } from "../../../hooks/useGeocodingAutocomplete.js";
 
 const TIPO_OPTIONS = [
-  { value: "enchente",         label: "🌊 Enchente" },
-  { value: "deslizamento",     label: "⛰️ Deslizamento" },
-  { value: "alagamento",       label: "💧 Alagamento" },
-  { value: "incendio",         label: "🔥 Incêndio" },
-  { value: "desabamento",      label: "🏚️ Desabamento" },
-  { value: "acidente_transito",label: "🚗 Acidente de Trânsito" },
-  { value: "intoxicacao",      label: "☣️ Intoxicação" },
-  { value: "outro",            label: "⚠️ Outro" },
+  { value: "enchente",     label: "🌊 Enchente" },
+  { value: "deslizamento", label: "⛰️ Deslizamento" },
+  { value: "alagamento",   label: "💧 Alagamento" },
+  { value: "incendio",     label: "🔥 Incêndio" },
+  { value: "desabamento",  label: "🏚️ Desabamento" },
+  { value: "intoxicacao",  label: "☣️ Intoxicação" },
+  { value: "outro",        label: "⚠️ Outro" },
 ];
 
 const PROFISSOES_NECESSARIAS = [
   "Médico Clínico Geral", "Médico Emergencista", "Médico Cardiologista",
   "Médico Neurologista", "Médico Ortopedista", "Médico Intensivista (UTI)",
   "Enfermeiro(a)", "Técnico de Enfermagem",
-  "Bombeiro Civil", "Bombeiro Militar", "Paramédico / SAMU",
   "Psicólogo", "Assistente Social",
   "Engenheiro de Segurança", "Engenheiro Civil",
-  "Técnico em Resgate", "Socorrista", "Defesa Civil",
+  "Técnico em Resgate", "Técnico Defesa Civil",
+  "Guia de Cão de Resgate", "Mergulhador de Resgate",
 ];
 
 export default function EventModal({ event, onClose, onSave }) {
@@ -62,6 +61,7 @@ export default function EventModal({ event, onClose, onSave }) {
     setForm(f => ({
       ...f,
       address: sug.placeName,
+      city: sug.cidade || f.city,
       lat: sug.coordenadas.lat.toFixed(6),
       lng: sug.coordenadas.lng.toFixed(6),
     }));
@@ -134,16 +134,6 @@ export default function EventModal({ event, onClose, onSave }) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Cidade / UF</label>
-            <input
-              className="form-input"
-              value={form.city}
-              onChange={e => set("city", e.target.value)}
-              placeholder="Ex: Taubaté, SP"
-            />
-          </div>
-
-          <div className="form-group">
             <label className="form-label">Endereço *</label>
             <div style={{ position: "relative" }}>
               <input
@@ -181,7 +171,7 @@ export default function EventModal({ event, onClose, onSave }) {
               )}
             </div>
             {form.lat && form.lng
-              ? <div style={{ fontSize: 11, color: "var(--success)", marginTop: 5 }}>✓ Coordenadas obtidas: {form.lat}, {form.lng}</div>
+              ? <div style={{ fontSize: 11, color: "var(--success)", marginTop: 5 }}>✓ Coordenadas obtidas: {form.lat}, {form.lng}{form.city ? ` — ${form.city}` : ""}</div>
               : <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>Digite o endereço para ver sugestões com autocomplete.</div>
             }
           </div>

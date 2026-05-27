@@ -15,21 +15,44 @@ public interface EspecialistaRepository extends JpaRepository<Especialista, Inte
 
     boolean existsByEmail(String email);
 
+    List<Especialista> findByDeletadoFalse();
+
+    @Query("SELECT e.registro.id, e.id FROM Especialista e WHERE e.deletado = false AND e.registro IS NOT NULL")
+    List<Object[]> findRegistroEspecialistaIdPairs();
+
     /**
-     * Retorna especialistas disponíveis (sem convocação ativa) dentro do raio,
-     * filtrados por profissão e ordenados por distância crescente.
-     *
-     * Exclui especialistas com convocação no status 'pendente' ou 'aceita'
-     * em qualquer evento — eles estão indisponíveis.
+     * Especialistas disponíveis por profissão e cidade (convocação automática).
+     * Exclui deletados e quem já tem convocação ativa (pendente ou a_caminho).
+     */
+    @Query("""
+        SELECT e FROM Especialista e
+        WHERE LOWER(e.profissao) = LOWER(:profissao)
+          AND LOWER(e.cidade)    = LOWER(:cidade)
+          AND e.deletado = false
+          AND NOT EXISTS (
+              SELECT c FROM Convocacao c
+              WHERE c.especialista = e
+                AND c.status IN ('pendente', 'a_caminho')
+          )
+        """)
+    List<Especialista> findDisponivelPorProfissaoECidade(
+            @Param("profissao") String profissao,
+            @Param("cidade")    String cidade
+    );
+
+    /**
+     * Especialistas disponíveis por raio geográfico (mantido para uso futuro/manual).
+     * Exclui deletados e quem já tem convocação ativa (pendente ou a_caminho).
      */
     @Query(value = """
         SELECT e.* FROM especialista e
         WHERE e.profissao = :profissao
+          AND e.deletado  = false
           AND e.localizacao IS NOT NULL
           AND NOT EXISTS (
               SELECT 1 FROM convocacao c
               WHERE c.especialista_id = e.id
-                AND c.status IN ('pendente', 'aceita')
+                AND c.status IN ('pendente', 'a_caminho')
           )
           AND ST_DWithin(
               e.localizacao,
@@ -42,9 +65,9 @@ public interface EspecialistaRepository extends JpaRepository<Especialista, Inte
         )
         """, nativeQuery = true)
     List<Especialista> findDisponiveisDentroDoRaio(
-            @Param("profissao")   String profissao,
-            @Param("lat")         double lat,
-            @Param("lng")         double lng,
-            @Param("raioMetros")  double raioMetros
+            @Param("profissao")  String profissao,
+            @Param("lat")        double lat,
+            @Param("lng")        double lng,
+            @Param("raioMetros") double raioMetros
     );
 }

@@ -3,6 +3,7 @@ import mapboxgl from "mapbox-gl";
 import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { severityColor, typeIcon, riskColor, severityBadge, statusBadge } from "../adminTheme.jsx";
 import EventModal from "../modals/EventModal.jsx";
+import { convocarManual } from "../../../services/adminApi.js";
 
 const PROF_COLORS = {
   "Médico Clínico Geral":      "#2563eb",
@@ -13,16 +14,14 @@ const PROF_COLORS = {
   "Médico Intensivista (UTI)": "#2563eb",
   "Enfermeiro(a)":             "#16a34a",
   "Técnico de Enfermagem":     "#16a34a",
-  "Bombeiro Civil":            "#dc2626",
-  "Bombeiro Militar":          "#dc2626",
-  "Paramédico / SAMU":         "#7c3aed",
   "Psicólogo":                 "#0891b2",
   "Assistente Social":         "#0891b2",
   "Engenheiro de Segurança":   "#d97706",
   "Engenheiro Civil":          "#d97706",
   "Técnico em Resgate":        "#71717a",
-  "Socorrista":                "#71717a",
-  "Defesa Civil":              "#FF6B1A",
+  "Técnico Defesa Civil":      "#FF6B1A",
+  "Guia de Cão de Resgate":    "#71717a",
+  "Mergulhador de Resgate":    "#71717a",
 };
 
 const FIELD_STATUS_MAP = {
@@ -31,7 +30,7 @@ const FIELD_STATUS_MAP = {
   no_local:   { label: "No local",      color: "#dc2626", bg: "rgba(220,38,38,0.12)" },
 };
 
-// ─── Linha de especialista na aba Posicionar ──────────────────────────────────
+// ─── Linha de especialista na aba Convocar ────────────────────────────────────
 function SpecialistAssignRow({ spec, effectiveStatus, onAssign }) {
   const color = PROF_COLORS[spec.profissao] || "#71717a";
   const st    = FIELD_STATUS_MAP[effectiveStatus] || FIELD_STATUS_MAP.disponivel;
@@ -51,7 +50,7 @@ function SpecialistAssignRow({ spec, effectiveStatus, onAssign }) {
           onClick={onAssign}
           style={{ background: "#FF6B1A", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
         >
-          Posicionar →
+          Convocar →
         </button>
       ) : (
         <span style={{ backgroundColor: st.bg, color: st.color, borderRadius: 99, fontSize: 10, fontWeight: 600, padding: "3px 10px", flexShrink: 0, whiteSpace: "nowrap" }}>
@@ -77,9 +76,28 @@ function EventDetailMap({ event, collectionPoints, criticalPoints }) {
       container: containerRef.current,
       style: "mapbox://styles/mapbox/streets-v12",
       center: [lng, lat],
-      zoom: 13,
+      zoom: 13, pitch: 45, antialias: true,
     });
     mapRef.current = map;
+
+    map.on("style.load", () => {
+      const layers = map.getStyle().layers;
+      const labelLayer = layers.find(l => l.type === "symbol" && l.layout?.["text-field"]);
+      map.addLayer({
+        id: "3d-buildings",
+        source: "composite",
+        "source-layer": "building",
+        filter: ["==", "extrude", "true"],
+        type: "fill-extrusion",
+        minzoom: 15,
+        paint: {
+          "fill-extrusion-color": "#aaa",
+          "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.05, ["get", "height"]],
+          "fill-extrusion-base": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.05, ["get", "min_height"]],
+          "fill-extrusion-opacity": 0.6,
+        },
+      }, labelLayer?.id);
+    });
 
     const color = severityColor[event.severity] || "#FF6B1A";
     const eventEl = document.createElement("div");
@@ -166,7 +184,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
     { id: "fotos",        label: `📷 Fotos${event.photos?.length ? ` (${event.photos.length})` : ""}` },
     { id: "coleta",       label: `📦 Coleta (${nearbyPoints.length})` },
     { id: "especialistas", label: `⚕️ Especialistas (${assignedSpecialists.length})` },
-    { id: "posicionar",   label: "🎯 Posicionar" },
+    { id: "convocar",     label: "🎯 Convocar" },
   ];
 
   return (
@@ -304,7 +322,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
           {tab === "especialistas" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {assignedSpecialists.length === 0 ? (
-                <div className="empty-state"><div className="empty-state-icon">⚕️</div><div className="empty-state-text">Nenhum especialista designado ainda. Use a aba Posicionar.</div></div>
+                <div className="empty-state"><div className="empty-state-icon">⚕️</div><div className="empty-state-text">Nenhum especialista designado ainda. Use a aba Convocar.</div></div>
               ) : assignedSpecialists.map(s => {
                 const color = PROF_COLORS[s.profissao] || "#71717a";
                 const effStatus = getEffectiveStatus(s);
@@ -327,7 +345,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
             </div>
           )}
 
-          {tab === "posicionar" && (
+          {tab === "convocar" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>
                 {neededProfiles.length > 0
@@ -345,7 +363,15 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
                     key={s.id}
                     spec={s}
                     effectiveStatus={getEffectiveStatus(s)}
-                    onAssign={() => onUpdateStatus && onUpdateStatus(s.id, "a_caminho")}
+                    onAssign={async () => {
+                      try {
+                        await convocarManual(event.id, s.especialistaId);
+                      } catch (e) {
+                        alert("Erro ao convocar: " + e.message);
+                        return;
+                      }
+                      onUpdateStatus && onUpdateStatus(s.id, "a_caminho");
+                    }}
                   />
                 ))
               )}

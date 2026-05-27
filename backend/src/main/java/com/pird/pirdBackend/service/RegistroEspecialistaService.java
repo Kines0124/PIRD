@@ -19,6 +19,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class RegistroEspecialistaService {
@@ -41,7 +43,20 @@ public class RegistroEspecialistaService {
     }
 
     public List<RegistroEspecialistaGetDTO> listar() {
-        return RegistroEspecialistaGetDTO.convert(repository.findAllByOrderByCriadoEmDesc());
+        Map<Integer, Integer> registroToEsp = especialistaRepository.findRegistroEspecialistaIdPairs()
+                .stream()
+                .collect(Collectors.toMap(
+                        arr -> (Integer) arr[0],
+                        arr -> (Integer) arr[1],
+                        (a, b) -> a
+                ));
+        return repository.findAllByOrderByCriadoEmDesc().stream()
+                .map(r -> {
+                    RegistroEspecialistaGetDTO dto = new RegistroEspecialistaGetDTO(r);
+                    dto.setEspecialistaId(registroToEsp.get(r.getId()));
+                    return dto;
+                })
+                .toList();
     }
 
     public RegistroEspecialistaGetDTO buscarPorId(Integer id) {

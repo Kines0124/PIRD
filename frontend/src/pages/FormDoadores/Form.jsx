@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import { MAPBOX_TOKEN } from "../../utils/geocoding.js";
-import { mockPoints } from "../../data/points";
 import { useNavigate } from "react-router-dom";
-import { haversine } from "../../utils/geo.js";
+import { maskPhone } from "../../utils/cpfValidator.js";
+import { useGeocodingAutocomplete } from "../../hooks/useGeocodingAutocomplete.js";
+
+// ── Mapa light-mode ───────────────────────────────────────────────────────────
 
 function MapaDoacoes({ flyToCoords }) {
   const containerRef = useRef(null);
@@ -14,88 +16,79 @@ function MapaDoacoes({ flyToCoords }) {
     mapboxgl.accessToken = MAPBOX_TOKEN;
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/dark-v11",
+      style: "mapbox://styles/mapbox/streets-v12",
       center: [-45.5557, -23.0320],
-      zoom: 13,
+      zoom: 13, pitch: 45, antialias: true,
     });
     mapRef.current = map;
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
-
     map.on("style.load", () => {
-      mockPoints.forEach(p => {
-        const el = document.createElement("div");
-        el.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:#FF6B1A;border:2px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;box-shadow:0 0 12px rgba(255,107,26,0.5)">📦</div>`;
-        new mapboxgl.Marker({ element: el, anchor: "center" })
-          .setLngLat([p.lng, p.lat])
-          .setPopup(new mapboxgl.Popup({ offset: 16 }).setHTML(
-            `<strong style="color:#eef0f5">${p.name}</strong><br/>
-             <span style="color:#7a8099;font-size:11px">${p.address}</span><br/>
-             <span style="color:#4a5068;font-size:10px">${p.items.join(", ")}</span>`
-          ))
-          .addTo(map);
-      });
+      const layers = map.getStyle().layers;
+      const labelLayer = layers.find(l => l.type === "symbol" && l.layout?.["text-field"]);
+      map.addLayer({
+        id: "3d-buildings",
+        source: "composite",
+        "source-layer": "building",
+        filter: ["==", "extrude", "true"],
+        type: "fill-extrusion",
+        minzoom: 15,
+        paint: {
+          "fill-extrusion-color": "#aaa",
+          "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.05, ["get", "height"]],
+          "fill-extrusion-base": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.05, ["get", "min_height"]],
+          "fill-extrusion-opacity": 0.6,
+        },
+      }, labelLayer?.id);
     });
-
     return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
   }, []);
 
   useEffect(() => {
     if (mapRef.current && flyToCoords) {
-      mapRef.current.flyTo({ center: [flyToCoords[1], flyToCoords[0]], zoom: 15, duration: 1200 });
+      mapRef.current.flyTo({ center: [flyToCoords.lng, flyToCoords.lat], zoom: 15, duration: 1200 });
     }
   }, [flyToCoords]);
 
   if (!MAPBOX_TOKEN) {
     return (
-      <div style={{ flex: 1, borderRadius: 10, background: "#111318", border: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center", color: "#4a5068", fontSize: 12 }}>
+      <div style={{ flex: 1, borderRadius: 10, background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 12 }}>
           Configure VITE_MAPBOX_TOKEN para visualizar o mapa.
         </div>
       </div>
     );
   }
 
-  return <div style={{ flex: 1, borderRadius: 10, overflow: "hidden", border: "1px solid rgba(255,255,255,0.07)" }} ref={containerRef} />;
+  return <div style={{ flex: 1, borderRadius: 10, overflow: "hidden", border: "1px solid #334155" }} ref={containerRef} />;
 }
 
+// ── Formulário principal ──────────────────────────────────────────────────────
+
 export default function DoadoresForm() {
-  const [tipo,          setTipo]          = useState("");
-  const [pontoInput,    setPontoInput]    = useState("");
+  const [tipo,       setTipo]       = useState("");
+  const [telefone,   setTelefone]   = useState("");
+  const [destinoQuery, setDestinoQuery] = useState("");
+  const [destinoSel,   setDestinoSel]  = useState(null);
   const [showSugestoes, setShowSugestoes] = useState(false);
-  const [flyToCoords,   setFlyToCoords]   = useState(null);
-  const [localizando,   setLocalizando]   = useState(false);
+  const [flyToCoords,  setFlyToCoords]   = useState(null);
 
   const navigate = useNavigate();
 
-  const sugestoes = mockPoints.filter(p =>
-    p.name.toLowerCase().includes(pontoInput.toLowerCase())
-  );
+  const { sugestoes, carregando } = useGeocodingAutocomplete(showSugestoes ? destinoQuery : "");
 
-  function handleMaisProximo() {
-    if (!navigator.geolocation) { alert("Seu navegador não suporta geolocalização."); return; }
-    setLocalizando(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        const maisProximo = mockPoints.reduce((melhor, ponto) => {
-          const dist = haversine(latitude, longitude, ponto.lat, ponto.lng);
-          return dist < melhor.dist ? { ponto, dist } : melhor;
-        }, { ponto: mockPoints[0], dist: Infinity }).ponto;
-
-        setPontoInput(maisProximo.name);
-        setFlyToCoords([maisProximo.lat, maisProximo.lng]);
-        setLocalizando(false);
-      },
-      () => { alert("Não foi possível obter sua localização."); setLocalizando(false); }
-    );
+  function handleDestinoSelect(sug) {
+    setDestinoQuery(sug.placeName);
+    setDestinoSel(sug);
+    setFlyToCoords(sug.coordenadas);
+    setShowSugestoes(false);
   }
 
   const inp = {
-    background: "#181c23",
-    border: "1px solid rgba(255,255,255,0.07)",
+    background: "#1e293b",
+    border: "1px solid #334155",
     borderRadius: 6,
     padding: "8px 12px",
-    color: "#eef0f5",
+    color: "#e2e8f0",
     outline: "none",
     transition: "border-color 0.15s",
     fontFamily: "'Inter', sans-serif",
@@ -106,7 +99,7 @@ export default function DoadoresForm() {
 
   const lbl = {
     fontSize: 11,
-    color: "#7a8099",
+    color: "#94a3b8",
     letterSpacing: "0.06em",
     textTransform: "uppercase",
     marginBottom: 5,
@@ -121,37 +114,35 @@ export default function DoadoresForm() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
         .d-inp:focus { border-color: #FF6B1A !important; }
-        .d-inp::placeholder { color: #4a5068; }
-        .d-inp option { background: #181c23; }
+        .d-inp::placeholder { color: #475569; }
         .d-sug:hover { background: rgba(255,107,26,0.08) !important; }
         .d-prox:hover { border-color: #FF6B1A !important; color: #FF6B1A !important; }
-        .mapboxgl-ctrl-group { background: #1a1f2e !important; border: 1px solid rgba(255,255,255,0.07) !important; border-radius: 8px !important; }
-        .mapboxgl-ctrl-group button { background: #1a1f2e !important; border-bottom: 1px solid rgba(255,255,255,0.07) !important; }
-        .mapboxgl-ctrl-group button:hover { background: #1e2330 !important; }
-        .mapboxgl-popup-content { background: #181c23; color: #eef0f5; border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 10px 12px; font-family: 'Inter', sans-serif; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
-        .mapboxgl-popup-tip { border-top-color: #181c23 !important; border-bottom-color: #181c23 !important; }
+        .mapboxgl-ctrl-group { background: #fff !important; border: 1px solid #e2e8f0 !important; border-radius: 8px !important; }
+        .mapboxgl-ctrl-group button { background: #fff !important; border-bottom: 1px solid #e2e8f0 !important; }
+        .mapboxgl-ctrl-group button:hover { background: #f8fafc !important; }
+        .mapboxgl-popup-content { background: #fff; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; font-family: 'Inter', sans-serif; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+        .mapboxgl-popup-tip { border-top-color: #fff !important; border-bottom-color: #fff !important; }
       `}</style>
 
-      <div style={{ display: "flex", minHeight: "100vh", background: "#0a0c10", fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ display: "flex", minHeight: "100vh", background: "#f8fafc", fontFamily: "'Inter', sans-serif" }}>
 
-        {/* ── Painel lateral do formulário ── */}
-        <div style={{ width: 420, minWidth: 420, background: "#111318", borderRight: "1px solid rgba(255,255,255,0.07)", display: "flex", flexDirection: "column", padding: "32px 28px", overflowY: "auto" }}>
+        {/* ── Painel lateral ── */}
+        <div style={{ width: 420, minWidth: 420, background: "#0f172a", borderRight: "1px solid #1e293b", display: "flex", flexDirection: "column", padding: "32px 28px", overflowY: "auto" }}>
 
           {/* Header */}
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 9, letterSpacing: "0.16em", color: "#FF6B1A", fontFamily: "'JetBrains Mono', monospace", marginBottom: 8, fontWeight: 500 }}>
               RECURSOS · LOGÍSTICA
             </div>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: "#eef0f5", margin: 0, fontFamily: "'Syne', sans-serif" }}>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: "#f1f5f9", margin: 0, fontFamily: "'Syne', sans-serif" }}>
               Nova Doação
             </h2>
-            <div style={{ fontSize: 11, color: "#4a5068", marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>
+            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>
               Formulário público · sem cadastro necessário
             </div>
           </div>
 
-          {/* Divider */}
-          <div style={{ height: 1, background: "rgba(255,255,255,0.07)", marginBottom: 20 }} />
+          <div style={{ height: 1, background: "#1e293b", marginBottom: 20 }} />
 
           {/* Form */}
           <form style={{ flex: 1, display: "flex", flexDirection: "column" }} onSubmit={e => e.preventDefault()}>
@@ -160,7 +151,15 @@ export default function DoadoresForm() {
             <input className="d-inp" type="text" placeholder="Seu nome completo" style={inp} />
 
             <label style={lbl}>Telefone</label>
-            <input className="d-inp" type="text" placeholder="(00) 00000-0000" style={inp} />
+            <input
+              className="d-inp"
+              type="text"
+              inputMode="numeric"
+              placeholder="(11) 99999-9999"
+              value={telefone}
+              onChange={e => setTelefone(maskPhone(e.target.value))}
+              style={inp}
+            />
 
             <label style={lbl}>Categoria de Item</label>
             <select className="d-inp" onChange={e => setTipo(e.target.value)} style={{ ...inp, cursor: "pointer", appearance: "none" }}>
@@ -192,69 +191,71 @@ export default function DoadoresForm() {
               </select>
             </div>
 
+            {/* Destino da carga — autocomplete real via Mapbox */}
             <label style={lbl}>Destino da Carga</label>
             <div style={{ position: "relative" }}>
               <input
                 className="d-inp"
                 type="text"
-                placeholder="Ponto de entrega"
-                value={pontoInput}
-                onChange={e => { setPontoInput(e.target.value); setShowSugestoes(true); }}
-                style={inp}
+                placeholder="Buscar endereço ou ponto de entrega..."
+                value={destinoQuery}
+                onChange={e => { setDestinoQuery(e.target.value); setDestinoSel(null); setShowSugestoes(true); }}
                 onFocus={() => setShowSugestoes(true)}
                 onBlur={() => setTimeout(() => setShowSugestoes(false), 150)}
+                style={{ ...inp, borderColor: destinoSel ? "#22c55e" : "#334155" }}
               />
+              {carregando && (
+                <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8" }}>…</div>
+              )}
               {showSugestoes && sugestoes.length > 0 && (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#181c23", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 6, zIndex: 10, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
-                  {sugestoes.map(p => (
-                    <div key={p.id}
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#1e293b", border: "1px solid #334155", borderRadius: 6, zIndex: 10, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}>
+                  {sugestoes.map(s => (
+                    <div key={s.id}
                       className="d-sug"
-                      onMouseDown={() => { setPontoInput(p.name); setFlyToCoords([p.lat, p.lng]); setShowSugestoes(false); }}
-                      style={{ padding: "9px 12px", color: "#eef0f5", cursor: "pointer", fontSize: 12, fontFamily: "'JetBrains Mono', monospace", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                      📦 {p.name}
+                      onMouseDown={() => handleDestinoSelect(s)}
+                      style={{ padding: "9px 12px", color: "#e2e8f0", cursor: "pointer", fontSize: 12, fontFamily: "'Inter', sans-serif", borderBottom: "1px solid #334155" }}>
+                      <div style={{ fontWeight: 600 }}>{s.shortName}</div>
+                      <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>{s.placeName}</div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <button type="button" className="d-prox" onClick={handleMaisProximo} disabled={localizando}
-              style={{ marginTop: 10, padding: "8px 12px", background: "#181c23", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 6, color: "#7a8099", fontFamily: "'JetBrains Mono', monospace", fontSize: 11, cursor: localizando ? "wait" : "pointer", letterSpacing: "0.04em", textAlign: "left", transition: "all 0.15s" }}>
-              {localizando ? "📡 Localizando..." : "◉ Usar ponto mais próximo"}
-            </button>
-
             <div style={{ flex: 1 }} />
 
             <button type="submit"
               style={{ marginTop: 24, padding: "11px 0", background: "#FF6B1A", border: "none", borderRadius: 6, color: "#fff", fontWeight: 700, fontFamily: "'Inter', sans-serif", fontSize: 13, letterSpacing: "0.06em", cursor: "pointer", transition: "all 0.15s", textTransform: "uppercase" }}
-              onMouseEnter={e => { e.currentTarget.style.background = "#ff7d33"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,107,26,0.3)"; }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#ff7d33"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,107,26,0.25)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "#FF6B1A"; e.currentTarget.style.boxShadow = "none"; }}>
               Registrar Doação
             </button>
           </form>
 
           <button onClick={() => navigate("/login")}
-            style={{ marginTop: 16, background: "none", border: "none", color: "#4a5068", fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.04em", padding: 0, textAlign: "left", transition: "color 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.color = "#7a8099"}
-            onMouseLeave={e => e.currentTarget.style.color = "#4a5068"}>
+            style={{ marginTop: 16, background: "none", border: "none", color: "#64748b", fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.04em", padding: 0, textAlign: "left", transition: "color 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.color = "#94a3b8"}
+            onMouseLeave={e => e.currentTarget.style.color = "#64748b"}>
             ← Voltar ao início
           </button>
         </div>
 
         {/* ── Mapa ── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "32px 28px" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "32px 28px", background: "#0f172a" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
             <div>
               <div style={{ fontSize: 9, letterSpacing: "0.16em", color: "#FF6B1A", fontFamily: "'JetBrains Mono', monospace", marginBottom: 6, fontWeight: 500 }}>
                 MAPA · TAUBATÉ, SP
               </div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#eef0f5", fontFamily: "'Syne', sans-serif" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#f1f5f9", fontFamily: "'Syne', sans-serif" }}>
                 Pontos de Coleta
               </div>
             </div>
-            <span style={{ fontSize: 10, color: "#4a5068", fontFamily: "'JetBrains Mono', monospace", marginTop: 6 }}>
-              {mockPoints.length} pontos ativos
-            </span>
+            {destinoSel && (
+              <span style={{ fontSize: 11, color: "#22c55e", fontFamily: "'JetBrains Mono', monospace", marginTop: 6 }}>
+                📍 {destinoSel.shortName}
+              </span>
+            )}
           </div>
           <MapaDoacoes flyToCoords={flyToCoords} />
         </div>

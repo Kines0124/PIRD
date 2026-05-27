@@ -57,6 +57,14 @@ public class ConvocacaoController {
         return ResponseEntity.ok(service.listarMinhas(especialista.getId()));
     }
 
+    @PostMapping("/evento/{eventoId}/voluntario")
+    @PreAuthorize("hasRole('ESPECIALISTA')")
+    public ResponseEntity<ConvocacaoGetDTO> voluntariar(
+            @PathVariable Integer eventoId,
+            @AuthenticationPrincipal Especialista especialista) {
+        return ResponseEntity.ok(service.voluntariar(eventoId, especialista));
+    }
+
     @PatchMapping("/{id}/aceitar")
     @PreAuthorize("hasRole('ESPECIALISTA')")
     public ResponseEntity<ConvocacaoGetDTO> aceitar(

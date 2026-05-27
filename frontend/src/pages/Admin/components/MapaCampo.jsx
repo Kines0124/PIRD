@@ -5,10 +5,14 @@ import { MAPBOX_TOKEN } from "../../../utils/geocoding";
 const TAUBATE = [-45.5533, -23.0268];
 
 const PROF_COLORS = {
-  "Médico Clínico Geral": "#2563eb", "Médico Emergencista": "#2563eb",
-  "Enfermeiro(a)": "#16a34a", "Bombeiro Civil": "#dc2626", "Bombeiro Militar": "#dc2626",
-  "Paramédico / SAMU": "#7c3aed", "Psicólogo": "#0891b2",
-  "Engenheiro de Segurança": "#d97706", "Técnico em Resgate": "#71717a",
+  "Médico Clínico Geral":      "#2563eb", "Médico Emergencista":       "#2563eb",
+  "Médico Cardiologista":      "#2563eb", "Médico Neurologista":       "#2563eb",
+  "Médico Ortopedista":        "#2563eb", "Médico Intensivista (UTI)": "#2563eb",
+  "Enfermeiro(a)":             "#16a34a", "Técnico de Enfermagem":     "#16a34a",
+  "Psicólogo":                 "#0891b2", "Assistente Social":         "#0891b2",
+  "Engenheiro de Segurança":   "#d97706", "Técnico em Resgate":        "#71717a",
+  "Técnico Defesa Civil":      "#FF6B1A", "Guia de Cão de Resgate":    "#71717a",
+  "Mergulhador de Resgate":    "#71717a",
 };
 
 const STATUS_STYLE = {
@@ -19,7 +23,13 @@ const STATUS_STYLE = {
 
 const TIPO_EMOJI = {
   enchente: "🌊", deslizamento: "⛰️", alagamento: "💧", incendio: "🔥",
-  desabamento: "🏚️", acidente_transito: "🚗", intoxicacao: "☣️", outro: "⚠️",
+  desabamento: "🏚️", intoxicacao: "☣️", outro: "⚠️",
+};
+
+const RISCO_STYLE = {
+  critico:    { color: "#FF4444", label: "Crítico" },
+  alto:       { color: "#FF6B00", label: "Alto" },
+  medio:      { color: "#F5A623", label: "Médio" },
 };
 
 function alertConfig(a) {
@@ -60,6 +70,15 @@ function createAlertEl(a) {
   return el;
 }
 
+function createPontoCriticoEl(pt) {
+  const style = RISCO_STYLE[pt.risco] ?? RISCO_STYLE.medio;
+  const el = document.createElement("div");
+  el.style.cursor = "pointer";
+  el.innerHTML = `
+    <div style="width:28px;height:28px;border-radius:50%;background:${style.color}22;border:2.5px solid ${style.color};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:${style.color};box-shadow:0 0 10px ${style.color}66;">!</div>`;
+  return el;
+}
+
 function createProfEl(p) {
   const color = PROF_COLORS[p.profissao] ?? "#71717a";
   const st    = STATUS_STYLE[p.statusCampo ?? "disponivel"] ?? STATUS_STYLE.disponivel;
@@ -74,14 +93,16 @@ function createProfEl(p) {
   return el;
 }
 
-export default function MapaCampo({ alertas = [], profissionais = [], onVerMaisEvento, flyTo }) {
-  const containerRef     = useRef(null);
-  const mapRef           = useRef(null);
-  const alertMarkersRef  = useRef(new Map());
-  const profMarkersRef   = useRef([]);
+export default function MapaCampo({ alertas = [], profissionais = [], criticalPoints = [], onVerMaisEvento, flyTo }) {
+  const containerRef        = useRef(null);
+  const mapRef              = useRef(null);
+  const alertMarkersRef     = useRef(new Map());
+  const criticoMarkersRef   = useRef(new Map());
+  const profMarkersRef      = useRef([]);
   const [mapReady, setMapReady] = useState(false);
-  const [selAlerta, setSelAlerta] = useState(null);
-  const [selProf,   setSelProf]   = useState(null);
+  const [selAlerta,  setSelAlerta]  = useState(null);
+  const [selCritico, setSelCritico] = useState(null);
+  const [selProf,    setSelProf]    = useState(null);
 
   useEffect(() => {
     if (!containerRef.current || !MAPBOX_TOKEN) return;
@@ -90,10 +111,29 @@ export default function MapaCampo({ alertas = [], profissionais = [], onVerMaisE
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: TAUBATE, zoom: 12, pitch: 35, antialias: true,
+      center: TAUBATE, zoom: 12, pitch: 45, antialias: true,
     });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: true, showZoom: true }), "top-right");
-    map.on("style.load", () => setMapReady(true));
+    map.on("style.load", () => {
+      // 3D buildings
+      const layers = map.getStyle().layers;
+      const labelLayer = layers.find(l => l.type === "symbol" && l.layout?.["text-field"]);
+      map.addLayer({
+        id: "3d-buildings",
+        source: "composite",
+        "source-layer": "building",
+        filter: ["==", "extrude", "true"],
+        type: "fill-extrusion",
+        minzoom: 15,
+        paint: {
+          "fill-extrusion-color": "#aaa",
+          "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.05, ["get", "height"]],
+          "fill-extrusion-base": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.05, ["get", "min_height"]],
+          "fill-extrusion-opacity": 0.6,
+        },
+      }, labelLayer?.id);
+      setMapReady(true);
+    });
     mapRef.current = map;
     return () => { map.remove(); setMapReady(false); };
   }, []);
@@ -111,26 +151,35 @@ export default function MapaCampo({ alertas = [], profissionais = [], onVerMaisE
     alertMarkersRef.current.forEach((m, id) => {
       if (!activeIds.has(id)) { m.remove(); alertMarkersRef.current.delete(id); }
     });
-
     alertas.filter(a => a.coordenadas && !alertMarkersRef.current.has(a.id)).forEach(a => {
       const el = createAlertEl(a);
-      el.addEventListener("click", () => setSelAlerta(a));
+      el.addEventListener("click", () => { setSelCritico(null); setSelProf(null); setSelAlerta(a); });
       const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([a.coordenadas.lng, a.coordenadas.lat]).addTo(map);
       alertMarkersRef.current.set(a.id, marker);
+    });
+
+    criticoMarkersRef.current.forEach(m => m.remove());
+    criticoMarkersRef.current.clear();
+    criticalPoints.filter(p => p.lat && p.lng).forEach(pt => {
+      const el = createPontoCriticoEl(pt);
+      el.addEventListener("click", () => { setSelAlerta(null); setSelProf(null); setSelCritico(pt); });
+      const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
+        .setLngLat([parseFloat(pt.lng), parseFloat(pt.lat)]).addTo(map);
+      criticoMarkersRef.current.set(String(pt.id), marker);
     });
 
     profMarkersRef.current.forEach(m => m.remove());
     profMarkersRef.current = [];
     profissionais.forEach(p => {
       const el = createProfEl(p);
-      el.addEventListener("click", () => setSelProf(p));
+      el.addEventListener("click", () => { setSelAlerta(null); setSelCritico(null); setSelProf(p); });
       profMarkersRef.current.push(
         new mapboxgl.Marker({ element: el, anchor: "center" })
           .setLngLat([p.coordenadas.lng, p.coordenadas.lat]).addTo(map)
       );
     });
-  }, [alertas, profissionais, mapReady]);
+  }, [alertas, profissionais, criticalPoints, mapReady]);
 
   if (!MAPBOX_TOKEN) {
     return (
@@ -143,6 +192,8 @@ export default function MapaCampo({ alertas = [], profissionais = [], onVerMaisE
     );
   }
 
+  const popupBase = { position: "absolute", bottom: 16, left: 12, zIndex: 20, backgroundColor: "rgba(255,255,255,0.97)", backdropFilter: "blur(10px)", borderRadius: 12, padding: "14px 16px", boxShadow: "0 4px 20px rgba(0,0,0,.18)", maxWidth: 280, minWidth: 220, fontFamily: "system-ui,sans-serif" };
+
   return (
     <div style={{ flex: 1, position: "relative", borderRadius: 12, overflow: "hidden", minHeight: 400 }}>
       <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
@@ -150,7 +201,7 @@ export default function MapaCampo({ alertas = [], profissionais = [], onVerMaisE
       {selAlerta && (() => {
         const cfg = alertConfig(selAlerta);
         return (
-          <div style={{ position: "absolute", bottom: 16, left: 12, zIndex: 20, backgroundColor: "rgba(255,255,255,0.97)", backdropFilter: "blur(10px)", borderRadius: 12, padding: "14px 16px", boxShadow: "0 4px 20px rgba(0,0,0,.18)", border: `2px solid ${cfg.color}`, maxWidth: 280, minWidth: 220, fontFamily: "system-ui,sans-serif" }}>
+          <div style={{ ...popupBase, border: `2px solid ${cfg.color}` }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <div style={{ width: 9, height: 9, borderRadius: "50%", background: cfg.color }} />
@@ -180,12 +231,30 @@ export default function MapaCampo({ alertas = [], profissionais = [], onVerMaisE
         );
       })()}
 
+      {selCritico && (() => {
+        const rst = RISCO_STYLE[selCritico.risco] ?? RISCO_STYLE.medio;
+        return (
+          <div style={{ ...popupBase, border: `2px solid ${rst.color}` }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <div style={{ width: 9, height: 9, borderRadius: "50%", background: rst.color }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: rst.color, textTransform: "uppercase" }}>Ponto Crítico · {rst.label}</span>
+              </div>
+              <button onClick={() => setSelCritico(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: 16, lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#111827", marginBottom: 4 }}>{selCritico.name || selCritico.nome}</div>
+            {selCritico.address && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>📍 {selCritico.address}</div>}
+            {selCritico.description && <div style={{ fontSize: 12, color: "#374151" }}>{selCritico.description}</div>}
+          </div>
+        );
+      })()}
+
       {selProf && (() => {
         const color = PROF_COLORS[selProf.profissao] ?? "#71717a";
         const st    = STATUS_STYLE[selProf.statusCampo ?? "disponivel"];
         const init  = selProf.nome.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
         return (
-          <div style={{ position: "absolute", bottom: 16, left: 12, zIndex: 20, backgroundColor: "rgba(255,255,255,0.97)", backdropFilter: "blur(10px)", borderRadius: 12, padding: "14px 16px", boxShadow: "0 4px 20px rgba(0,0,0,.18)", border: `2px solid ${color}`, maxWidth: 280, minWidth: 220, fontFamily: "system-ui,sans-serif" }}>
+          <div style={{ ...popupBase, border: `2px solid ${color}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
               <div style={{ width: 42, height: 42, borderRadius: "50%", background: color, border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: "#fff", flexShrink: 0 }}>{init}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -203,11 +272,20 @@ export default function MapaCampo({ alertas = [], profissionais = [], onVerMaisE
       })()}
 
       {/* Legend */}
-      <div style={{ position: "absolute", bottom: 16, right: 12, zIndex: 10, backgroundColor: "rgba(255,255,255,0.94)", backdropFilter: "blur(8px)", borderRadius: 10, padding: "10px 13px", boxShadow: "0 2px 10px rgba(0,0,0,.11)", border: "1px solid #e5e7eb", fontSize: 11, lineHeight: 1.9, minWidth: 150 }}>
+      <div style={{ position: "absolute", bottom: 16, right: 12, zIndex: 10, backgroundColor: "rgba(255,255,255,0.94)", backdropFilter: "blur(8px)", borderRadius: 10, padding: "10px 13px", boxShadow: "0 2px 10px rgba(0,0,0,.11)", border: "1px solid #e5e7eb", fontSize: 11, lineHeight: 1.9, minWidth: 160 }}>
         <div style={{ fontWeight: 700, fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 7 }}>Legenda</div>
-        {[{ color: "#FF4444", label: "Evento Crítico" }, { color: "#FF6B00", label: "Evento Grave" }, { color: "#F5A623", label: "Evento Moderado" }].map(i => (
+        {[
+          { color: "#FF4444", label: "Evento Crítico",     shape: "circle" },
+          { color: "#FF6B00", label: "Evento Grave",       shape: "circle" },
+          { color: "#F5A623", label: "Evento Moderado",    shape: "circle" },
+          { color: "#ef4444", label: "Ponto Crítico",      shape: "ring" },
+          { color: "#16a34a", label: "Especialista disp.", shape: "circle" },
+        ].map(i => (
           <div key={i.label} style={{ display: "flex", alignItems: "center", gap: 7, color: "#374151" }}>
-            <div style={{ width: 14, height: 14, borderRadius: "50%", background: i.color, border: "2px solid #fff", boxShadow: `0 0 0 1.5px ${i.color}55`, flexShrink: 0 }} />
+            {i.shape === "ring"
+              ? <div style={{ width: 12, height: 12, borderRadius: "50%", background: `${i.color}22`, border: `2px solid ${i.color}`, flexShrink: 0 }} />
+              : <div style={{ width: 12, height: 12, borderRadius: "50%", background: i.color, border: "2px solid #fff", boxShadow: `0 0 0 1.5px ${i.color}55`, flexShrink: 0 }} />
+            }
             {i.label}
           </div>
         ))}

@@ -21,6 +21,7 @@ import com.pird.pirdBackend.model.Especialista;
 import com.pird.pirdBackend.model.PontoColeta;
 import com.pird.pirdBackend.repository.AdministradorRepository;
 import com.pird.pirdBackend.security.TokenService;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -79,6 +80,9 @@ public class AuthController {
 
             return ResponseEntity.ok(new LoginResponseDTO(token, nome, user.getUsername()));
 
+        } catch (DisabledException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Conta desativada. Entre em contato com a Defesa Civil.");
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("E-mail ou senha inválidos.");

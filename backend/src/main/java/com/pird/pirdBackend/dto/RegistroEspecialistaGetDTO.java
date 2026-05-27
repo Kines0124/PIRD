@@ -8,16 +8,17 @@ import java.util.List;
 public class RegistroEspecialistaGetDTO {
 
     private Integer id;
-    private String nome;
-    private String cpf;
-    private String telefone;
-    private String profissao;
-    private String numeroRegistro;
-    private String uf;
-    private String status;
-    private String observacao;
-    private String criadoEm;
-    private String revisadoEm;
+    private String  nome;
+    private String  cpf;
+    private String  telefone;
+    private String  profissao;
+    private String  numeroRegistro;
+    private String  uf;
+    private String  status;
+    private String  observacao;
+    private String  criadoEm;
+    private String  revisadoEm;
+    private Integer especialistaId;
 
     public RegistroEspecialistaGetDTO() {}
 
@@ -40,15 +41,17 @@ public class RegistroEspecialistaGetDTO {
         return list.stream().map(RegistroEspecialistaGetDTO::new).toList();
     }
 
-    public Integer getId() { return id; }
-    public String getNome() { return nome; }
-    public String getCpf() { return cpf; }
-    public String getTelefone() { return telefone; }
-    public String getProfissao() { return profissao; }
-    public String getNumeroRegistro() { return numeroRegistro; }
-    public String getUf() { return uf; }
-    public String getStatus() { return status; }
-    public String getObservacao() { return observacao; }
-    public String getCriadoEm() { return criadoEm; }
-    public String getRevisadoEm() { return revisadoEm; }
+    public Integer getId()              { return id; }
+    public String  getNome()            { return nome; }
+    public String  getCpf()             { return cpf; }
+    public String  getTelefone()        { return telefone; }
+    public String  getProfissao()       { return profissao; }
+    public String  getNumeroRegistro()  { return numeroRegistro; }
+    public String  getUf()              { return uf; }
+    public String  getStatus()          { return status; }
+    public String  getObservacao()      { return observacao; }
+    public String  getCriadoEm()        { return criadoEm; }
+    public String  getRevisadoEm()      { return revisadoEm; }
+    public Integer getEspecialistaId()  { return especialistaId; }
+    public void    setEspecialistaId(Integer especialistaId) { this.especialistaId = especialistaId; }
 }

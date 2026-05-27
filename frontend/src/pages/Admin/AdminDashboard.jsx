@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { styles } from "./adminTheme.jsx";
 import * as adminApi from "../../services/adminApi.js";
 import OverviewSection         from "./sections/OverviewSection.jsx";
@@ -19,6 +20,7 @@ function LoginGate({ onLogin }) {
   const [senha,   setSenha]   = useState("");
   const [error,   setError]   = useState(null);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -69,6 +71,14 @@ function LoginGate({ onLogin }) {
                 {loading ? "Entrando…" : "Entrar"}
               </button>
             </form>
+            <button
+              onClick={() => navigate("/login")}
+              style={{ marginTop: 16, background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", fontFamily: "monospace", letterSpacing: "0.04em", padding: 0 }}
+              onMouseEnter={e => e.currentTarget.style.color = "var(--text-secondary)"}
+              onMouseLeave={e => e.currentTarget.style.color = "var(--text-muted)"}
+            >
+              ← Voltar à tela inicial
+            </button>
           </div>
         </div>
       </div>
@@ -96,6 +106,19 @@ function AdminPanel({ onLogout }) {
   // ID de evento a abrir automaticamente em EventsSection
   const [pendingOpenEventId, setPendingOpenEventId] = useState(null);
 
+  // Notifications dropdown
+  const [showNotifs, setShowNotifs] = useState(false);
+
+  // Settings modal
+  const [showSettings,       setShowSettings]       = useState(false);
+  const [settingsNome,       setSettingsNome]       = useState("");
+  const [settingsSenhaAtual, setSettingsSenhaAtual] = useState("");
+  const [settingsSenha,      setSettingsSenha]      = useState("");
+  const [settingsConfirm,    setSettingsConfirm]    = useState("");
+  const [settingsEmail,      setSettingsEmail]      = useState("");
+  const [settingsSaving,     setSettingsSaving]     = useState(false);
+  const [settingsMsg,        setSettingsMsg]        = useState(null);
+
   async function loadAll() {
     try {
       const [evts, pts, vols, cols, specs] = await Promise.all([
@@ -117,6 +140,58 @@ function AdminPanel({ onLogout }) {
   }
 
   useEffect(() => { loadAll(); }, []);
+
+  async function openSettings() {
+    setSettingsSaving(false);
+    setSettingsMsg(null);
+    setSettingsSenhaAtual("");
+    setSettingsSenha("");
+    setSettingsConfirm("");
+    try {
+      const perfil = await adminApi.getAdminPerfil();
+      setSettingsNome(perfil.nome || "");
+      setSettingsEmail(perfil.email || "");
+    } catch {
+      setSettingsNome(adminApi.getAdminNome());
+      setSettingsEmail("");
+    }
+    setShowSettings(true);
+  }
+
+  async function handleSaveSettings() {
+    if (settingsSenha.trim()) {
+      if (!settingsSenhaAtual.trim()) {
+        setSettingsMsg({ ok: false, text: "Informe a senha atual para alterar a senha." });
+        return;
+      }
+      if (settingsSenha !== settingsConfirm) {
+        setSettingsMsg({ ok: false, text: "A nova senha e a confirmação não coincidem." });
+        return;
+      }
+      if (settingsSenha.trim().length < 6) {
+        setSettingsMsg({ ok: false, text: "A nova senha deve ter pelo menos 6 caracteres." });
+        return;
+      }
+    }
+    setSettingsSaving(true);
+    setSettingsMsg(null);
+    try {
+      const body = {};
+      if (settingsNome.trim())       body.nome       = settingsNome.trim();
+      if (settingsSenha.trim())      body.senha      = settingsSenha.trim();
+      if (settingsSenhaAtual.trim()) body.senhaAtual = settingsSenhaAtual.trim();
+      await adminApi.updateAdminPerfil(body);
+      if (body.nome) sessionStorage.setItem("admin_nome", body.nome);
+      setSettingsMsg({ ok: true, text: "Perfil atualizado com sucesso." });
+      setSettingsSenhaAtual("");
+      setSettingsSenha("");
+      setSettingsConfirm("");
+    } catch (e) {
+      setSettingsMsg({ ok: false, text: e.message || "Erro ao salvar." });
+    } finally {
+      setSettingsSaving(false);
+    }
+  }
 
   function handleUpdateSpecialistStatus(id, status) {
     setSpecialistStatuses(prev => ({ ...prev, [String(id)]: status }));
@@ -182,6 +257,8 @@ function AdminPanel({ onLogout }) {
 
   const pendingCols          = collectionPoints.filter(p => p.status === "pendente").length;
   const pendingEspecialistas = specialists.filter(s => s.status === "pendente").length;
+  const activeEvents         = events.filter(e => e.status === "ativo").length;
+  const totalNotifs          = pendingCols + pendingEspecialistas + activeEvents;
 
   const navItems = [
     { id: "overview",      icon: "◉",  label: "Visão Geral" },
@@ -234,8 +311,14 @@ function AdminPanel({ onLogout }) {
               <div className="avatar-name">{adminNome}</div>
               <div className="avatar-role">ADMIN</div>
             </div>
-            <span title="Sair" onClick={onLogout}
-              style={{ color: "var(--text-muted)", cursor: "pointer", fontSize: 14 }}>⇤</span>
+            <button
+              onClick={onLogout}
+              style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6, color: "#ef4444", fontWeight: 700, fontSize: 12, padding: "5px 10px", cursor: "pointer", letterSpacing: "0.05em", transition: "all 0.15s", flexShrink: 0 }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.22)"; e.currentTarget.style.borderColor = "#ef4444"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)"; }}
+            >
+              Sair
+            </button>
           </div>
         </aside>
 
@@ -253,14 +336,60 @@ function AdminPanel({ onLogout }) {
               </div>
             )}
             <div className="topbar-status"><div className="status-dot" />Sistema Online</div>
-            <button className="topbar-btn" title="Notificações">🔔</button>
-            <button className="topbar-btn" title="Configurações">⚙️</button>
+            <div style={{ position: "relative" }}>
+              <button
+                className="topbar-btn"
+                title="Notificações"
+                onClick={() => setShowNotifs(v => !v)}
+                style={{ position: "relative" }}
+              >
+                🔔
+                {totalNotifs > 0 && (
+                  <span style={{ position: "absolute", top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 99, background: "#ef4444", color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px" }}>
+                    {totalNotifs}
+                  </span>
+                )}
+              </button>
+              {showNotifs && (
+                <div
+                  style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: 300, background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 10, zIndex: 300, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}
+                  onMouseLeave={() => setShowNotifs(false)}
+                >
+                  <div style={{ padding: "12px 16px 8px", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>
+                    Notificações
+                  </div>
+                  {[
+                    { count: pendingEspecialistas, label: "Especialistas aguardando validação", icon: "⚕️", target: "validacoes" },
+                    { count: pendingCols,          label: "Pontos de coleta pendentes",         icon: "📦", target: "collection" },
+                    { count: activeEvents,         label: "Eventos ativos no momento",          icon: "🌊", target: "events" },
+                  ].map(n => (
+                    <div
+                      key={n.target}
+                      onClick={() => { setSection(n.target); setShowNotifs(false); }}
+                      style={{ padding: "11px 16px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", borderBottom: "1px solid var(--border)", transition: "background 0.1s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "var(--bg-elevated)"}
+                      onMouseLeave={e => e.currentTarget.style.background = ""}
+                    >
+                      <span style={{ fontSize: 18, flexShrink: 0 }}>{n.icon}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12.5, color: "var(--text-primary)", fontWeight: 500 }}>{n.label}</div>
+                      </div>
+                      <span style={{ minWidth: 22, height: 22, borderRadius: 99, background: n.count > 0 ? (n.target === "events" ? "rgba(59,130,246,0.2)" : "rgba(239,68,68,0.15)") : "var(--bg-elevated)", color: n.count > 0 ? (n.target === "events" ? "#3b82f6" : "#ef4444") : "var(--text-muted)", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px", flexShrink: 0 }}>
+                        {n.count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button className="topbar-btn" title="Configurações" onClick={openSettings}>⚙️</button>
           </div>
 
           {section === "campo" ? (
             <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
               <CampoSection
                 events={events}
+                criticalPoints={criticalPoints}
                 specialists={specialists}
                 specialistStatuses={specialistStatuses}
                 onGoToEvent={(id) => { setPendingOpenEventId(String(id)); setSection("events"); }}
@@ -277,6 +406,7 @@ function AdminPanel({ onLogout }) {
                   specialists={specialists}
                   onNewEvent={() => setShowNewEvent(true)}
                   onNewPoint={() => setShowNewPoint(true)}
+                  onGoToCritical={() => setSection("critical")}
                 />
               )}
               {section === "dashboard" && (
@@ -321,6 +451,7 @@ function AdminPanel({ onLogout }) {
                   specialists={specialists}
                   specialistStatuses={specialistStatuses}
                   onUpdateStatus={handleUpdateSpecialistStatus}
+                  onDelete={handleDeletarEspecialista}
                 />
               )}
               {section === "validacoes" && (
@@ -347,6 +478,60 @@ function AdminPanel({ onLogout }) {
           onClose={() => setShowNewPoint(false)}
           onSave={form => { handleSavePoint(null, form); setShowNewPoint(false); }}
         />
+      )}
+
+      {showSettings && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowSettings(false)}>
+          <div className="modal" style={{ maxWidth: 440 }}>
+            <div className="modal-header">
+              <div className="modal-title">⚙️ Configurações do Perfil</div>
+              <button className="modal-close" onClick={() => setShowSettings(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">E-mail (somente leitura)</label>
+                <input className="form-input" value={settingsEmail} readOnly
+                  style={{ opacity: 0.6, cursor: "default", color: "var(--text-muted)" }} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Nome</label>
+                <input className="form-input" value={settingsNome}
+                  onChange={e => setSettingsNome(e.target.value)}
+                  placeholder="Seu nome completo" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Senha Atual</label>
+                <input className="form-input" type="password" value={settingsSenhaAtual}
+                  onChange={e => { setSettingsSenhaAtual(e.target.value); setSettingsMsg(null); }}
+                  placeholder="Digite sua senha atual" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Nova Senha</label>
+                <input className="form-input" type="password" value={settingsSenha}
+                  onChange={e => { setSettingsSenha(e.target.value); setSettingsMsg(null); }}
+                  placeholder="Deixe em branco para manter a atual" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Confirmar Nova Senha</label>
+                <input className="form-input" type="password" value={settingsConfirm}
+                  onChange={e => { setSettingsConfirm(e.target.value); setSettingsMsg(null); }}
+                  placeholder="Repita a nova senha"
+                  style={{ borderColor: settingsConfirm && settingsSenha !== settingsConfirm ? "var(--danger)" : undefined }} />
+              </div>
+              {settingsMsg && (
+                <div style={{ fontSize: 13, padding: "8px 12px", borderRadius: 6, background: settingsMsg.ok ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${settingsMsg.ok ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`, color: settingsMsg.ok ? "#22c55e" : "#ef4444" }}>
+                  {settingsMsg.text}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowSettings(false)}>Cancelar</button>
+              <button className="btn btn-primary" disabled={settingsSaving} style={{ opacity: settingsSaving ? 0.5 : 1 }} onClick={handleSaveSettings}>
+                {settingsSaving ? "Salvando..." : "💾 Salvar"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

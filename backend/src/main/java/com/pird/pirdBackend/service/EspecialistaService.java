@@ -9,6 +9,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -20,8 +21,11 @@ public class EspecialistaService {
     @Autowired
     private EspecialistaRepository repository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     public List<EspecialistaGetDTO> listar() {
-        return EspecialistaGetDTO.convert(repository.findAll());
+        return EspecialistaGetDTO.convert(repository.findByDeletadoFalse());
     }
 
     public EspecialistaGetDTO buscarPorId(Integer id) {
@@ -33,6 +37,14 @@ public class EspecialistaService {
 
         if (dto.getNome()     != null) e.setNome(dto.getNome());
         if (dto.getTelefone() != null) e.setTelefone(dto.getTelefone());
+
+        if (dto.getSenha() != null && !dto.getSenha().isBlank()) {
+            if (dto.getSenhaAtual() == null || dto.getSenhaAtual().isBlank())
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe a senha atual para alterar a senha.");
+            if (!passwordEncoder.matches(dto.getSenhaAtual(), e.getSenhaHash()))
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Senha atual incorreta.");
+            e.setSenhaHash(passwordEncoder.encode(dto.getSenha()));
+        }
         if (dto.getRua()      != null) e.setRua(dto.getRua());
         if (dto.getNumero()   != null) e.setNumero(dto.getNumero());
         if (dto.getBairro()   != null) e.setBairro(dto.getBairro());
@@ -48,8 +60,9 @@ public class EspecialistaService {
     }
 
     public void deletar(Integer id) {
-        buscar(id);
-        repository.deleteById(id);
+        Especialista e = buscar(id);
+        e.setDeletado(true);
+        repository.save(e);
     }
 
     private Especialista buscar(Integer id) {

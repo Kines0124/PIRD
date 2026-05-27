@@ -29,7 +29,7 @@ public class PontoCriticoController {
     private PontoCriticoService pontoCriticoService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ESPECIALISTA')")
     public ResponseEntity<List<PontoCriticoGetDTO>> listar() {
         return ResponseEntity.ok(pontoCriticoService.listar());
     }

@@ -44,7 +44,7 @@ public class Convocacao {
     )
     private Especialista especialista;
 
-    // pendente | aceita | recusada
+    // pendente | a_caminho | recusada
     @Column(nullable = false, length = 20)
     private String status = "pendente";
 
