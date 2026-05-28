@@ -41,6 +41,7 @@ public class SecurityConfigurations {
 
                         // Autenticação pública
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/auth/login")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/auth/login/ponto")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/auth/registrar")).permitAll()
 
                         // Cadastro de voluntário é público (auto-cadastro)
@@ -50,12 +51,33 @@ public class SecurityConfigurations {
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/especialistas")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET,  "/especialistas/*")).permitAll()
 
+                        // Registro de ponto de coleta (público — pré-aprovação)
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/registro-pontos-coleta")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET,  "/registro-pontos-coleta/status/*")).permitAll()
+
+                        // Pontos de coleta validados e suas demandas (público — para o formulário de doação)
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET, "/pontos-coleta/validados")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET, "/pontos-coleta/*/demandas")).permitAll()
+
+                        // Doações públicas (formulário anônimo)
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST, "/doacoes")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET,  "/doacoes")).permitAll()
+
                         // Rotas do painel do especialista (ROLE_ESPECIALISTA)
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET,   "/especialistas/aprovados/perfil")).hasRole("ESPECIALISTA")
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PUT,   "/especialistas/aprovados/*")).hasRole("ESPECIALISTA")
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET,   "/convocacoes/minhas")).hasRole("ESPECIALISTA")
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/convocacoes/*/aceitar")).hasRole("ESPECIALISTA")
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/convocacoes/*/recusar")).hasRole("ESPECIALISTA")
+
+                        // Rotas do painel do ponto de coleta (ROLE_PONTO_COLETA)
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET,   "/pontos-coleta/meu")).hasRole("PONTO_COLETA")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET,   "/pontos-coleta/meu/demandas")).hasRole("PONTO_COLETA")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST,  "/pontos-coleta/meu/demandas")).hasRole("PONTO_COLETA")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/pontos-coleta/meu/demandas/*/estoque")).hasRole("PONTO_COLETA")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/pontos-coleta/meu/demandas/*/limite")).hasRole("PONTO_COLETA")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET,   "/pontos-coleta/meu/doacoes")).hasRole("PONTO_COLETA")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/doacoes/*/recebida")).hasRole("PONTO_COLETA")
 
                         // Eventos ativos e pontos críticos (visíveis ao especialista)
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET, "/eventos/ativos")).hasAnyRole("ESPECIALISTA", "ADMINISTRADOR")

@@ -28,12 +28,17 @@ export default function TelaLogin({ onLogin }) {
       </div>
       <div style={{ display: "flex", gap: 16 }}>
         {[
-          { id: "defesa",       icon: "🛡️", label: "Defesa Civil",  desc: "Painel de comando e controle",  cor: "#ef4444" },
-          { id: "especialista", icon: "⚕️", label: "Especialista",  desc: "Acesse seu painel e convocações", cor: "#10b981" },
+          { id: "defesa",       icon: "🛡️", label: "Defesa Civil",      desc: "Painel de comando e controle",    cor: "#ef4444" },
+          { id: "especialista", icon: "⚕️", label: "Especialista",      desc: "Acesse seu painel e convocações", cor: "#10b981" },
+          { id: "ponto",        icon: "📦", label: "Ponto de Coleta",   desc: "Gestão de estoque e doações",     cor: "#E8294C" },
         ].map(p => (
           <button
             key={p.id}
-            onClick={() => p.id === "especialista" ? navigate("/especialistas/painel") : onLogin(p.id)}
+            onClick={() => {
+              if (p.id === "especialista") navigate("/especialistas/painel");
+              else if (p.id === "ponto") navigate("/pontos-coleta");
+              else onLogin(p.id);
+            }}
             style={{
               display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
               padding: "28px 36px", background: "#0a1628",
@@ -73,6 +78,16 @@ export default function TelaLogin({ onLogin }) {
           letterSpacing: 1,
         }}>
           📦 Quero fazer uma doação →
+        </Link>
+
+        <Link to="/pontos-coleta/novo" style={{
+          color: "#E8294C",
+          fontSize: 13,
+          fontFamily: "monospace",
+          textDecoration: "none",
+          letterSpacing: 1,
+        }}>
+          🏪 Sou responsável por um ponto de coleta →
         </Link>
 
         <Link to="/especialistas/cadastro" style={{

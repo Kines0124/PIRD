@@ -3,13 +3,32 @@ import mapboxgl from "mapbox-gl";
 import { MAPBOX_TOKEN } from "../../utils/geocoding.js";
 import { useNavigate } from "react-router-dom";
 import { maskPhone } from "../../utils/cpfValidator.js";
-import { useGeocodingAutocomplete } from "../../hooks/useGeocodingAutocomplete.js";
+import { CATEGORIA_CONFIG, SUBITENS_POR_CATEGORIA } from "../PontoColeta/shared";
 
-// ── Mapa light-mode ───────────────────────────────────────────────────────────
+const BASE = "http://localhost:8080";
 
-function MapaDoacoes({ flyToCoords }) {
+const CATEGORIAS_ORDER = ['solido', 'liquido', 'dormitorios', 'roupas', 'higiene_limpeza'];
+
+function placeMarkersOnMap(map, markersRef, pontosList) {
+  markersRef.current.forEach(m => m.remove());
+  markersRef.current = [];
+  (pontosList || []).forEach(p => {
+    if (!p.lat || !p.lng) return;
+    const el = document.createElement('div');
+    el.style.cssText = 'width:12px;height:12px;background:#FF6B1A;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 4px rgba(255,107,26,0.25);cursor:pointer';
+    const marker = new mapboxgl.Marker({ element: el })
+      .setLngLat([p.lng, p.lat])
+      .addTo(map);
+    markersRef.current.push(marker);
+  });
+}
+
+function MapaDoacoes({ flyToCoords, pontos }) {
   const containerRef = useRef(null);
   const mapRef       = useRef(null);
+  const markersRef   = useRef([]);
+  const pontosRef    = useRef(pontos);
+  pontosRef.current  = pontos;
 
   useEffect(() => {
     if (!containerRef.current || !MAPBOX_TOKEN) return;
@@ -40,8 +59,21 @@ function MapaDoacoes({ flyToCoords }) {
         },
       }, labelLayer?.id);
     });
-    return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
+    map.on("load", () => {
+      placeMarkersOnMap(map, markersRef, pontosRef.current);
+    });
+    return () => {
+      markersRef.current.forEach(m => m.remove());
+      markersRef.current = [];
+      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+    };
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.loaded()) return;
+    placeMarkersOnMap(map, markersRef, pontos);
+  }, [pontos]);
 
   useEffect(() => {
     if (mapRef.current && flyToCoords) {
@@ -62,25 +94,80 @@ function MapaDoacoes({ flyToCoords }) {
   return <div style={{ flex: 1, borderRadius: 10, overflow: "hidden", border: "1px solid #334155" }} ref={containerRef} />;
 }
 
-// ── Formulário principal ──────────────────────────────────────────────────────
-
 export default function DoadoresForm() {
-  const [tipo,       setTipo]       = useState("");
-  const [telefone,   setTelefone]   = useState("");
-  const [destinoQuery, setDestinoQuery] = useState("");
-  const [destinoSel,   setDestinoSel]  = useState(null);
-  const [showSugestoes, setShowSugestoes] = useState(false);
-  const [flyToCoords,  setFlyToCoords]   = useState(null);
+  const [nome,            setNome]            = useState("");
+  const [telefone,        setTelefone]        = useState("");
+  const [quantidade,      setQuantidade]      = useState("");
+  const [pontos,          setPontos]          = useState([]);
+  const [pontoId,         setPontoId]         = useState("");
+  const [demandas,        setDemandas]        = useState([]);
+  const [demandasLoading, setDemandasLoading] = useState(false);
+  const [categoriaFiltro, setCategoriaFiltro] = useState("");
+  const [subItemSel,      setSubItemSel]      = useState("");
+  const [flyToCoords,     setFlyToCoords]     = useState(null);
+  const [submitting,      setSubmitting]      = useState(false);
+  const [sucesso,         setSucesso]         = useState(false);
+  const [erro,            setErro]            = useState(null);
 
   const navigate = useNavigate();
 
-  const { sugestoes, carregando } = useGeocodingAutocomplete(showSugestoes ? destinoQuery : "");
+  useEffect(() => {
+    fetch(`${BASE}/pontos-coleta/validados`)
+      .then(r => r.ok ? r.json() : [])
+      .then(setPontos)
+      .catch(() => {});
+  }, []);
 
-  function handleDestinoSelect(sug) {
-    setDestinoQuery(sug.placeName);
-    setDestinoSel(sug);
-    setFlyToCoords(sug.coordenadas);
-    setShowSugestoes(false);
+  useEffect(() => {
+    if (!pontoId) { setDemandas([]); setSubItemSel(""); setCategoriaFiltro(""); return; }
+    const ponto = pontos.find(p => p.id === parseInt(pontoId));
+    if (ponto?.lat && ponto?.lng) setFlyToCoords({ lat: ponto.lat, lng: ponto.lng });
+    setDemandasLoading(true);
+    fetch(`${BASE}/pontos-coleta/${pontoId}/demandas`)
+      .then(r => r.ok ? r.json() : [])
+      .then(setDemandas)
+      .catch(() => {})
+      .finally(() => setDemandasLoading(false));
+    setSubItemSel("");
+    setCategoriaFiltro("");
+  }, [pontoId]);
+
+  // Demanda da categoria selecionada (uma por categoria agora)
+  const categoriaDemanda = categoriaFiltro
+    ? demandas.find(d => d.categoria === categoriaFiltro)
+    : null;
+
+  // Subitens disponíveis se a categoria tiver demanda cadastrada
+  const subItens = categoriaDemanda
+    ? (SUBITENS_POR_CATEGORIA[categoriaFiltro] || [])
+    : [];
+
+  const canSubmit = nome.trim() && telefone.trim() && categoriaDemanda && subItemSel && quantidade && parseInt(quantidade) >= 1;
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
+    setErro(null);
+    try {
+      const res = await fetch(`${BASE}/doacoes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nomeDoador:    nome.trim(),
+          contatoDoador: telefone,
+          demandaId:     categoriaDemanda.id,
+          descricaoItem: subItemSel,
+          quantidade:    parseInt(quantidade),
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setSucesso(true);
+    } catch {
+      setErro("Erro ao registrar doação. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const inp = {
@@ -109,19 +196,36 @@ export default function DoadoresForm() {
     fontWeight: 600,
   };
 
+  const selectedPonto = pontos.find(p => p.id === parseInt(pontoId));
+
+  if (sucesso) {
+    return (
+      <div style={{ display: "flex", minHeight: "100vh", background: "#0f172a", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ textAlign: "center", padding: "48px 32px", maxWidth: 400 }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: "#f1f5f9", marginBottom: 8 }}>Doação registrada!</h2>
+          <p style={{ color: "#94a3b8", fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+            Sua doação foi registrada com sucesso. Leve os itens ao ponto de coleta selecionado e informe seu nome ao responsável.
+          </p>
+          <button onClick={() => navigate("/login")}
+            style={{ padding: "10px 24px", background: "#FF6B1A", border: "none", borderRadius: 6, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            Voltar ao início
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
         .d-inp:focus { border-color: #FF6B1A !important; }
         .d-inp::placeholder { color: #475569; }
-        .d-sug:hover { background: rgba(255,107,26,0.08) !important; }
         .d-prox:hover { border-color: #FF6B1A !important; color: #FF6B1A !important; }
         .mapboxgl-ctrl-group { background: #fff !important; border: 1px solid #e2e8f0 !important; border-radius: 8px !important; }
         .mapboxgl-ctrl-group button { background: #fff !important; border-bottom: 1px solid #e2e8f0 !important; }
         .mapboxgl-ctrl-group button:hover { background: #f8fafc !important; }
-        .mapboxgl-popup-content { background: #fff; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; font-family: 'Inter', sans-serif; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
-        .mapboxgl-popup-tip { border-top-color: #fff !important; border-bottom-color: #fff !important; }
       `}</style>
 
       <div style={{ display: "flex", minHeight: "100vh", background: "#f8fafc", fontFamily: "'Inter', sans-serif" }}>
@@ -129,7 +233,6 @@ export default function DoadoresForm() {
         {/* ── Painel lateral ── */}
         <div style={{ width: 420, minWidth: 420, background: "#0f172a", borderRight: "1px solid #1e293b", display: "flex", flexDirection: "column", padding: "32px 28px", overflowY: "auto" }}>
 
-          {/* Header */}
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 9, letterSpacing: "0.16em", color: "#FF6B1A", fontFamily: "'JetBrains Mono', monospace", marginBottom: 8, fontWeight: 500 }}>
               RECURSOS · LOGÍSTICA
@@ -144,91 +247,122 @@ export default function DoadoresForm() {
 
           <div style={{ height: 1, background: "#1e293b", marginBottom: 20 }} />
 
-          {/* Form */}
-          <form style={{ flex: 1, display: "flex", flexDirection: "column" }} onSubmit={e => e.preventDefault()}>
+          <form style={{ flex: 1, display: "flex", flexDirection: "column" }} onSubmit={handleSubmit}>
 
             <label style={{ ...lbl, marginTop: 0 }}>Nome</label>
-            <input className="d-inp" type="text" placeholder="Seu nome completo" style={inp} />
+            <input className="d-inp" type="text" placeholder="Seu nome completo" style={inp}
+              value={nome} onChange={e => setNome(e.target.value)} />
 
             <label style={lbl}>Telefone</label>
-            <input
-              className="d-inp"
-              type="text"
-              inputMode="numeric"
-              placeholder="(11) 99999-9999"
-              value={telefone}
-              onChange={e => setTelefone(maskPhone(e.target.value))}
-              style={inp}
-            />
+            <input className="d-inp" type="text" inputMode="numeric" placeholder="(11) 99999-9999"
+              value={telefone} onChange={e => setTelefone(maskPhone(e.target.value))} style={inp} />
 
-            <label style={lbl}>Categoria de Item</label>
-            <select className="d-inp" onChange={e => setTipo(e.target.value)} style={{ ...inp, cursor: "pointer", appearance: "none" }}>
-              <option value="">Selecione o tipo</option>
-              <option value="Alimento">Alimento (Sólido)</option>
-              <option value="Bebida">Bebida (Líquido)</option>
+            <label style={lbl}>Ponto de Coleta</label>
+            <select className="d-inp" value={pontoId} onChange={e => setPontoId(e.target.value)}
+              style={{ ...inp, cursor: "pointer", appearance: "none" }}>
+              <option value="">Selecione o ponto…</option>
+              {pontos.map(p => (
+                <option key={p.id} value={p.id}>{p.name} — {p.city || p.address}</option>
+              ))}
             </select>
 
-            <label style={lbl}>Descrição do Item</label>
-            <input className="d-inp" type="text" placeholder="Ex: Arroz, Feijão, Água mineral..." style={inp} />
+            {pontoId && demandasLoading && (
+              <div style={{ marginTop: 14, fontSize: 11, color: "#475569", fontFamily: "'JetBrains Mono', monospace" }}>
+                Carregando categorias…
+              </div>
+            )}
 
-            <label style={lbl}>Volume / Quantidade</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input className="d-inp" type="number" placeholder="0"
-                style={{ ...inp, flex: 2, MozAppearance: "textfield" }} />
-              <select className="d-inp" style={{ ...inp, flex: 1, cursor: "pointer", appearance: "none" }}>
-                {tipo === "Bebida" ? (
-                  <>
-                    <option value="L">L</option>
-                    <option value="ml">ML</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="kg">KG</option>
-                    <option value="g">G</option>
-                    <option value="un">UN</option>
-                  </>
-                )}
-              </select>
-            </div>
-
-            {/* Destino da carga — autocomplete real via Mapbox */}
-            <label style={lbl}>Destino da Carga</label>
-            <div style={{ position: "relative" }}>
-              <input
-                className="d-inp"
-                type="text"
-                placeholder="Buscar endereço ou ponto de entrega..."
-                value={destinoQuery}
-                onChange={e => { setDestinoQuery(e.target.value); setDestinoSel(null); setShowSugestoes(true); }}
-                onFocus={() => setShowSugestoes(true)}
-                onBlur={() => setTimeout(() => setShowSugestoes(false), 150)}
-                style={{ ...inp, borderColor: destinoSel ? "#22c55e" : "#334155" }}
-              />
-              {carregando && (
-                <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8" }}>…</div>
-              )}
-              {showSugestoes && sugestoes.length > 0 && (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#1e293b", border: "1px solid #334155", borderRadius: 6, zIndex: 10, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}>
-                  {sugestoes.map(s => (
-                    <div key={s.id}
-                      className="d-sug"
-                      onMouseDown={() => handleDestinoSelect(s)}
-                      style={{ padding: "9px 12px", color: "#e2e8f0", cursor: "pointer", fontSize: 12, fontFamily: "'Inter', sans-serif", borderBottom: "1px solid #334155" }}>
-                      <div style={{ fontWeight: 600 }}>{s.shortName}</div>
-                      <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>{s.placeName}</div>
-                    </div>
-                  ))}
+            {pontoId && !demandasLoading && (
+              <>
+                <label style={lbl}>Categoria</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {CATEGORIAS_ORDER.map(cat => {
+                    const cfg    = CATEGORIA_CONFIG[cat];
+                    const temDem = demandas.some(d => d.categoria === cat);
+                    const ativo  = categoriaFiltro === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        disabled={!temDem}
+                        onClick={() => { setCategoriaFiltro(cat); setSubItemSel(""); }}
+                        style={{
+                          padding: "5px 13px",
+                          borderRadius: 20,
+                          border: `1px solid ${ativo ? "#FF6B1A" : temDem ? "#334155" : "#1e293b"}`,
+                          background: ativo ? "rgba(255,107,26,0.15)" : "transparent",
+                          color: ativo ? "#FF6B1A" : temDem ? "#94a3b8" : "#2d3748",
+                          fontSize: 11,
+                          fontFamily: "'JetBrains Mono', monospace",
+                          cursor: temDem ? "pointer" : "not-allowed",
+                          transition: "all 0.15s",
+                          letterSpacing: "0.04em",
+                          opacity: temDem ? 1 : 0.35,
+                        }}
+                      >
+                        {cfg?.label || cat}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+              </>
+            )}
+
+            {categoriaFiltro && !categoriaDemanda && !demandasLoading && (
+              <div style={{ marginTop: 10, padding: "8px 12px", background: "rgba(100,116,139,0.08)", border: "1px solid #1e293b", borderRadius: 6, color: "#475569", fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
+                Nenhuma demanda cadastrada nessa categoria.
+              </div>
+            )}
+
+            {categoriaFiltro && categoriaDemanda && (
+              <>
+                <label style={lbl}>Item</label>
+                <select className="d-inp" value={subItemSel} onChange={e => setSubItemSel(e.target.value)}
+                  style={{ ...inp, cursor: "pointer", appearance: "none" }}>
+                  <option value="">Selecione o item…</option>
+                  {subItens.map(sub => {
+                    const unit = CATEGORIA_CONFIG[categoriaFiltro]?.unit || 'un';
+                    const restantes = Math.max(0, categoriaDemanda.quantidadeDemanda - categoriaDemanda.quantidadeRecebida);
+                    return (
+                      <option key={sub} value={sub}>
+                        {sub} ({restantes} {unit} restantes na categoria)
+                      </option>
+                    );
+                  })}
+                </select>
+              </>
+            )}
+
+            {subItemSel && (
+              <>
+                <label style={lbl}>Quantidade</label>
+                <input className="d-inp" type="number" inputMode="numeric" placeholder="0" min="1"
+                  value={quantidade} onChange={e => setQuantidade(e.target.value.replace(/\D/g, ""))}
+                  style={{ ...inp, MozAppearance: "textfield" }} />
+              </>
+            )}
+
+            {erro && (
+              <div style={{ marginTop: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6, color: "#ef4444", fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>
+                {erro}
+              </div>
+            )}
 
             <div style={{ flex: 1 }} />
 
-            <button type="submit"
-              style={{ marginTop: 24, padding: "11px 0", background: "#FF6B1A", border: "none", borderRadius: 6, color: "#fff", fontWeight: 700, fontFamily: "'Inter', sans-serif", fontSize: 13, letterSpacing: "0.06em", cursor: "pointer", transition: "all 0.15s", textTransform: "uppercase" }}
-              onMouseEnter={e => { e.currentTarget.style.background = "#ff7d33"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,107,26,0.25)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "#FF6B1A"; e.currentTarget.style.boxShadow = "none"; }}>
-              Registrar Doação
+            <button type="submit" disabled={!canSubmit || submitting}
+              style={{
+                marginTop: 24, padding: "11px 0",
+                background: canSubmit ? "#FF6B1A" : "#334155",
+                border: "none", borderRadius: 6,
+                color: canSubmit ? "#fff" : "#64748b",
+                fontWeight: 700, fontFamily: "'Inter', sans-serif", fontSize: 13,
+                letterSpacing: "0.06em", cursor: canSubmit ? "pointer" : "not-allowed",
+                transition: "all 0.15s", textTransform: "uppercase",
+              }}
+              onMouseEnter={e => { if (canSubmit) { e.currentTarget.style.background = "#ff7d33"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,107,26,0.25)"; } }}
+              onMouseLeave={e => { if (canSubmit) { e.currentTarget.style.background = "#FF6B1A"; e.currentTarget.style.boxShadow = "none"; } }}>
+              {submitting ? "Registrando…" : "Registrar Doação"}
             </button>
           </form>
 
@@ -251,13 +385,13 @@ export default function DoadoresForm() {
                 Pontos de Coleta
               </div>
             </div>
-            {destinoSel && (
+            {selectedPonto && (
               <span style={{ fontSize: 11, color: "#22c55e", fontFamily: "'JetBrains Mono', monospace", marginTop: 6 }}>
-                📍 {destinoSel.shortName}
+                📍 {selectedPonto.name}
               </span>
             )}
           </div>
-          <MapaDoacoes flyToCoords={flyToCoords} />
+          <MapaDoacoes flyToCoords={flyToCoords} pontos={pontos} />
         </div>
 
       </div>

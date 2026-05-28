@@ -13,8 +13,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.pird.pirdBackend.dto.DemandaGetDTO;
+import com.pird.pirdBackend.dto.DoacaoGetDTO;
 import com.pird.pirdBackend.dto.PontoColetaGetDTO;
 import com.pird.pirdBackend.model.Administrador;
+import com.pird.pirdBackend.model.PontoColeta;
+import com.pird.pirdBackend.service.DemandaService;
+import com.pird.pirdBackend.service.DoacaoService;
 import com.pird.pirdBackend.service.PontoColetaService;
 
 @RestController
@@ -24,10 +29,38 @@ public class PontoColetaController {
     @Autowired
     private PontoColetaService pontoColetaService;
 
+    @Autowired
+    private DemandaService demandaService;
+
+    @Autowired
+    private DoacaoService doacaoService;
+
     @GetMapping
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<List<PontoColetaGetDTO>> listar() {
         return ResponseEntity.ok(pontoColetaService.listar());
+    }
+
+    @GetMapping("/validados")
+    public ResponseEntity<List<PontoColetaGetDTO>> listarValidados() {
+        return ResponseEntity.ok(pontoColetaService.listarValidados());
+    }
+
+    @GetMapping("/{id}/demandas")
+    public ResponseEntity<List<DemandaGetDTO>> demandas(@PathVariable Integer id) {
+        return ResponseEntity.ok(demandaService.listarPorPonto(id));
+    }
+
+    @GetMapping("/meu")
+    @PreAuthorize("hasRole('PONTO_COLETA')")
+    public ResponseEntity<PontoColetaGetDTO> meuPerfil(@AuthenticationPrincipal PontoColeta ponto) {
+        return ResponseEntity.ok(pontoColetaService.buscarPerfil(ponto));
+    }
+
+    @GetMapping("/meu/doacoes")
+    @PreAuthorize("hasRole('PONTO_COLETA')")
+    public ResponseEntity<List<DoacaoGetDTO>> minhasDoacoes(@AuthenticationPrincipal PontoColeta ponto) {
+        return ResponseEntity.ok(doacaoService.listarPorPonto(ponto.getId()));
     }
 
     @PatchMapping("/{id}/validar")

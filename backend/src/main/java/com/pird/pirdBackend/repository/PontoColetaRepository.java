@@ -7,4 +7,7 @@ import com.pird.pirdBackend.model.PontoColeta;
 public interface PontoColetaRepository extends JpaRepository<PontoColeta, Integer> {
     PontoColeta findByEmail(String email);
     boolean existsByEmail(String email);
+    PontoColeta findByCnpj(String cnpj);
+    boolean existsByCnpj(String cnpj);
+    java.util.List<PontoColeta> findAllByValidadoTrue();
 }

@@ -3,11 +3,13 @@ const BASE = "http://localhost:8080";
 function getToken() { return sessionStorage.getItem("admin_token"); }
 
 export function isAuthenticated() { return !!getToken(); }
-export function getAdminNome()    { return sessionStorage.getItem("admin_nome") || "Admin"; }
+export function getAdminNome()    { return sessionStorage.getItem("admin_nome")  || "Admin"; }
+export function getAdminEmail()   { return sessionStorage.getItem("admin_email") || ""; }
 
 export function logout() {
   sessionStorage.removeItem("admin_token");
   sessionStorage.removeItem("admin_nome");
+  sessionStorage.removeItem("admin_email");
 }
 
 async function req(method, path, body) {
@@ -31,6 +33,7 @@ export async function login(email, senha) {
   const data = await req("POST", "/auth/login", { email, senha });
   sessionStorage.setItem("admin_token", data.token);
   sessionStorage.setItem("admin_nome",  data.nome);
+  sessionStorage.setItem("admin_email", email);
   return data;
 }
 
@@ -51,6 +54,10 @@ export const deletarVoluntario  = (id)    => req("DELETE", `/voluntarios/${id}`)
 export const getPontosColeta    = ()      => req("GET",    "/pontos-coleta");
 export const validarPontoColeta = (id)    => req("PATCH",  `/pontos-coleta/${id}/validar`);
 export const deletarPontoColeta = (id)    => req("DELETE", `/pontos-coleta/${id}`);
+
+export const getRegistrosPontoColeta     = ()        => req("GET",   "/registro-pontos-coleta");
+export const aprovarRegistroPontoColeta  = (id)      => req("PATCH", `/registro-pontos-coleta/${id}/aprovar`);
+export const rejeitarRegistroPontoColeta = (id, obs) => req("PATCH", `/registro-pontos-coleta/${id}/rejeitar`, { observacao: obs });
 
 export const getEspecialistas     = ()         => req("GET",    "/especialistas");
 export const aprovarEspecialista  = (id)       => req("PATCH",  `/especialistas/${id}/aprovar`);

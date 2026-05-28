@@ -13,6 +13,7 @@ import Form from "./pages/FormDoadores/Form"
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import EspecialistaForm from "./pages/EspecialistaForm/EspecialistaForm";
 import EspecialistaDashboard from "./pages/Especialista/EspecialistaDashboard";
+import PontoColetaApp from "./pages/PontoColeta/PontoColetaApp";
 
 // ---------------------------------------------------------------------------
 // Layout protegido — envolve todas as telas que exigem login (têm Sidebar)
@@ -109,6 +110,7 @@ export default function App() {
       <Route path="/login" element={<TelaLogin onLogin={handleLogin} />} />
 
       <Route path="/form" element={<Form />} />
+      <Route path="/pontos-coleta/*" element={<PontoColetaApp />} />
 
       {/* Rotas públicas sem layout — formulários anônimos ficam aqui */}
       {/* <Route path="/doar" element={<FormDoadores />} /> */}

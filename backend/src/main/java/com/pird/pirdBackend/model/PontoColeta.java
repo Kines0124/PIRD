@@ -47,14 +47,17 @@ public class PontoColeta implements UserDetails {
     @Column(nullable = false, length = 20)
     private String telefone;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, unique = true, length = 18)
+    private String cnpj;
+
+    @Column(unique = true, length = 100)
     private String email;
 
     @Column(name = "senha_hash", nullable = false)
     private String senhaHash;
 
-    @Column(name = "tipo_ponto", nullable = false, length = 20)
-    private String tipoPonto;
+    @Column(name = "tipo_ponto", nullable = false)
+    private boolean tipoPonto = true;
 
     @Column(nullable = false)
     private boolean ativo = true;
@@ -80,7 +83,7 @@ public class PontoColeta implements UserDetails {
 
     @Override
     public String getUsername() {
-        return this.email;
+        return this.cnpj;
     }
 
     @Override

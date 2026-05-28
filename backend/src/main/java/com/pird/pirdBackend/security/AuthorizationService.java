@@ -22,16 +22,16 @@ public class AuthorizationService implements UserDetailsService {
     private EspecialistaRepository especialistaRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        UserDetails admin = administradorRepository.findByEmail(email);
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        UserDetails admin = administradorRepository.findByEmail(username);
         if (admin != null) return admin;
 
-        UserDetails pontoColeta = pontoColetaRepository.findByEmail(email);
+        UserDetails pontoColeta = pontoColetaRepository.findByCnpj(username);
         if (pontoColeta != null) return pontoColeta;
 
-        UserDetails especialista = especialistaRepository.findByEmail(email);
+        UserDetails especialista = especialistaRepository.findByEmail(username);
         if (especialista != null) return especialista;
 
-        throw new UsernameNotFoundException("Usuário não encontrado com e-mail: " + email);
+        throw new UsernameNotFoundException("Usuário não encontrado: " + username);
     }
 }

@@ -46,7 +46,7 @@ public class SecurityFilter extends OncePerRequestFilter {
 
             if (!subject.isBlank()) {
                 UserDetails user = administradorRepository.findByEmail(subject);
-                if (user == null) user = pontoColetaRepository.findByEmail(subject);
+                if (user == null) user = pontoColetaRepository.findByCnpj(subject);
                 if (user == null) user = especialistaRepository.findByEmail(subject);
 
                 if (user != null) {

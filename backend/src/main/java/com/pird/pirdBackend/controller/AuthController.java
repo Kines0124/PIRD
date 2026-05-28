@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.pird.pirdBackend.dto.LoginPontoColetaDTO;
 import com.pird.pirdBackend.dto.LoginRequestDTO;
 import com.pird.pirdBackend.dto.LoginResponseDTO;
 import com.pird.pirdBackend.dto.RegistroAdminDTO;
@@ -89,13 +90,28 @@ public class AuthController {
         }
     }
 
-    /**
-     * Registra um novo administrador com senha criptografada via BCrypt.
-     * ⚠️ Em produção, considere proteger ou remover este endpoint.
-     *
-     * @param dto dados do novo administrador
-     * @return 201 Created em caso de sucesso
-     */
+    @PostMapping("/login/ponto")
+    @Operation(summary = "Autenticar ponto de coleta", description = "Retorna um token JWT via CNPJ e senha")
+    public ResponseEntity<?> loginPonto(@RequestBody @Valid LoginPontoColetaDTO dto) {
+        try {
+            var credenciais = new UsernamePasswordAuthenticationToken(dto.getCnpj(), dto.getSenha());
+            Authentication auth = authenticationManager.authenticate(credenciais);
+
+            UserDetails user = (UserDetails) auth.getPrincipal();
+            String token = tokenService.gerarToken(user);
+            String nome = user instanceof PontoColeta pc ? pc.getNomeLocal() : user.getUsername();
+
+            return ResponseEntity.ok(new LoginResponseDTO(token, nome, user.getUsername()));
+
+        } catch (DisabledException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Conta desativada ou aguardando validação da Defesa Civil.");
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("CNPJ ou senha inválidos.");
+        }
+    }
+
     @PostMapping("/registrar")
     @Operation(summary = "Registrar administrador", description = "Cria um novo administrador com senha hasheada (BCrypt)")
     public ResponseEntity<?> registrar(@RequestBody @Valid RegistroAdminDTO dto) {

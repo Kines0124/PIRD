@@ -95,6 +95,7 @@ function AdminPanel({ onLogout }) {
   const [criticalPoints,   setCriticalPoints]   = useState([]);
   const [volunteers,       setVolunteers]       = useState([]);
   const [collectionPoints, setCollectionPoints] = useState([]);
+  const [registros,        setRegistros]        = useState([]);
   const [specialists,      setSpecialists]      = useState([]);
   const [loadError,        setLoadError]        = useState(null);
 
@@ -121,18 +122,20 @@ function AdminPanel({ onLogout }) {
 
   async function loadAll() {
     try {
-      const [evts, pts, vols, cols, specs] = await Promise.all([
+      const [evts, pts, vols, cols, specs, regs] = await Promise.all([
         adminApi.getEventos(),
         adminApi.getPontosCriticos(),
         adminApi.getVoluntarios(),
         adminApi.getPontosColeta(),
         adminApi.getEspecialistas(),
+        adminApi.getRegistrosPontoColeta(),
       ]);
       setEvents(evts);
       setCriticalPoints(pts);
       setVolunteers(vols);
       setCollectionPoints(cols);
       setSpecialists(specs);
+      setRegistros(regs);
       setLoadError(null);
     } catch (e) {
       setLoadError("Erro ao carregar dados: " + e.message);
@@ -234,6 +237,25 @@ function AdminPanel({ onLogout }) {
     } catch (e) { alert("Erro ao recusar ponto de coleta: " + e.message); }
   }
 
+  async function handleAprovarRegistro(id) {
+    try {
+      await adminApi.aprovarRegistroPontoColeta(id);
+      const [cols, regs] = await Promise.all([
+        adminApi.getPontosColeta(),
+        adminApi.getRegistrosPontoColeta(),
+      ]);
+      setCollectionPoints(cols);
+      setRegistros(regs);
+    } catch (e) { alert("Erro ao aprovar cadastro: " + e.message); }
+  }
+
+  async function handleRejeitarRegistro(id, obs) {
+    try {
+      await adminApi.rejeitarRegistroPontoColeta(id, obs);
+      setRegistros(await adminApi.getRegistrosPontoColeta());
+    } catch (e) { alert("Erro ao rejeitar cadastro: " + e.message); }
+  }
+
   async function handleAprovarEspecialista(id) {
     try {
       await adminApi.aprovarEspecialista(id);
@@ -255,7 +277,7 @@ function AdminPanel({ onLogout }) {
     } catch (e) { alert("Erro ao deletar especialista: " + e.message); }
   }
 
-  const pendingCols          = collectionPoints.filter(p => p.status === "pendente").length;
+  const pendingCols          = registros.filter(r => r.status === "pendente").length;
   const pendingEspecialistas = specialists.filter(s => s.status === "pendente").length;
   const activeEvents         = events.filter(e => e.status === "ativo").length;
   const totalNotifs          = pendingCols + pendingEspecialistas + activeEvents;
@@ -267,8 +289,8 @@ function AdminPanel({ onLogout }) {
     { id: "campo",        icon: "🗺️", label: "Campo" },
     { id: "especialistas",icon: "⚕️", label: "Especialistas",    badge: specialists.filter(s => s.status === "aprovado").length, badgeClass: "blue" },
     { id: "critical",     icon: "⚠️", label: "Pontos Críticos",  badge: criticalPoints.length },
-    { id: "collection",   icon: "📦", label: "Pontos de Coleta", badge: pendingCols, badgeClass: "blue" },
-    { id: "validacoes",   icon: "🙋", label: "Validações",       badge: pendingEspecialistas },
+    { id: "collection",   icon: "📦", label: "Pontos de Coleta" },
+    { id: "validacoes",   icon: "🙋", label: "Validações",       badge: pendingEspecialistas + pendingCols },
   ];
 
   const sectionTitles = {
@@ -360,7 +382,7 @@ function AdminPanel({ onLogout }) {
                   </div>
                   {[
                     { count: pendingEspecialistas, label: "Especialistas aguardando validação", icon: "⚕️", target: "validacoes" },
-                    { count: pendingCols,          label: "Pontos de coleta pendentes",         icon: "📦", target: "collection" },
+                    { count: pendingCols,          label: "Pontos de coleta pendentes",         icon: "📦", target: "validacoes" },
                     { count: activeEvents,         label: "Eventos ativos no momento",          icon: "🌊", target: "events" },
                   ].map(n => (
                     <div
@@ -442,8 +464,6 @@ function AdminPanel({ onLogout }) {
               {section === "collection" && (
                 <CollectionPointsSection
                   collectionPoints={collectionPoints}
-                  onValidate={handleValidateColeta}
-                  onReject={handleRejectColeta}
                 />
               )}
               {section === "especialistas" && (
@@ -460,6 +480,9 @@ function AdminPanel({ onLogout }) {
                   onAprovar={handleAprovarEspecialista}
                   onReprovar={handleReprovarEspecialista}
                   onDeletar={handleDeletarEspecialista}
+                  registros={registros}
+                  onAprovarRegistro={handleAprovarRegistro}
+                  onRejeitarRegistro={handleRejeitarRegistro}
                 />
               )}
             </div>

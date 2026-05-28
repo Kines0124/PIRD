@@ -13,6 +13,7 @@ public class PontoColetaGetDTO {
 
     private Integer id;
     private String name;
+    private String cnpj;
     private String address;
     private String city;
     private double lat;
@@ -27,6 +28,7 @@ public class PontoColetaGetDTO {
     public PontoColetaGetDTO(PontoColeta p) {
         this.id      = p.getId();
         this.name    = p.getNomeLocal();
+        this.cnpj    = p.getCnpj();
         this.address = p.getEndereco();
         this.city    = "";
         this.lat     = p.getLocalizacao().getY();
@@ -34,7 +36,7 @@ public class PontoColetaGetDTO {
         this.status  = p.isValidado() ? "validado" : "pendente";
         this.email   = p.getEmail();
         this.phone   = p.getTelefone();
-        this.type    = p.getTipoPonto();
+        this.type    = p.isTipoPonto() ? "Fixo" : "Temporário";
     }
 
     public static List<PontoColetaGetDTO> convert(List<PontoColeta> list) {

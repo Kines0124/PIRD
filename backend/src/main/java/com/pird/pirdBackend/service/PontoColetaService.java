@@ -23,9 +23,17 @@ public class PontoColetaService {
         return PontoColetaGetDTO.convert(pontoColetaRepository.findAll());
     }
 
+    public List<PontoColetaGetDTO> listarValidados() {
+        return PontoColetaGetDTO.convert(pontoColetaRepository.findAllByValidadoTrue());
+    }
+
     public PontoColetaGetDTO buscarPorId(Integer id) {
         PontoColeta ponto = pontoColetaRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Ponto de coleta não encontrado"));
+        return new PontoColetaGetDTO(ponto);
+    }
+
+    public PontoColetaGetDTO buscarPerfil(PontoColeta ponto) {
         return new PontoColetaGetDTO(ponto);
     }
 
