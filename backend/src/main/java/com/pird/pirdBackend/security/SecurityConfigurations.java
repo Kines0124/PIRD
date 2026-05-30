@@ -69,6 +69,8 @@ public class SecurityConfigurations {
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET,   "/convocacoes/minhas")).hasRole("ESPECIALISTA")
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/convocacoes/*/aceitar")).hasRole("ESPECIALISTA")
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/convocacoes/*/recusar")).hasRole("ESPECIALISTA")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.POST,  "/convocacoes/evento/*/voluntario")).hasRole("ESPECIALISTA")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.PATCH, "/convocacoes/*/chegada")).hasRole("ESPECIALISTA")
 
                         // Rotas do painel do ponto de coleta (ROLE_PONTO_COLETA)
                         .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET,   "/pontos-coleta/meu")).hasRole("PONTO_COLETA")
@@ -88,6 +90,9 @@ public class SecurityConfigurations {
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/swagger-ui.html")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/v3/api-docs/**")).permitAll()
 
+                        //admin
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET,   "/convocacoes")).hasRole("ADMINISTRADOR")
+                        
                         // Tudo mais exige autenticação de administrador
                         .anyRequest().hasRole("ADMINISTRADOR")
                 )

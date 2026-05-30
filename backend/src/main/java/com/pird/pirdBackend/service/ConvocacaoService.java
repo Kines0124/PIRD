@@ -143,6 +143,18 @@ public class ConvocacaoService {
         return new ConvocacaoGetDTO(convocacaoRepository.save(c));
     }
 
+    @Transactional
+    public ConvocacaoGetDTO confirmarChegada(Integer convocacaoId, Especialista especialista) {
+        Convocacao c = buscarConvocacaoDoEspecialista(convocacaoId, especialista.getId());
+        if (!"a_caminho".equals(c.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Só é possível confirmar chegada quando o status for 'a_caminho'.");
+        }
+        c.setStatus("no_local");
+        c.setChegadaEm(LocalDateTime.now());
+        return new ConvocacaoGetDTO(convocacaoRepository.save(c));
+    }
+
     // ── Consultas ─────────────────────────────────────────────────────────────
 
     public List<ConvocacaoGetDTO> listarPorEvento(Integer eventoId) {
@@ -171,4 +183,9 @@ public class ConvocacaoService {
         }
         return c;
     }
+
+    public List<ConvocacaoGetDTO> listarTodas() {
+    return ConvocacaoGetDTO.convert(
+            convocacaoRepository.findAllByOrderByConvocadoEmDesc());
+}
 }

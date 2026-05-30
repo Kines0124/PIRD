@@ -15,6 +15,8 @@ public interface ConvocacaoRepository extends JpaRepository<Convocacao, Integer>
 
     List<Convocacao> findByEspecialistaIdOrderByConvocadoEmDesc(Integer especialistaId);
 
+    List<Convocacao> findAllByOrderByConvocadoEmDesc();
+
     /** Conta convocações ativas (pendente/aceita) de uma profissão para um evento. */
     @Query("""
         SELECT COUNT(c) FROM Convocacao c

@@ -10,8 +10,8 @@ const TOKEN_KEY = "pird_especialista_token";
 const USER_KEY  = "pird_especialista_user";
 const TAUBATE   = [-45.5533, -23.0268];
 
-const STATUS_LABEL = { pendente: "Aguardando resposta", a_caminho: "A caminho", recusada: "Recusada" };
-const STATUS_COLOR = { pendente: "#f59e0b", a_caminho: "#3b82f6", recusada: "#ef4444" };
+const STATUS_LABEL = { pendente: "Aguardando resposta", a_caminho: "A caminho", no_local: "No local", recusada: "Recusada" };
+const STATUS_COLOR = { pendente: "#f59e0b", a_caminho: "#3b82f6", no_local: "#22c55e", recusada: "#ef4444" };
 const SEV_COLOR    = { moderado: "#22c55e", medio: "#22c55e", baixo: "#22c55e", alto: "#f59e0b", critico: "#ef4444" };
 const TIPO_EMOJI   = { enchente: "🌊", deslizamento: "⛰️", alagamento: "💧", incendio: "🔥", desabamento: "🏚️", intoxicacao: "☣️", outro: "⚠️" };
 const RISCO_COLOR  = { critico: "#FF4444", alto: "#FF6B00", medio: "#F5A623" };
@@ -150,6 +150,7 @@ function ConvCard({ c, onResponder }) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function MapaEventos({ eventos, convs, criticalPoints = [], profissao, onRefresh, onResponder, onVoluntariar }) {
+  const [pendingChegada, setPendingChegada] = useState(null);
   const containerRef     = useRef(null);
   const mapRef           = useRef(null);
   const markersRef       = useRef([]);
@@ -167,6 +168,11 @@ function MapaEventos({ eventos, convs, criticalPoints = [], profissao, onRefresh
   // Mapeia eventoId → qualquer convocação (para ocultar "Quero ajudar" se já convocado)
   const convAnyByEvento = {};
   convs.forEach(c => { convAnyByEvento[c.eventoId] = c; });
+
+  const convAcaminhoByEvento = {};
+  convs.forEach(c => {
+    if (c.status === "a_caminho") convAcaminhoByEvento[c.eventoId] = c;
+  });
 
   useEffect(() => {
     if (!containerRef.current || !MAPBOX_TOKEN) return;
@@ -262,6 +268,19 @@ function MapaEventos({ eventos, convs, criticalPoints = [], profissao, onRefresh
         />
       )}
 
+      {pendingChegada && (
+        <ConfirmModal
+          title="Confirmar chegada"
+          description={`Confirme sua senha para registrar que você chegou ao local do evento "${pendingChegada.eventoTitle}".`}
+          email={window._pirdUserEmail}
+          onConfirm={() => {
+            onChegada(pendingChegada.convId);
+            setPendingChegada(null);
+          }}
+          onCancel={() => setPendingChegada(null)}
+        />
+      )}
+
       <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden" }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
@@ -344,6 +363,22 @@ function MapaEventos({ eventos, convs, criticalPoints = [], profissao, onRefresh
                         {selEvento.neededProfiles.map(p => <span key={p} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 99, padding: "2px 7px", fontSize: 10, color: "#4b5563" }}>{p}</span>)}
                       </div>
                     </div>
+                  )}
+                  {convAcaminhoByEvento[selEvento.id] && (
+                    <button
+                      onClick={() => setPendingChegada({
+                        convId: convAcaminhoByEvento[selEvento.id].id,
+                        eventoTitle: selEvento.title
+                      })}
+                      style={{
+                        marginTop: 10, width: "100%", padding: "9px",
+                        borderRadius: 8, border: "none",
+                        background: "rgba(34,197,94,0.13)", color: "#22c55e",
+                        fontSize: 12, fontWeight: 700, cursor: "pointer",
+                        fontFamily: "'Syne', sans-serif"
+                      }}>
+                      📍 Confirmar chegada no local
+                    </button>
                   )}
                 </div>
               );
@@ -723,6 +758,25 @@ export default function EspecialistaDashboard() {
       setConvs(prev => [...prev, data]);
     } catch {
       alert("Erro de conexão ao registrar presença.");
+    }
+  }
+
+  async function handleChegada(convId) {
+    try {
+      const res = await fetch(`${BASE}/convocacoes/${convId}/chegada`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error();
+      setConvs(prev =>
+        prev.map(c =>
+          c.id === convId
+            ? { ...c, status: "no_local", chegadaEm: new Date().toISOString() }
+            : c
+        )
+      );
+    } catch {
+      alert("Erro ao confirmar chegada.");
     }
   }
 

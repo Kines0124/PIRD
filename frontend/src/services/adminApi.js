@@ -37,6 +37,7 @@ export async function login(email, senha) {
   return data;
 }
 
+export const getConvocacoes = () => req("GET", "/convocacoes");
 export const getEventos         = ()      => req("GET",    "/eventos");
 export const createEvento       = (form)  => req("POST",   "/eventos",       form);
 export const updateEvento       = (id, f) => req("PUT",    `/eventos/${id}`,  f);

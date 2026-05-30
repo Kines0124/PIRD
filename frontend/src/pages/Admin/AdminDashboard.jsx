@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { styles } from "./adminTheme.jsx";
 import * as adminApi from "../../services/adminApi.js";
@@ -98,12 +98,21 @@ function AdminPanel({ onLogout }) {
   const [registros,        setRegistros]        = useState([]);
   const [specialists,      setSpecialists]      = useState([]);
   const [loadError,        setLoadError]        = useState(null);
+  const [convocacoes,      setConvocacoes]      = useState([]);
 
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [showNewPoint, setShowNewPoint] = useState(false);
 
   // Statuses de campo dos especialistas (local — provisório)
-  const [specialistStatuses, setSpecialistStatuses] = useState({});
+  const specialistStatuses = useMemo(() => {
+  const map = {};
+  convocacoes.forEach(c => {
+      if (c.status === "a_caminho" || c.status === "no_local") {
+        map[String(c.especialistaId)] = c.status;
+      }
+    });
+    return map;
+  }, [convocacoes]);
   // ID de evento a abrir automaticamente em EventsSection
   const [pendingOpenEventId, setPendingOpenEventId] = useState(null);
 
@@ -122,13 +131,14 @@ function AdminPanel({ onLogout }) {
 
   async function loadAll() {
     try {
-      const [evts, pts, vols, cols, specs, regs] = await Promise.all([
+      const [evts, pts, vols, cols, specs, regs, convs] = await Promise.all([
         adminApi.getEventos(),
         adminApi.getPontosCriticos(),
         adminApi.getVoluntarios(),
         adminApi.getPontosColeta(),
         adminApi.getEspecialistas(),
         adminApi.getRegistrosPontoColeta(),
+        adminApi.getConvocacoes(),
       ]);
       setEvents(evts);
       setCriticalPoints(pts);
@@ -136,6 +146,7 @@ function AdminPanel({ onLogout }) {
       setCollectionPoints(cols);
       setSpecialists(specs);
       setRegistros(regs);
+      setConvocacoes(convs);
       setLoadError(null);
     } catch (e) {
       setLoadError("Erro ao carregar dados: " + e.message);

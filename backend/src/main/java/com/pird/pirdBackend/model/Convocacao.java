@@ -44,7 +44,7 @@ public class Convocacao {
     )
     private Especialista especialista;
 
-    // pendente | a_caminho | recusada
+    // pendente | a_caminho | no_local | recusada
     @Column(nullable = false, length = 20)
     private String status = "pendente";
 
@@ -57,6 +57,9 @@ public class Convocacao {
 
     @Column(name = "respondido_em")
     private LocalDateTime respondidoEm;
+
+    @Column(name = "chegada_em")
+    private LocalDateTime chegadaEm;
 
     public Convocacao() {}
 
@@ -80,4 +83,7 @@ public class Convocacao {
 
     public LocalDateTime getRespondidoEm()          { return respondidoEm; }
     public void setRespondidoEm(LocalDateTime dt)   { this.respondidoEm = dt; }
+
+    public LocalDateTime getChegadaEm()            { return chegadaEm; }
+    public void setChegadaEm(LocalDateTime dt)     { this.chegadaEm = dt; }
 }

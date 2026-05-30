@@ -50,6 +50,12 @@ public class ConvocacaoController {
         return ResponseEntity.ok(service.listarPorEvento(eventoId));
     }
 
+    @GetMapping
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<List<ConvocacaoGetDTO>> listarTodas() {
+        return ResponseEntity.ok(service.listarTodas());
+    }
+
     @GetMapping("/minhas")
     @PreAuthorize("hasRole('ESPECIALISTA')")
     public ResponseEntity<List<ConvocacaoGetDTO>> listarMinhas(
@@ -79,5 +85,13 @@ public class ConvocacaoController {
             @PathVariable Integer id,
             @AuthenticationPrincipal Especialista especialista) {
         return ResponseEntity.ok(service.recusar(id, especialista));
+    }
+
+    @PatchMapping("/{id}/chegada")
+    @PreAuthorize("hasRole('ESPECIALISTA')")
+    public ResponseEntity<ConvocacaoGetDTO> confirmarChegada(
+            @PathVariable Integer id,
+            @AuthenticationPrincipal Especialista especialista) {
+        return ResponseEntity.ok(service.confirmarChegada(id, especialista));
     }
 }

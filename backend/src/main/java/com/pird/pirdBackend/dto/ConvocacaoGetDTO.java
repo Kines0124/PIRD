@@ -22,6 +22,8 @@ public class ConvocacaoGetDTO {
     private String  tipo;
     private String  convocadoEm;
     private String  respondidoEm;
+    private String chegadaEm;
+    
 
     public ConvocacaoGetDTO() {}
 
@@ -32,6 +34,7 @@ public class ConvocacaoGetDTO {
         this.tipo                  = c.getTipo();
         this.convocadoEm           = c.getConvocadoEm() != null  ? c.getConvocadoEm().format(fmt)  : null;
         this.respondidoEm          = c.getRespondidoEm() != null ? c.getRespondidoEm().format(fmt) : null;
+        this.chegadaEm             = c.getChegadaEm() != null ? c.getChegadaEm().format(fmt) : null;
 
         if (c.getEvento() != null) {
             this.eventoId         = c.getEvento().getId();
@@ -73,4 +76,5 @@ public class ConvocacaoGetDTO {
     public String  getTipo()                  { return tipo; }
     public String  getConvocadoEm()           { return convocadoEm; }
     public String  getRespondidoEm()          { return respondidoEm; }
+    public String getChegadaEm()              { return chegadaEm; }
 }
