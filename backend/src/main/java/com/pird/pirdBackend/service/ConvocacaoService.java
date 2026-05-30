@@ -56,11 +56,19 @@ public class ConvocacaoService {
                     "Evento sem cidade definida — necessário para convocação automática por cidade.");
         }
 
+        // Normaliza "Taubaté, SP" → "Taubaté": o geocoder Mapbox retorna cidade com
+        // sufixo de estado, mas especialistas armazenam apenas o nome da cidade (via ViaCEP).
+        String cidadeNorm = cidade.trim();
+        int ufStart = cidadeNorm.lastIndexOf(", ");
+        if (ufStart >= 0 && cidadeNorm.substring(ufStart + 2).trim().length() == 2) {
+            cidadeNorm = cidadeNorm.substring(0, ufStart).trim();
+        }
+
         List<Convocacao> resultado = new ArrayList<>();
 
         for (String profissao : profissoes) {
             List<Especialista> candidatos =
-                    especialistaRepository.findDisponivelPorProfissaoECidade(profissao, cidade);
+                    especialistaRepository.findDisponivelPorProfissaoECidade(profissao, cidadeNorm);
 
             for (Especialista e : candidatos) {
                 if (convocacaoRepository.existsByEventoIdAndEspecialistaId(eventoId, e.getId())) {

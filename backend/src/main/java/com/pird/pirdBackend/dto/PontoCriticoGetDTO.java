@@ -15,8 +15,10 @@ public class PontoCriticoGetDTO {
     private String name;
     private String type;
     private String risk;
-    private double lat;
-    private double lng;
+    private Double lat;
+    private Double lng;
+    private String address;
+    private String city;
     private String description;
 
     public PontoCriticoGetDTO() {}
@@ -26,8 +28,10 @@ public class PontoCriticoGetDTO {
         this.name        = p.getNomeLocal();
         this.type        = p.getTipoRisco();
         this.risk        = p.getNivelRisco();
-        this.lat         = p.getLocalizacao().getY();
-        this.lng         = p.getLocalizacao().getX();
+        this.lat         = p.getLat();
+        this.lng         = p.getLng();
+        this.address     = p.getEndereco();
+        this.city        = p.getCidade();
         this.description = p.getDescricao();
     }
 

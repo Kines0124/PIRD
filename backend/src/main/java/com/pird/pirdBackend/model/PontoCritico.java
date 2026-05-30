@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.locationtech.jts.geom.Point;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -38,8 +37,17 @@ public class PontoCritico {
     @Column(name = "nivel_risco", nullable = false, length = 20)
     private String nivelRisco;
 
-    @Column(columnDefinition = "geography(Point, 4326)", nullable = false)
-    private Point localizacao;
+    @Column
+    private Double lat;
+
+    @Column
+    private Double lng;
+
+    @Column(length = 255)
+    private String endereco;
+
+    @Column(length = 100)
+    private String cidade;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String descricao;

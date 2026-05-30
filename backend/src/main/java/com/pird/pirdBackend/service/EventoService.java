@@ -7,6 +7,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,17 +37,18 @@ public class EventoService {
     @Autowired
     private PontoColetaRepository pontoColetaRepository;
 
+    @Lazy
+    @Autowired
+    private ConvocacaoService convocacaoService;
+
     @Transactional
     public EventoGetDTO criar(EventoPostDTO dto, Administrador admin) {
         Evento evento = dto.convert();
         evento.setCriadoPor(admin);
-        if (dto.getCriticalPointId() != null) {
-            PontoCritico pc = pontoCriticoRepository.findById(dto.getCriticalPointId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ponto crítico não encontrado."));
-            evento.setPontoCritico(pc);
-        }
+        vincularPontoCritico(evento, dto);
         associarPontosColeta(evento, dto.getCity());
         eventoRepository.save(evento);
+        tentarConvocar(evento);
         return new EventoGetDTO(evento);
     }
 
@@ -82,15 +84,47 @@ public class EventoService {
         evento.setProfissionaisNecessarios(dto.getNeededProfiles());
         GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
         evento.setLocalizacao(gf.createPoint(new Coordinate(dto.getLng(), dto.getLat())));
-        if (dto.getCriticalPointId() != null) {
-            pontoCriticoRepository.findById(dto.getCriticalPointId())
-                .ifPresent(evento::setPontoCritico);
-        } else {
-            evento.setPontoCritico(null);
-        }
+        vincularPontoCritico(evento, dto);
         associarPontosColeta(evento, dto.getCity());
         eventoRepository.save(evento);
+        tentarConvocar(evento);
         return new EventoGetDTO(evento);
+    }
+
+    public void deletar(Integer id) {
+        eventoRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado"));
+        eventoRepository.deleteById(id);
+    }
+
+    // Se criticalPointId vier no DTO usa-o diretamente; caso contrário tenta
+    // auto-vincular pelo endereço: verifica se o endereco de algum ponto crítico
+    // está contido no endereco do evento (case-insensitive).
+    private void vincularPontoCritico(Evento evento, EventoPostDTO dto) {
+        if (dto.getCriticalPointId() != null) {
+            PontoCritico pc = pontoCriticoRepository.findById(dto.getCriticalPointId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ponto crítico não encontrado."));
+            evento.setPontoCritico(pc);
+            return;
+        }
+        evento.setPontoCritico(null);
+        String endEvento = evento.getEndereco();
+        if (endEvento == null || endEvento.isBlank()) return;
+        String endLower = endEvento.toLowerCase();
+        pontoCriticoRepository.findAll().stream()
+            .filter(pc -> pc.getEndereco() != null && !pc.getEndereco().isBlank())
+            .filter(pc -> endLower.contains(pc.getEndereco().toLowerCase()))
+            .findFirst()
+            .ifPresent(evento::setPontoCritico);
+    }
+
+    // Chama convocarAutomaticamente apenas se o evento tiver profissões e cidade
+    // definidas — condições que o serviço exige para não lançar exceção.
+    private void tentarConvocar(Evento evento) {
+        List<String> profissoes = evento.getProfissionaisNecessarios();
+        String cidade = evento.getCidade();
+        if (profissoes == null || profissoes.isEmpty() || cidade == null || cidade.isBlank()) return;
+        convocacaoService.convocarAutomaticamente(evento.getId());
     }
 
     private void associarPontosColeta(Evento evento, String cidade) {
@@ -111,11 +145,5 @@ public class EventoService {
                          p.getEndereco().toLowerCase().endsWith(sufixo.toLowerCase()))
             .toList();
         evento.setPontosColeta(new ArrayList<>(pontos));
-    }
-
-    public void deletar(Integer id) {
-        eventoRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado"));
-        eventoRepository.deleteById(id);
     }
 }

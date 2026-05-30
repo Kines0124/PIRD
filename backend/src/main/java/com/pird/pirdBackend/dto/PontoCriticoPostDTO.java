@@ -1,9 +1,5 @@
 package com.pird.pirdBackend.dto;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.PrecisionModel;
-
 import com.pird.pirdBackend.model.PontoCritico;
 
 import lombok.Getter;
@@ -17,8 +13,10 @@ public class PontoCriticoPostDTO {
     private String type;
     private String risk;
     private String description;
-    private double lat;
-    private double lng;
+    private String address;
+    private String city;
+    private Double lat;
+    private Double lng;
 
     public PontoCriticoPostDTO() {}
 
@@ -28,8 +26,10 @@ public class PontoCriticoPostDTO {
         p.setTipoRisco(type);
         p.setNivelRisco(risk);
         p.setDescricao(description);
-        GeometryFactory gf = new GeometryFactory(new PrecisionModel(), 4326);
-        p.setLocalizacao(gf.createPoint(new Coordinate(lng, lat)));
+        p.setEndereco(address);
+        p.setCidade(city);
+        p.setLat(lat);
+        p.setLng(lng);
         return p;
     }
 }
