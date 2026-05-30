@@ -223,7 +223,12 @@ function AdminPanel({ onLogout }) {
     try {
       if (editEvent) await adminApi.updateEvento(editEvent.id, form);
       else           await adminApi.createEvento(form);
-      setEvents(await adminApi.getEventos());
+      const [evts, convs] = await Promise.all([
+        adminApi.getEventos(),
+        adminApi.getConvocacoes(),
+      ]);
+      setEvents(evts);
+      setConvocacoes(convs);
     } catch (e) { alert("Erro ao salvar evento: " + e.message); }
   }
 
@@ -479,6 +484,8 @@ function AdminPanel({ onLogout }) {
                   openEventId={pendingOpenEventId}
                   onEventOpened={() => setPendingOpenEventId(null)}
                   onGoToCollection={(id) => { setPendingOpenCollectionId(id); setSection("collection"); }}
+                  convocacoes={convocacoes}
+                  onConvocou={async () => setConvocacoes(await adminApi.getConvocacoes())}
                 />
               )}
               {section === "critical" && (

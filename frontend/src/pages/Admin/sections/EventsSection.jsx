@@ -26,7 +26,8 @@ const PROF_COLORS = {
 
 const FIELD_STATUS_MAP = {
   disponivel: { label: "Disponível",    color: "#16a34a", bg: "rgba(22,163,74,0.12)" },
-  a_caminho:  { label: "Já convocado",  color: "#ca8a04", bg: "rgba(202,138,4,0.12)" },
+  pendente:   { label: "Convocado",     color: "#ca8a04", bg: "rgba(202,138,4,0.12)" },
+  a_caminho:  { label: "A caminho",     color: "#2563eb", bg: "rgba(37,99,235,0.12)" },
   no_local:   { label: "No local",      color: "#dc2626", bg: "rgba(220,38,38,0.12)" },
 };
 
@@ -161,23 +162,39 @@ function EventDetailMap({ event, collectionPoints, criticalPoints }) {
 }
 
 // ─── Drawer de detalhes do evento ─────────────────────────────────────────────
-function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, onClose, onEdit, onGoToCollection }) {
+function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, onClose, onEdit, onGoToCollection, convocacoes, onConvocou }) {
   const [tab, setTab] = useState("mapa");
+  const [localConvocados, setLocalConvocados] = useState({});
 
   const nearbyPoints     = (event.nearbyCollectionIds || []).map(id => (collectionPoints || []).find(p => p.id === id)).filter(p => p && p.status === "validado");
   const activeVolunteers = (event.volunteerIds || []).map(id => (volunteers || []).find(v => v.id === id)).filter(v => v && v.status === "aprovado");
   const linkedCritical   = event.criticalPointId ? (criticalPoints || []).find(p => p.id === event.criticalPointId) : null;
   const neededProfiles   = event.neededProfiles || [];
 
+  // Convocações deste evento vindas do backend (exclui recusadas)
+  const eventConvMap = new Map(
+    (convocacoes || [])
+      .filter(c => c.eventoId === event.id && c.status !== "recusada")
+      .map(c => [c.especialistaId, c.status])
+  );
+
   function getEffectiveStatus(spec) {
-    return (specialistStatuses || {})[String(spec.especialistaId)] || spec.statusCampo || "disponivel";
+    const espId = spec.especialistaId;
+    if (eventConvMap.has(espId))     return eventConvMap.get(espId);
+    if (localConvocados[espId])      return localConvocados[espId];
+    return (specialistStatuses || {})[String(espId)] || spec.statusCampo || "disponivel";
   }
 
+  // Aba Convocar: profissão compatível, apenas disponíveis (exclui convocados, a caminho e no local)
   const eligibleSpecialists = (specialists || [])
     .filter(s => s.status === "aprovado")
-    .filter(s => neededProfiles.length === 0 || neededProfiles.includes(s.profissao));
+    .filter(s => neededProfiles.length === 0 || neededProfiles.includes(s.profissao))
+    .filter(s => getEffectiveStatus(s) === "disponivel");
 
-  const assignedSpecialists = eligibleSpecialists.filter(s => getEffectiveStatus(s) !== "disponivel");
+  // Aba Especialistas: apenas quem tem convocação ativa neste evento
+  const assignedSpecialists = (specialists || [])
+    .filter(s => s.status === "aprovado")
+    .filter(s => eventConvMap.has(s.especialistaId) || !!localConvocados[s.especialistaId]);
 
   const tabs = [
     { id: "mapa",         label: "🗺️ Mapa" },
@@ -380,7 +397,9 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
                         alert("Erro ao convocar: " + e.message);
                         return;
                       }
-                      onUpdateStatus && onUpdateStatus(s.especialistaId, "a_caminho");
+                      // Feedback imediato; onConvocou recarrega do backend em seguida
+                      setLocalConvocados(prev => ({ ...prev, [s.especialistaId]: "pendente" }));
+                      onConvocou && onConvocou();
                     }}
                   />
                 ))
@@ -394,7 +413,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
 }
 
 // ─── EventsSection ─────────────────────────────────────────────────────────────
-export default function EventsSection({ events, onSaveEvent, criticalPoints, collectionPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, openEventId, onEventOpened, onGoToCollection }) {
+export default function EventsSection({ events, onSaveEvent, criticalPoints, collectionPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, openEventId, onEventOpened, onGoToCollection, convocacoes, onConvocou }) {
   const [filter, setFilter]           = useState("todos");
   const [search, setSearch]           = useState("");
   const [editEvent, setEditEvent]     = useState(null);
@@ -519,6 +538,8 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
           onClose={() => setDetailEvent(null)}
           onEdit={() => { setEditEvent(detailEvent); setDetailEvent(null); }}
           onGoToCollection={onGoToCollection}
+          convocacoes={convocacoes}
+          onConvocou={onConvocou}
         />
       )}
 

@@ -4,7 +4,7 @@ import { useGeocodingAutocomplete } from "../../../hooks/useGeocodingAutocomplet
 export default function CriticalPointModal({ point, onClose, onSave }) {
   const [form, setForm] = useState({
     name: "",
-    type: "geologico",
+    type: "deslizamento",
     risk: "alto",
     address: "",
     city: "",
@@ -22,13 +22,13 @@ export default function CriticalPointModal({ point, onClose, onSave }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   function selectSugestao(sug) {
-    setAddrQuery(sug.shortName);
+    setAddrQuery(sug.placeName);
     setForm(f => ({
       ...f,
-      address: sug.shortName,
-      city: sug.cidade || f.city,
-      lat: sug.coordenadas.lat.toFixed(6),
-      lng: sug.coordenadas.lng.toFixed(6),
+      address: sug.placeName,
+      city:    sug.cidade || f.city,
+      lat:     sug.coordenadas.lat.toFixed(6),
+      lng:     sug.coordenadas.lng.toFixed(6),
     }));
     setShowSugs(false);
   }
@@ -53,9 +53,11 @@ export default function CriticalPointModal({ point, onClose, onSave }) {
             <div className="form-group">
               <label className="form-label">Tipo de Risco</label>
               <select className="form-select" value={form.type} onChange={e => set("type", e.target.value)}>
-                <option value="geologico">Geológico</option>
-                <option value="hidrologico">Hidrológico</option>
-                <option value="infraestrutura">Infraestrutura</option>
+                <option value="deslizamento">Deslizamento</option>
+                <option value="enchente">Enchente</option>
+                <option value="alagamento">Alagamento</option>
+                <option value="desabamento">Desabamento</option>
+                <option value="incendio">Incêndio</option>
                 <option value="quimico">Químico</option>
               </select>
             </div>
@@ -78,7 +80,7 @@ export default function CriticalPointModal({ point, onClose, onSave }) {
                 onChange={e => {
                   setAddrQuery(e.target.value);
                   set("address", e.target.value);
-                  set("lat", ""); set("lng", "");
+                  set("lat", ""); set("lng", ""); set("city", "");
                   setShowSugs(true);
                 }}
                 onFocus={() => setShowSugs(true)}
@@ -107,9 +109,20 @@ export default function CriticalPointModal({ point, onClose, onSave }) {
               )}
             </div>
             {form.lat && form.lng
-              ? <div style={{ fontSize: 11, color: "var(--success)", marginTop: 5 }}>✓ Coordenadas obtidas: {form.lat}, {form.lng}{form.city ? ` — ${form.city}` : ""}</div>
+              ? <div style={{ fontSize: 11, color: "var(--success)", marginTop: 5 }}>✓ Coordenadas obtidas: {form.lat}, {form.lng}</div>
               : <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>Digite o endereço para ver sugestões com autocomplete.</div>
             }
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Cidade</label>
+            <input
+              className="form-input"
+              value={form.city}
+              readOnly
+              placeholder="— preenchido pelo autocomplete —"
+              style={{ color: form.city ? "var(--text-primary)" : "var(--text-muted)", cursor: "default", opacity: 0.85 }}
+            />
           </div>
 
           <div className="form-row">
