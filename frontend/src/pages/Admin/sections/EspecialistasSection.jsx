@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { deletarEspecialista } from "../../../services/adminApi.js";
 
 const PROF_COLORS = {
   "Médico Clínico Geral":      "#2563eb",
@@ -42,7 +41,6 @@ function DetailDrawer({ spec, effectiveStatus, onClose, onUpdateStatus, onDelete
   const statusInfo = STATUS_MAP[effectiveStatus] || STATUS_MAP.disponivel;
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [confirmText,     setConfirmText]     = useState("");
-  const [deleting,        setDeleting]        = useState(false);
 
   return (
     <div
@@ -123,6 +121,28 @@ function DetailDrawer({ spec, effectiveStatus, onClose, onUpdateStatus, onDelete
 
           <div style={{ height: 1, background: "var(--border)" }} />
 
+          {/* Endereço */}
+          <div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600, marginBottom: 10, fontFamily: "var(--font-mono)" }}>
+              Endereço
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[
+                { label: "Rua / Nº",  value: [spec.rua, spec.numero].filter(Boolean).join(", ") || "—" },
+                { label: "Bairro",    value: spec.bairro  || "—" },
+                { label: "Cidade",    value: spec.cidade  || "—" },
+                { label: "CEP",       value: spec.cep     || "—" },
+              ].map(r => (
+                <div key={r.label} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 8, alignItems: "start" }}>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", paddingTop: 1 }}>{r.label}</span>
+                  <span style={{ fontSize: 13, color: "var(--text-primary)", fontFamily: r.label === "CEP" ? "var(--font-mono)" : "inherit" }}>{r.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ height: 1, background: "var(--border)" }} />
+
           {/* Histórico */}
           <div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600, marginBottom: 10, fontFamily: "var(--font-mono)" }}>
@@ -189,20 +209,14 @@ function DetailDrawer({ spec, effectiveStatus, onClose, onUpdateStatus, onDelete
                 Cancelar
               </button>
               <button
-                disabled={confirmText !== "confirmar" || deleting}
-                onClick={async () => {
-                  setDeleting(true);
-                  try {
-                    await deletarEspecialista(spec.especialistaId);
-                    onDelete(spec.id);
-                    onClose();
-                  } catch {
-                    setDeleting(false);
-                  }
+                disabled={confirmText !== "confirmar"}
+                onClick={() => {
+                  onDelete(spec.especialistaId);
+                  onClose();
                 }}
                 style={{ padding: "8px 18px", background: confirmText === "confirmar" ? "#ef4444" : "var(--bg-elevated)", border: "none", borderRadius: 7, color: confirmText === "confirmar" ? "#fff" : "var(--text-muted)", fontSize: 13, fontWeight: 700, cursor: confirmText === "confirmar" ? "pointer" : "not-allowed", transition: "all 0.15s" }}
               >
-                {deleting ? "Excluindo..." : "Excluir"}
+                Excluir
               </button>
             </div>
           </div>

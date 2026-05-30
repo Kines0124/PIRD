@@ -3,7 +3,7 @@ import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import {
   Scanline, Logo, GlobalFooter,
-  IconArrowLeft, IconCheck, IconLoader,
+  IconCheck, IconLoader, FixedBackButton,
   CATEGORIA_CONFIG,
 } from './shared';
 import { getMinhasDemandas, criarDemanda, atualizarLimite } from '../../services/pontoColetaApi';
@@ -105,12 +105,14 @@ export default function PontoColetaCapacidade({ onBack }) {
     <div className="pc-page" ref={containerRef}>
       <Scanline />
 
+      <FixedBackButton onClick={onBack} />
+
       <header className="pc-app-header">
         <div className="pc-app-header-left"><Logo size="sm" /></div>
         <div className="pc-app-header-right">
-          <button className="pc-app-header-link" onClick={onBack}>
-            <IconArrowLeft size={12} /> Voltar
-          </button>
+          <div className="pc-status-badge" style={{ fontSize: 9 }}>
+            <span className="pc-status-dot active" /> Validado
+          </div>
         </div>
       </header>
 

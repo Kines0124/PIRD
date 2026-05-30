@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
-import { Scanline, Logo, GlobalFooter, IconArrowLeft, CATEGORIA_CONFIG, SUBITENS_POR_CATEGORIA } from './shared';
+import { Scanline, Logo, GlobalFooter, FixedBackButton, CATEGORIA_CONFIG, SUBITENS_POR_CATEGORIA } from './shared';
 import { getMinhasDemandas, getMinhasDoacoes } from '../../services/pontoColetaApi';
 
 const CATEGORIAS_ORDER = ['solido', 'liquido', 'dormitorios', 'roupas', 'higiene_limpeza'];
@@ -47,16 +47,18 @@ export default function PontoColetaEstoque({ onBack }) {
     <div className="pc-page" ref={containerRef}>
       <Scanline />
 
+      <FixedBackButton onClick={onBack} />
+
       <header className="pc-app-header">
         <div className="pc-app-header-left"><Logo size="sm" /></div>
         <div className="pc-app-header-right">
-          <button className="pc-app-header-link" onClick={onBack}>
-            <IconArrowLeft size={12} /> Voltar
-          </button>
+          <div className="pc-status-badge" style={{ fontSize: 9 }}>
+            <span className="pc-status-dot active" /> Validado
+          </div>
         </div>
       </header>
 
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 32px 32px' }}>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 32px 80px' }}>
 
         <div style={{ marginBottom: 36 }}>
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 28, letterSpacing: '-0.025em', color: 'var(--t1)', lineHeight: 1.1 }}>

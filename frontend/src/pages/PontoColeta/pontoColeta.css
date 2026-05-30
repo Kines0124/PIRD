@@ -344,6 +344,11 @@
 .pc-toast.success { border: 1px solid rgba(34,197,94,0.45); color: #22C55E; }
 .pc-toast.error   { border: 1px solid rgba(232,41,76,0.45); color: var(--brand); }
 
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
 @media (max-width: 768px) {
   .pc-stock-num { font-size: 40px; }
   .pc-app-header { padding: 14px 18px; }

@@ -33,6 +33,7 @@ export default function EventModal({ event, onClose, onSave }) {
     lng: "",
     description: "",
     status: "ativo",
+    victims: 0,
     photos: [],
     criticalPointId: null,
     nearbyCollectionIds: [],
@@ -190,6 +191,18 @@ export default function EventModal({ event, onClose, onSave }) {
           </div>
 
           <div className="form-group">
+            <label className="form-label">Vítimas Estimadas</label>
+            <input
+              className="form-input"
+              type="number"
+              min="0"
+              value={form.victims ?? ""}
+              onChange={e => set("victims", e.target.value === "" ? null : parseInt(e.target.value) || 0)}
+              placeholder="— (deixe em branco se desconhecido)"
+            />
+          </div>
+
+          <div className="form-group">
             <label className="form-label">Profissionais necessários</label>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, background: "var(--bg-elevated)", borderRadius: 8, padding: "10px 12px", border: "1px solid var(--border)" }}>
               {PROFISSOES_NECESSARIAS.map(prof => {
@@ -228,7 +241,7 @@ export default function EventModal({ event, onClose, onSave }) {
             className="btn btn-primary"
             disabled={!canSave}
             style={{ opacity: canSave ? 1 : 0.4 }}
-            onClick={() => { onSave(form); onClose(); }}
+            onClick={() => { onSave({ ...form, victims: form.victims ?? 0 }); onClose(); }}
           >
             💾 Salvar Evento
           </button>

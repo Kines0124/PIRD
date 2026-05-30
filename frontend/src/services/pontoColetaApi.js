@@ -77,6 +77,10 @@ export async function marcarRecebida(doacaoId) {
   return req("PATCH", `/doacoes/${doacaoId}/recebida`, null);
 }
 
+export async function atualizarPerfil(dto) {
+  return req("PUT", "/pontos-coleta/meu", dto);
+}
+
 // ── Públicos (formulário de doação) ──────────────────────────────────────────
 
 export async function getPontosValidados() {

@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
-import { Scanline, Logo, GlobalFooter, CATEGORIA_COR, IconArrowLeft, IconLogout, IconCheck } from './shared';
+import { Scanline, Logo, GlobalFooter, CATEGORIA_COR, IconCheck, FixedBackButton, FixedExitButton } from './shared';
 import { getMinhasDoacoes, marcarRecebida, getNome } from '../../services/pontoColetaApi';
 
 function DcTab({ active, label, count, onClick }) {
@@ -180,24 +180,21 @@ export default function PontoColetaDoacoes({ onBack, onLogout }) {
     <div className="pc-page" ref={containerRef}>
       <Scanline />
 
+      <FixedBackButton onClick={onBack} label="Voltar ao painel" />
+      <FixedExitButton onClick={onLogout} />
+
       <header ref={headerRef} className="pc-app-header">
         <div className="pc-app-header-left"><Logo size="sm" /></div>
         <div className="pc-app-header-right">
           <div className="pc-status-badge" style={{ fontSize: 9 }}>
             <span className="pc-status-dot active" /> Validado
           </div>
-          <button className="pc-app-header-link" onClick={onLogout}>
-            <IconLogout size={12} /> Sair
-          </button>
         </div>
       </header>
 
-      <div style={{ maxWidth: 880, margin: '0 auto', padding: '32px 32px 40px' }}>
+      <div style={{ maxWidth: 880, margin: '0 auto', padding: '32px 32px 80px' }}>
         <div ref={titleRef}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
-            <button onClick={onBack} className="pc-app-header-link" style={{ padding: '6px 0' }}>
-              <IconArrowLeft size={12} /> Voltar ao painel
-            </button>
+          <div style={{ marginBottom: 28 }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--t3)', letterSpacing: '0.18em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{ width: 24, height: 1, background: 'var(--bd)' }} /> Doações
             </div>

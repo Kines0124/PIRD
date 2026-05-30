@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as adminApi from "../../../services/adminApi.js";
 
 const CONSELHO_LINKS = {
   "Médico Clínico Geral":    { nome: "CFM", url: "https://portal.cfm.org.br/busca-medicos" },
@@ -22,24 +23,41 @@ function fmtFull(iso) {
 }
 
 export default function RegistroDrawer({ registro, onClose, onAprovar, onReprovar }) {
-  const [obs,         setObs]         = useState("");
-  const [confirmando, setConfirmando] = useState(null);
+  const [obs,            setObs]            = useState("");
+  const [confirmStep,    setConfirmStep]    = useState(false);
+  const [confirmSenha,   setConfirmSenha]   = useState("");
+  const [confirmError,   setConfirmError]   = useState(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [reprovando,     setReprovando]     = useState(false);
 
   if (!registro) return null;
 
-  const conselho = CONSELHO_LINKS[registro.profissao];
+  const conselho      = CONSELHO_LINKS[registro.profissao];
+  const storedEmail   = adminApi.getAdminEmail();
 
-  function handleAprovar() {
-    if (confirmando !== "aprovar") { setConfirmando("aprovar"); return; }
-    onAprovar(registro.id);
-    setConfirmando(null); setObs(""); onClose();
+  async function handleConfirmarAprovar() {
+    if (!storedEmail) {
+      setConfirmError("Sessão sem e-mail armazenado. Faça logout e login novamente.");
+      return;
+    }
+    setConfirmLoading(true);
+    setConfirmError(null);
+    try {
+      await adminApi.login(storedEmail, confirmSenha);
+      onAprovar(registro.id);
+      onClose();
+    } catch {
+      setConfirmError("Senha incorreta. Tente novamente.");
+    } finally {
+      setConfirmLoading(false);
+    }
   }
 
   function handleReprovar() {
     if (!obs.trim()) { alert("Informe o motivo da reprovação."); return; }
-    if (confirmando !== "reprovar") { setConfirmando("reprovar"); return; }
+    if (!reprovando) { setReprovando(true); return; }
     onReprovar(registro.id, obs.trim());
-    setConfirmando(null); setObs(""); onClose();
+    setReprovando(false); setObs(""); onClose();
   }
 
   return (
@@ -98,6 +116,26 @@ export default function RegistroDrawer({ registro, onClose, onAprovar, onReprova
             </div>
           </section>
 
+          {/* Address */}
+          {(registro.rua || registro.cidade) && (
+            <section>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Endereço</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {[
+                  ["Rua / Nº",  [registro.rua, registro.numero].filter(Boolean).join(", ") || "—"],
+                  ["Bairro",    registro.bairro || "—"],
+                  ["Cidade",    registro.cidade || "—"],
+                  ["CEP",       registro.cep    || "—"],
+                ].map(([label, value]) => (
+                  <div key={label} style={{ backgroundColor: "var(--bg-hover)", borderRadius: 8, padding: "10px 12px" }}>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 2 }}>{label}</div>
+                    <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Observation */}
           <section>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Observação do Revisor</div>
@@ -108,14 +146,45 @@ export default function RegistroDrawer({ registro, onClose, onAprovar, onReprova
         </div>
 
         {/* Actions */}
-        <div style={{ padding: "14px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 10 }}>
-          <button onClick={handleReprovar} style={{ flex: 1, padding: 11, borderRadius: 8, border: "1px solid #dc2626", backgroundColor: confirmando === "reprovar" ? "#dc2626" : "rgba(220,38,38,0.1)", color: "#dc2626", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-            {confirmando === "reprovar" ? "⚠️ Confirmar Reprovação" : "✗ Reprovar"}
-          </button>
-          <button onClick={handleAprovar} style={{ flex: 1, padding: 11, borderRadius: 8, border: "none", backgroundColor: confirmando === "aprovar" ? "#15803d" : "#16a34a", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-            {confirmando === "aprovar" ? "✓ Confirmar Aprovação" : "✓ Aprovar"}
-          </button>
-        </div>
+        {confirmStep ? (
+          <div style={{ padding: "16px 20px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>
+              🔒 Confirme sua senha para aprovar este especialista:
+            </div>
+            <input
+              type="password"
+              value={confirmSenha}
+              onChange={e => { setConfirmSenha(e.target.value); setConfirmError(null); }}
+              placeholder="Sua senha"
+              autoFocus
+              style={{ backgroundColor: "var(--bg-hover)", border: `1px solid ${confirmError ? "#ef4444" : "var(--border)"}`, borderRadius: 8, color: "var(--text-primary)", fontSize: 13, padding: "10px 12px", outline: "none" }}
+            />
+            {confirmError && (
+              <div style={{ fontSize: 11, color: "#ef4444", fontFamily: "var(--font-mono)" }}>{confirmError}</div>
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => { setConfirmStep(false); setConfirmSenha(""); setConfirmError(null); }} style={{ flex: 1, padding: 11, borderRadius: 8, border: "1px solid var(--border)", backgroundColor: "transparent", color: "var(--text-secondary)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmarAprovar}
+                disabled={!confirmSenha || confirmLoading}
+                style={{ flex: 1, padding: 11, borderRadius: 8, border: "none", backgroundColor: confirmSenha && !confirmLoading ? "#16a34a" : "var(--bg-hover)", color: confirmSenha && !confirmLoading ? "#fff" : "var(--text-muted)", fontWeight: 700, fontSize: 13, cursor: confirmSenha && !confirmLoading ? "pointer" : "not-allowed", transition: "all 0.15s" }}
+              >
+                {confirmLoading ? "Verificando..." : "✓ Confirmar Aprovação"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: "14px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 10 }}>
+            <button onClick={handleReprovar} style={{ flex: 1, padding: 11, borderRadius: 8, border: "1px solid #dc2626", backgroundColor: reprovando ? "#dc2626" : "rgba(220,38,38,0.1)", color: reprovando ? "#fff" : "#dc2626", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+              {reprovando ? "⚠️ Confirmar Reprovação" : "✗ Reprovar"}
+            </button>
+            <button onClick={() => setConfirmStep(true)} style={{ flex: 1, padding: 11, borderRadius: 8, border: "none", backgroundColor: "#16a34a", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+              ✓ Aprovar
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

@@ -142,7 +142,11 @@ function AdminPanel({ onLogout }) {
     }
   }
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => {
+    loadAll();
+    const id = setInterval(loadAll, 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   async function openSettings() {
     setSettingsSaving(false);
@@ -270,11 +274,18 @@ function AdminPanel({ onLogout }) {
     } catch (e) { alert("Erro ao reprovar especialista: " + e.message); }
   }
 
-  async function handleDeletarEspecialista(id) {
+  async function handleDeletarEspecialista(especialistaId) {
     try {
-      await adminApi.deletarEspecialista(id);
-      setSpecialists(specs => specs.filter(s => s.id !== id));
+      await adminApi.deletarEspecialista(especialistaId);
+      setSpecialists(specs => specs.filter(s => s.especialistaId !== especialistaId));
     } catch (e) { alert("Erro ao deletar especialista: " + e.message); }
+  }
+
+  async function handleDeletarRegistroEspecialista(id) {
+    try {
+      await adminApi.deletarRegistroEspecialista(id);
+      setSpecialists(specs => specs.filter(s => s.id !== id));
+    } catch (e) { alert("Erro ao excluir cadastro: " + e.message); }
   }
 
   const pendingCols          = registros.filter(r => r.status === "pendente").length;
@@ -479,7 +490,7 @@ function AdminPanel({ onLogout }) {
                   specialists={specialists}
                   onAprovar={handleAprovarEspecialista}
                   onReprovar={handleReprovarEspecialista}
-                  onDeletar={handleDeletarEspecialista}
+                  onDeletar={handleDeletarRegistroEspecialista}
                   registros={registros}
                   onAprovarRegistro={handleAprovarRegistro}
                   onRejeitarRegistro={handleRejeitarRegistro}

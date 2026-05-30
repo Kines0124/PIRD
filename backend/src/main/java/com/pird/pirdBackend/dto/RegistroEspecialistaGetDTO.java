@@ -14,6 +14,11 @@ public class RegistroEspecialistaGetDTO {
     private String  profissao;
     private String  numeroRegistro;
     private String  uf;
+    private String  rua;
+    private String  numero;
+    private String  bairro;
+    private String  cidade;
+    private String  cep;
     private String  status;
     private String  observacao;
     private String  criadoEm;
@@ -33,6 +38,11 @@ public class RegistroEspecialistaGetDTO {
         this.uf              = r.getUf();
         this.status          = r.getStatus();
         this.observacao      = r.getObservacao();
+        this.rua             = r.getRua();
+        this.numero          = r.getNumero();
+        this.bairro          = r.getBairro();
+        this.cidade          = r.getCidade();
+        this.cep             = r.getCep();
         this.criadoEm        = r.getCriadoEm() != null ? r.getCriadoEm().format(fmt) : null;
         this.revisadoEm      = r.getRevisadoEm() != null ? r.getRevisadoEm().format(fmt) : null;
     }
@@ -52,6 +62,11 @@ public class RegistroEspecialistaGetDTO {
     public String  getObservacao()      { return observacao; }
     public String  getCriadoEm()        { return criadoEm; }
     public String  getRevisadoEm()      { return revisadoEm; }
+    public String  getRua()             { return rua; }
+    public String  getNumero()          { return numero; }
+    public String  getBairro()          { return bairro; }
+    public String  getCidade()          { return cidade; }
+    public String  getCep()             { return cep; }
     public Integer getEspecialistaId()  { return especialistaId; }
     public void    setEspecialistaId(Integer especialistaId) { this.especialistaId = especialistaId; }
 }

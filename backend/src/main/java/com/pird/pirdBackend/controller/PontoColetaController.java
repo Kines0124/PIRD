@@ -10,12 +10,15 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pird.pirdBackend.dto.DemandaGetDTO;
 import com.pird.pirdBackend.dto.DoacaoGetDTO;
 import com.pird.pirdBackend.dto.PontoColetaGetDTO;
+import com.pird.pirdBackend.dto.PontoColetaPutDTO;
 import com.pird.pirdBackend.model.Administrador;
 import com.pird.pirdBackend.model.PontoColeta;
 import com.pird.pirdBackend.service.DemandaService;
@@ -55,6 +58,14 @@ public class PontoColetaController {
     @PreAuthorize("hasRole('PONTO_COLETA')")
     public ResponseEntity<PontoColetaGetDTO> meuPerfil(@AuthenticationPrincipal PontoColeta ponto) {
         return ResponseEntity.ok(pontoColetaService.buscarPerfil(ponto));
+    }
+
+    @PutMapping("/meu")
+    @PreAuthorize("hasRole('PONTO_COLETA')")
+    public ResponseEntity<PontoColetaGetDTO> atualizarMeuPerfil(
+            @AuthenticationPrincipal PontoColeta ponto,
+            @RequestBody PontoColetaPutDTO dto) {
+        return ResponseEntity.ok(pontoColetaService.atualizarMeu(ponto, dto));
     }
 
     @GetMapping("/meu/doacoes")
