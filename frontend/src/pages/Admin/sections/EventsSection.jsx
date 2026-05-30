@@ -170,7 +170,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
   const neededProfiles   = event.neededProfiles || [];
 
   function getEffectiveStatus(spec) {
-    return (specialistStatuses || {})[String(spec.id)] || spec.statusCampo || "disponivel";
+    return (specialistStatuses || {})[String(spec.especialistaId)] || spec.statusCampo || "disponivel";
   }
 
   const eligibleSpecialists = (specialists || [])
@@ -380,7 +380,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
                         alert("Erro ao convocar: " + e.message);
                         return;
                       }
-                      onUpdateStatus && onUpdateStatus(s.id, "a_caminho");
+                      onUpdateStatus && onUpdateStatus(s.especialistaId, "a_caminho");
                     }}
                   />
                 ))

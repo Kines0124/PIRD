@@ -22,7 +22,7 @@ export default function CampoSection({ events, criticalPoints = [], specialists,
   const aprovados = specialists.filter(s => s.status === "aprovado");
 
   function getEffectiveStatus(spec) {
-    return specialistStatuses[String(spec.id)] || spec.statusCampo || "disponivel";
+    return specialistStatuses[String(spec.especialistaId)] || spec.statusCampo || "disponivel";
   }
 
   const tipos = useMemo(

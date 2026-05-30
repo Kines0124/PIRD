@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { styles } from "./adminTheme.jsx";
 import * as adminApi from "../../services/adminApi.js";
@@ -104,14 +104,16 @@ function AdminPanel({ onLogout }) {
   const [showNewPoint, setShowNewPoint] = useState(false);
 
   // Statuses de campo dos especialistas (local — provisório)
-  const specialistStatuses = useMemo(() => {
-  const map = {};
-  convocacoes.forEach(c => {
+  const [specialistStatuses, setSpecialistStatuses] = useState({});
+
+  useEffect(() => {
+    const map = {};
+    convocacoes.forEach(c => {
       if (c.status === "a_caminho" || c.status === "no_local") {
         map[String(c.especialistaId)] = c.status;
       }
     });
-    return map;
+    setSpecialistStatuses(map);
   }, [convocacoes]);
   // ID de evento a abrir automaticamente em EventsSection
   const [pendingOpenEventId,      setPendingOpenEventId]      = useState(null);
