@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.pird.pirdBackend.model.Evento;
+import com.pird.pirdBackend.model.PontoColeta;
 
 public class EventoGetDTO {
 
@@ -46,6 +47,9 @@ public class EventoGetDTO {
         this.criticalPointId = e.getPontoCritico() != null ? e.getPontoCritico().getId() : null;
         this.neededProfiles  = e.getProfissionaisNecessarios() != null
                                 ? e.getProfissionaisNecessarios()
+                                : new ArrayList<>();
+        this.nearbyCollectionIds = e.getPontosColeta() != null
+                                ? e.getPontosColeta().stream().map(PontoColeta::getId).toList()
                                 : new ArrayList<>();
     }
 

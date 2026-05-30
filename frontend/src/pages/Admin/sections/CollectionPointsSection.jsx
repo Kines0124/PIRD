@@ -204,11 +204,21 @@ function PontoCard({ ponto, onClick }) {
 }
 
 // ── Main section ────────────────────────────────────────────────────────────
-export default function CollectionPointsSection({ collectionPoints }) {
+export default function CollectionPointsSection({ collectionPoints, openCollectionId, onCollectionOpened }) {
   const [tab,      setTab]      = useState("informacoes");
   const [selected, setSelected] = useState(null);
   const [selId,    setSelId]    = useState(null);
   const [search,   setSearch]   = useState("");
+
+  useEffect(() => {
+    if (!openCollectionId || collectionPoints.length === 0) return;
+    const ponto = collectionPoints.find(p => String(p.id) === String(openCollectionId));
+    if (ponto) {
+      setTab("informacoes");
+      setSelected(ponto);
+      if (onCollectionOpened) onCollectionOpened();
+    }
+  }, [openCollectionId, collectionPoints]);
 
   const validados = collectionPoints.filter(p => p.status === "validado");
   const filtered  = validados.filter(p =>

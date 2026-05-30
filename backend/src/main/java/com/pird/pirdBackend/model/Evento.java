@@ -16,6 +16,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -87,4 +89,12 @@ public class Evento {
     @Column(name = "profissionais_necessarios", columnDefinition = "TEXT")
     @Convert(converter = StringListConverter.class)
     private List<String> profissionaisNecessarios = new ArrayList<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "ponto_coleta_evento",
+        joinColumns = @JoinColumn(name = "evento_id"),
+        inverseJoinColumns = @JoinColumn(name = "ponto_id")
+    )
+    private List<PontoColeta> pontosColeta = new ArrayList<>();
 }

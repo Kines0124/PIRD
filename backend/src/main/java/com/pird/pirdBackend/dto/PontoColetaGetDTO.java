@@ -30,7 +30,7 @@ public class PontoColetaGetDTO {
         this.name    = p.getNomeLocal();
         this.cnpj    = p.getCnpj();
         this.address = p.getEndereco();
-        this.city    = "";
+        this.city    = extractCidade(p.getEndereco());
         this.lat     = p.getLocalizacao().getY();
         this.lng     = p.getLocalizacao().getX();
         this.status  = p.isValidado() ? "validado" : "pendente";
@@ -41,5 +41,11 @@ public class PontoColetaGetDTO {
 
     public static List<PontoColetaGetDTO> convert(List<PontoColeta> list) {
         return list.stream().map(PontoColetaGetDTO::new).toList();
+    }
+
+    private static String extractCidade(String endereco) {
+        if (endereco == null) return "";
+        int i = endereco.lastIndexOf(", ");
+        return i >= 0 ? endereco.substring(i + 2) : "";
     }
 }

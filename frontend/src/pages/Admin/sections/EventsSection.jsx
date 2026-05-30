@@ -161,7 +161,7 @@ function EventDetailMap({ event, collectionPoints, criticalPoints }) {
 }
 
 // ─── Drawer de detalhes do evento ─────────────────────────────────────────────
-function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, onClose, onEdit }) {
+function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, onClose, onEdit, onGoToCollection }) {
   const [tab, setTab] = useState("mapa");
 
   const nearbyPoints     = (event.nearbyCollectionIds || []).map(id => (collectionPoints || []).find(p => p.id === id)).filter(p => p && p.status === "validado");
@@ -311,9 +311,19 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
               {nearbyPoints.length === 0 ? (
                 <div className="empty-state"><div className="empty-state-icon">📦</div><div className="empty-state-text">Nenhum ponto de coleta vinculado</div></div>
               ) : nearbyPoints.map(p => (
-                <div key={p.id} style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px" }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{p.name}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>📍 {p.address}, {p.city}</div>
+                <div
+                  key={p.id}
+                  onClick={() => { onGoToCollection && onGoToCollection(p.id); onClose(); }}
+                  style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, transition: "all 0.15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; e.currentTarget.style.background = "var(--bg-hover)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg-elevated)"; }}
+                >
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>📦</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2 }}>{p.name}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>📍 {p.address}{p.city ? `, ${p.city}` : ""}</div>
+                  </div>
+                  <span style={{ fontSize: 13, color: "var(--text-muted)", flexShrink: 0 }}>›</span>
                 </div>
               ))}
             </div>
@@ -384,7 +394,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
 }
 
 // ─── EventsSection ─────────────────────────────────────────────────────────────
-export default function EventsSection({ events, onSaveEvent, criticalPoints, collectionPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, openEventId, onEventOpened }) {
+export default function EventsSection({ events, onSaveEvent, criticalPoints, collectionPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, openEventId, onEventOpened, onGoToCollection }) {
   const [filter, setFilter]           = useState("todos");
   const [search, setSearch]           = useState("");
   const [editEvent, setEditEvent]     = useState(null);
@@ -508,6 +518,7 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
           onUpdateStatus={onUpdateStatus}
           onClose={() => setDetailEvent(null)}
           onEdit={() => { setEditEvent(detailEvent); setDetailEvent(null); }}
+          onGoToCollection={onGoToCollection}
         />
       )}
 

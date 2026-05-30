@@ -114,7 +114,9 @@ function AdminPanel({ onLogout }) {
     return map;
   }, [convocacoes]);
   // ID de evento a abrir automaticamente em EventsSection
-  const [pendingOpenEventId, setPendingOpenEventId] = useState(null);
+  const [pendingOpenEventId,      setPendingOpenEventId]      = useState(null);
+  // ID de ponto de coleta a abrir automaticamente em CollectionPointsSection
+  const [pendingOpenCollectionId, setPendingOpenCollectionId] = useState(null);
 
   // Notifications dropdown
   const [showNotifs, setShowNotifs] = useState(false);
@@ -474,6 +476,7 @@ function AdminPanel({ onLogout }) {
                   onUpdateStatus={handleUpdateSpecialistStatus}
                   openEventId={pendingOpenEventId}
                   onEventOpened={() => setPendingOpenEventId(null)}
+                  onGoToCollection={(id) => { setPendingOpenCollectionId(id); setSection("collection"); }}
                 />
               )}
               {section === "critical" && (
@@ -486,6 +489,8 @@ function AdminPanel({ onLogout }) {
               {section === "collection" && (
                 <CollectionPointsSection
                   collectionPoints={collectionPoints}
+                  openCollectionId={pendingOpenCollectionId}
+                  onCollectionOpened={() => setPendingOpenCollectionId(null)}
                 />
               )}
               {section === "especialistas" && (
