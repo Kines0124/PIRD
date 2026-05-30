@@ -149,7 +149,7 @@ function ConvCard({ c, onResponder }) {
 // Mapa de eventos + lista lateral
 // ══════════════════════════════════════════════════════════════════════════════
 
-function MapaEventos({ eventos, convs, criticalPoints = [], profissao, onRefresh, onResponder, onVoluntariar }) {
+function MapaEventos({ eventos, convs, criticalPoints = [], profissao, onRefresh, onResponder, onVoluntariar, onChegada }) {
   const [pendingChegada, setPendingChegada] = useState(null);
   const containerRef     = useRef(null);
   const mapRef           = useRef(null);
@@ -876,6 +876,7 @@ export default function EspecialistaDashboard() {
             onRefresh={() => { fetchEventos(); fetchPontosCriticos(); }}
             onResponder={handleResponder}
             onVoluntariar={handleVoluntariar}
+            onChegada={handleChegada}
           />
         )}
 
