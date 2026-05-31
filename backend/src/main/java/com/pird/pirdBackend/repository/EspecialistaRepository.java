@@ -32,7 +32,7 @@ public interface EspecialistaRepository extends JpaRepository<Especialista, Inte
           AND NOT EXISTS (
               SELECT c FROM Convocacao c
               WHERE c.especialista = e
-                AND c.status IN ('pendente', 'a_caminho')
+                AND c.status IN ('pendente', 'a_caminho', 'no_local')
           )
         """)
     List<Especialista> findDisponivelPorProfissaoECidade(
@@ -52,7 +52,7 @@ public interface EspecialistaRepository extends JpaRepository<Especialista, Inte
           AND NOT EXISTS (
               SELECT 1 FROM convocacao c
               WHERE c.especialista_id = e.id
-                AND c.status IN ('pendente', 'a_caminho')
+                AND c.status IN ('pendente', 'a_caminho', 'no_local')
           )
           AND ST_DWithin(
               e.localizacao,

@@ -10,8 +10,8 @@ const TOKEN_KEY = "pird_especialista_token";
 const USER_KEY  = "pird_especialista_user";
 const TAUBATE   = [-45.5533, -23.0268];
 
-const STATUS_LABEL = { pendente: "Aguardando resposta", a_caminho: "A caminho", no_local: "No local", recusada: "Recusada" };
-const STATUS_COLOR = { pendente: "#f59e0b", a_caminho: "#3b82f6", no_local: "#22c55e", recusada: "#ef4444" };
+const STATUS_LABEL = { pendente: "Aguardando resposta", a_caminho: "A caminho", no_local: "No local", recusada: "Recusada", encerrada:  "Evento encerrado" };
+const STATUS_COLOR = { pendente: "#f59e0b", a_caminho: "#3b82f6", no_local: "#22c55e", recusada: "#ef4444", encerrada:  "#71717a", };
 const SEV_COLOR    = { moderado: "#22c55e", medio: "#22c55e", baixo: "#22c55e", alto: "#f59e0b", critico: "#ef4444" };
 const TIPO_EMOJI   = { enchente: "🌊", deslizamento: "⛰️", alagamento: "💧", incendio: "🔥", desabamento: "🏚️", intoxicacao: "☣️", outro: "⚠️" };
 const RISCO_COLOR  = { critico: "#FF4444", alto: "#FF6B00", medio: "#F5A623" };
@@ -145,7 +145,7 @@ function ConvCard({ c, onResponder, onChegada, userEmail }) {
   const [pendingAction, setPendingAction] = useState(null);
   const sevColor = SEV_COLOR[c.eventoSeveridade?.toLowerCase()] ?? "#94a3b8";
   const stColor  = STATUS_COLOR[c.status] ?? "#94a3b8";
-  const isPast   = c.status === "recusada" || c.status === "no_local";
+  const isPast = c.status === "recusada" || c.status === "no_local" || c.status === "encerrada";
 
   return (
     <>
@@ -209,7 +209,9 @@ function ConvCard({ c, onResponder, onChegada, userEmail }) {
 function ConvocacoesTab({ convs, onResponder, onChegada, userEmail }) {
   const pendentes  = convs.filter(c => c.status === "pendente");
   const ativas     = convs.filter(c => c.status === "a_caminho" || c.status === "no_local");
-  const historico  = convs.filter(c => c.status === "recusada" || c.status === "no_local");
+  const historico = convs.filter(c =>
+    c.status === "recusada" || c.status === "no_local" || c.status === "encerrada"
+  );
 
   const sec = (label, count) => (
     <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center", gap: 8 }}>

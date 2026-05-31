@@ -174,7 +174,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
   // Convocações deste evento vindas do backend (exclui recusadas)
   const eventConvMap = new Map(
     (convocacoes || [])
-      .filter(c => c.eventoId === event.id && c.status !== "recusada")
+      .filter(c => c.eventoId === event.id && c.status !== "recusado" && c.status !== "encerrada")
       .map(c => [c.especialistaId, c.status])
   );
 

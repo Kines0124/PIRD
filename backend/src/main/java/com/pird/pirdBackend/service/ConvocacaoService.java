@@ -112,10 +112,21 @@ public class ConvocacaoService {
     @Transactional
     public ConvocacaoGetDTO voluntariar(Integer eventoId, Especialista especialista) {
         Evento evento = eventoRepository.findById(eventoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado"));
 
         if (convocacaoRepository.existsByEventoIdAndEspecialistaId(eventoId, especialista.getId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Você já possui uma convocação para este evento.");
+        }
+
+        // Bloqueia se já está ocupado em outro evento
+        boolean ocupado = convocacaoRepository
+            .findByEspecialistaIdOrderByConvocadoEmDesc(especialista.getId())
+            .stream()
+            .anyMatch(c -> "a_caminho".equals(c.getStatus()) || "no_local".equals(c.getStatus()));
+
+        if (ocupado) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Você já está em andamento em outro evento.");
         }
 
         Convocacao c = new Convocacao();
@@ -135,6 +146,19 @@ public class ConvocacaoService {
         if (!"pendente".equals(c.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Convocação não está pendente.");
         }
+
+        // Bloqueia se já está ocupado em outro evento
+        boolean ocupado = convocacaoRepository
+            .findByEspecialistaIdOrderByConvocadoEmDesc(especialista.getId())
+            .stream()
+            .filter(other -> !other.getId().equals(convocacaoId))
+            .anyMatch(other -> "a_caminho".equals(other.getStatus()) || "no_local".equals(other.getStatus()));
+
+        if (ocupado) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Você já está em andamento em outro evento. Finalize-o antes de aceitar uma nova convocação.");
+        }
+
         c.setStatus("a_caminho");
         c.setRespondidoEm(LocalDateTime.now());
         return new ConvocacaoGetDTO(convocacaoRepository.save(c));
@@ -195,5 +219,19 @@ public class ConvocacaoService {
     public List<ConvocacaoGetDTO> listarTodas() {
     return ConvocacaoGetDTO.convert(
             convocacaoRepository.findAllByOrderByConvocadoEmDesc());
-}
+    }
+
+    @Transactional
+    public void encerrarPorEvento(Integer eventoId) {
+        List<Convocacao> ativas = convocacaoRepository
+            .findByEventoIdOrderByConvocadoEmDesc(eventoId)
+            .stream()
+            .filter(c -> !c.getStatus().equals("recusado") && !c.getStatus().equals("encerrada"))
+            .toList();
+
+        for (Convocacao c : ativas) {
+            c.setStatus("encerrada");
+            convocacaoRepository.save(c);
+        }
+    }
 }

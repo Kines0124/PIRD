@@ -73,6 +73,9 @@ public class EventoService {
     public EventoGetDTO atualizar(Integer id, EventoPostDTO dto) {
         Evento evento = eventoRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado"));
+
+        String statusAnterior = evento.getStatus();
+
         evento.setTitulo(dto.getTitle());
         evento.setTipo(dto.getType());
         evento.setSeveridade(dto.getSeverity());
@@ -87,7 +90,13 @@ public class EventoService {
         vincularPontoCritico(evento, dto);
         associarPontosColeta(evento, dto.getCity());
         eventoRepository.save(evento);
-        tentarConvocar(evento);
+
+        if ("encerrado".equals(dto.getStatus()) && !"encerrado".equals(statusAnterior)) {
+            convocacaoService.encerrarPorEvento(id);
+        } else {
+            tentarConvocar(evento);
+        }
+
         return new EventoGetDTO(evento);
     }
 

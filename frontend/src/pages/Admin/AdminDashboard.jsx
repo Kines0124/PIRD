@@ -227,8 +227,10 @@ function AdminPanel({ onLogout }) {
     try {
       if (editEvent) await adminApi.updateEvento(editEvent.id, form);
       else           await adminApi.createEvento(form);
-      setEvents(await adminApi.getEventos());
-    } catch (e) { alert("Erro ao salvar evento: " + e.message); }
+      await loadAll();
+    } catch (e) {
+      alert("Erro ao salvar evento: " + e.message);
+    }
   }
 
   async function handleSavePoint(editPoint, form) {

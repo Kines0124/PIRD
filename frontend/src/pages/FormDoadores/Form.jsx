@@ -23,7 +23,7 @@ function placeMarkersOnMap(map, markersRef, pontosList) {
   });
 }
 
-function MapaDoacoes({ flyToCoords, pontos }) {
+function MapaDoacoes({ flyToCoords, pontos, height }) {
   const containerRef = useRef(null);
   const mapRef       = useRef(null);
   const markersRef   = useRef([]);
@@ -83,7 +83,7 @@ function MapaDoacoes({ flyToCoords, pontos }) {
 
   if (!MAPBOX_TOKEN) {
     return (
-      <div style={{ flex: 1, borderRadius: 10, background: "#f1f5f9", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ height: height || "100%", borderRadius: 10, background: "#1e293b", border: "1px solid #334155", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 12 }}>
           Configure VITE_MAPBOX_TOKEN para visualizar o mapa.
         </div>
@@ -91,7 +91,12 @@ function MapaDoacoes({ flyToCoords, pontos }) {
     );
   }
 
-  return <div style={{ flex: 1, borderRadius: 10, overflow: "hidden", border: "1px solid #334155" }} ref={containerRef} />;
+  return (
+    <div
+      ref={containerRef}
+      style={{ height: height || "100%", borderRadius: 10, overflow: "hidden", border: "1px solid #334155" }}
+    />
+  );
 }
 
 export default function DoadoresForm() {
@@ -108,6 +113,7 @@ export default function DoadoresForm() {
   const [submitting,      setSubmitting]      = useState(false);
   const [sucesso,         setSucesso]         = useState(false);
   const [erro,            setErro]            = useState(null);
+  const [mapaVisivel,     setMapaVisivel]     = useState(true);
 
   const navigate = useNavigate();
 
@@ -132,12 +138,10 @@ export default function DoadoresForm() {
     setCategoriaFiltro("");
   }, [pontoId]);
 
-  // Demanda da categoria selecionada (uma por categoria agora)
   const categoriaDemanda = categoriaFiltro
     ? demandas.find(d => d.categoria === categoriaFiltro)
     : null;
 
-  // Subitens disponíveis se a categoria tiver demanda cadastrada
   const subItens = categoriaDemanda
     ? (SUBITENS_POR_CATEGORIA[categoriaFiltro] || [])
     : [];
@@ -222,16 +226,65 @@ export default function DoadoresForm() {
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
         .d-inp:focus { border-color: #FF6B1A !important; }
         .d-inp::placeholder { color: #475569; }
-        .d-prox:hover { border-color: #FF6B1A !important; color: #FF6B1A !important; }
         .mapboxgl-ctrl-group { background: #fff !important; border: 1px solid #e2e8f0 !important; border-radius: 8px !important; }
         .mapboxgl-ctrl-group button { background: #fff !important; border-bottom: 1px solid #e2e8f0 !important; }
         .mapboxgl-ctrl-group button:hover { background: #f8fafc !important; }
+
+        /* ── Responsive ── */
+        .doadores-root {
+          display: flex;
+          min-height: 100vh;
+          background: #0f172a;
+          font-family: 'Inter', sans-serif;
+        }
+
+        /* Desktop: side-by-side */
+        @media (min-width: 768px) {
+          .doadores-sidebar {
+            width: 420px;
+            min-width: 420px;
+            border-right: 1px solid #1e293b;
+            display: flex;
+            flex-direction: column;
+            padding: 32px 28px;
+            overflow-y: auto;
+          }
+          .doadores-map-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 32px 28px;
+          }
+          .mapa-toggle-btn { display: none !important; }
+          .mapa-mobile-wrapper { display: none !important; }
+          .mapa-desktop-wrapper { display: flex !important; }
+        }
+
+        /* Mobile: stacked */
+        @media (max-width: 767px) {
+          .doadores-root { flex-direction: column; }
+          .doadores-sidebar {
+            width: 100%;
+            min-width: unset;
+            border-right: none;
+            border-bottom: 1px solid #1e293b;
+            padding: 24px 20px;
+            display: flex;
+            flex-direction: column;
+          }
+          .doadores-map-area {
+            display: none !important;
+          }
+          .mapa-toggle-btn { display: flex !important; }
+          .mapa-mobile-wrapper { display: block !important; }
+          .mapa-desktop-wrapper { display: none !important; }
+        }
       `}</style>
 
-      <div style={{ display: "flex", minHeight: "100vh", background: "#f8fafc", fontFamily: "'Inter', sans-serif" }}>
+      <div className="doadores-root">
 
-        {/* ── Painel lateral ── */}
-        <div style={{ width: 420, minWidth: 420, background: "#0f172a", borderRight: "1px solid #1e293b", display: "flex", flexDirection: "column", padding: "32px 28px", overflowY: "auto" }}>
+        {/* ── Painel lateral / formulário ── */}
+        <div className="doadores-sidebar" style={{ background: "#0f172a" }}>
 
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 9, letterSpacing: "0.16em", color: "#FF6B1A", fontFamily: "'JetBrains Mono', monospace", marginBottom: 8, fontWeight: 500 }}>
@@ -243,6 +296,51 @@ export default function DoadoresForm() {
             <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>
               Formulário público · sem cadastro necessário
             </div>
+          </div>
+
+          {/* Botão toggle do mapa — só aparece no mobile */}
+          <button
+            className="mapa-toggle-btn"
+            type="button"
+            onClick={() => setMapaVisivel(v => !v)}
+            style={{
+              display: "none", // sobrescrito pelo CSS
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "100%",
+              marginBottom: 20,
+              padding: "9px 14px",
+              background: "#1e293b",
+              border: "1px solid #334155",
+              borderRadius: 8,
+              color: "#94a3b8",
+              fontSize: 12,
+              fontFamily: "'JetBrains Mono', monospace",
+              cursor: "pointer",
+              letterSpacing: "0.04em",
+            }}
+          >
+            <span>🗺️ {mapaVisivel ? "Ocultar mapa" : "Ver pontos de coleta no mapa"}</span>
+            <span style={{ fontSize: 10, color: "#475569" }}>{mapaVisivel ? "▲" : "▼"}</span>
+          </button>
+
+          {/* Mapa inline — só aparece no mobile quando visível */}
+          <div
+            className="mapa-mobile-wrapper"
+            style={{
+              display: "none", // sobrescrito pelo CSS
+              marginBottom: mapaVisivel ? 20 : 0,
+              overflow: "hidden",
+              maxHeight: mapaVisivel ? 260 : 0,
+              transition: "max-height 0.3s ease",
+            }}
+          >
+            {selectedPonto && (
+              <div style={{ fontSize: 11, color: "#22c55e", fontFamily: "'JetBrains Mono', monospace", marginBottom: 8 }}>
+                📍 {selectedPonto.name}
+              </div>
+            )}
+            <MapaDoacoes flyToCoords={flyToCoords} pontos={pontos} height="240px" />
           </div>
 
           <div style={{ height: 1, background: "#1e293b", marginBottom: 20 }} />
@@ -374,8 +472,8 @@ export default function DoadoresForm() {
           </button>
         </div>
 
-        {/* ── Mapa ── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "32px 28px", background: "#0f172a" }}>
+        {/* ── Mapa (desktop only) ── */}
+        <div className="doadores-map-area mapa-desktop-wrapper" style={{ background: "#0f172a", display: "none" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
             <div>
               <div style={{ fontSize: 9, letterSpacing: "0.16em", color: "#FF6B1A", fontFamily: "'JetBrains Mono', monospace", marginBottom: 6, fontWeight: 500 }}>
