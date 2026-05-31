@@ -107,9 +107,6 @@ export default function PontoColetaLogin({ onLogin, onBack }) {
             onChange={e => { setSenha(e.target.value); setError(null); }}
             autoComplete="current-password"
           />
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--t3)', letterSpacing: '0.08em', marginTop: 4 }}>
-            Senha padrão: <span style={{ color: 'var(--t2)' }}>password</span> (altere após primeiro acesso)
-          </div>
         </div>
 
         {error && (

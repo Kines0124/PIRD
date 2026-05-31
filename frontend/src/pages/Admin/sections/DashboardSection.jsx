@@ -37,9 +37,6 @@ export default function DashboardSection({ events, criticalPoints, collectionPoi
     { label: "Eventos Ativos",       value: ativos.length,        icon: "🚨", color: "#dc2626", bg: "rgba(220,38,38,0.08)" },
     { label: "Eventos Críticos",     value: criticos,             icon: "🔴", color: "#dc2626", bg: "rgba(220,38,38,0.08)" },
     { label: "Pontos Críticos",      value: criticalPoints.length, icon: "⚠️", color: "#ea580c", bg: "rgba(234,88,12,0.08)" },
-    { label: "Voluntários Aprovados",value: volunteers.filter(v => v.status === "aprovado").length, icon: "👥", color: "#2563eb", bg: "rgba(37,99,235,0.08)" },
-    { label: "Validações Pendentes", value: pendVals,             icon: "⏳", color: "#ca8a04", bg: "rgba(202,138,4,0.08)" },
-    { label: "Aprovados Hoje",       value: aprovadosHoje,        icon: "✅", color: "#16a34a", bg: "rgba(22,163,74,0.08)" },
   ];
 
   const countByTipo = useMemo(() => {

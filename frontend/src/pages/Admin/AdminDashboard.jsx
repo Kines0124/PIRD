@@ -54,7 +54,7 @@ function LoginGate({ onLogin }) {
               <div className="form-group">
                 <label className="form-label">E-mail</label>
                 <input className="form-input" type="email" value={email}
-                  onChange={e => setEmail(e.target.value)} placeholder="admin@pird.com" autoFocus />
+                  onChange={e => setEmail(e.target.value)} placeholder="Email" autoFocus />
               </div>
               <div className="form-group">
                 <label className="form-label">Senha</label>
