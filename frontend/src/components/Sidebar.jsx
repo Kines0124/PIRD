@@ -47,7 +47,7 @@ export default function Sidebar({ perfil }) {
             ⬡
           </div>
           <div>
-            <div style={{ fontFamily: "'Courier New', monospace", fontWeight: 700, fontSize: 15, color: "#e2e8f0", letterSpacing: 1 }}>PIRD</div>
+            <div style={{ fontFamily: "'Courier New', monospace", fontWeight: 700, fontSize: 15, color: "#e2e8f0", letterSpacing: 1 }}>BASE</div>
             <div style={{ fontSize: 9, color: "#475569", letterSpacing: 2, textTransform: "uppercase" }}>Taubaté · SP</div>
           </div>
         </div>

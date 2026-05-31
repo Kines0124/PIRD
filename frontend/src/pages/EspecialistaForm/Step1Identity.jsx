@@ -1,11 +1,14 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { validateCPF, maskCPF, validatePhone, maskPhone, validateName } from "../../utils/cpfValidator";
+
 
 function validateEmail(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 }
 
 export default function Step1Identity({ onNext }) {
+  const navigate = useNavigate();
   const [nome,  setNome]  = useState({ value: "", touched: false, valid: null });
   const [cpf,   setCpf]   = useState({ value: "", touched: false, valid: null });
   const [tel,   setTel]   = useState({ value: "", touched: false, valid: null });
@@ -46,7 +49,7 @@ export default function Step1Identity({ onNext }) {
       <div style={{ marginBottom: 40, textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 8 }}>
           <img src="/resources/logo.png" alt="PIRD" style={{ width: 48, height: 48, objectFit: "contain" }} />
-          <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, color: "var(--accent)", letterSpacing: "0.1em" }}>PIRD</span>
+          <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, color: "var(--accent)", letterSpacing: "0.1em" }}>BASE</span>
         </div>
         <p style={{ color: "var(--text-secondary)", fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase" }}>
           Cadastro de Especialista
@@ -69,7 +72,7 @@ export default function Step1Identity({ onNext }) {
             Identificação Pessoal
           </h2>
           <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-            Preencha seus dados para cadastro na plataforma PIRD.
+            Preencha seus dados para cadastro na plataforma BASE.
           </p>
         </div>
 
@@ -101,6 +104,14 @@ export default function Step1Identity({ onNext }) {
           }}
         >
           Próximo →
+        </button>
+        <button
+          onClick={() => navigate("/login")}
+          style={{ marginTop: 16, background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, textAlign: "left", cursor: "pointer", fontFamily: "monospace", letterSpacing: "0.04em", padding: 0 }}
+          onMouseEnter={e => e.currentTarget.style.color = "var(--text-secondary)"}
+          onMouseLeave={e => e.currentTarget.style.color = "var(--text-muted)"}
+        >
+          ← Voltar à tela inicial
         </button>
       </form>
     </div>

@@ -8,6 +8,6 @@ export default function EspecialistaForm() {
   const [userData, setUserData] = useState(null);
 
   if (step === 1) return <Step1Identity onNext={data => { setUserData(data); setStep(2); }} />;
-  if (step === 2) return <Step2Professional userData={userData} onNext={() => setStep(3)} />;
+  if (step === 2) return <Step2Professional userData={userData} onNext={() => setStep(3)} onBack={() => setStep(1)} />;
   return <PendingScreen />;
 }

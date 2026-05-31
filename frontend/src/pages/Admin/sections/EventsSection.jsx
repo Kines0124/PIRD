@@ -179,22 +179,23 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
   );
 
   function getEffectiveStatus(spec) {
-    const espId = spec.especialistaId;
-    if (eventConvMap.has(espId))     return eventConvMap.get(espId);
-    if (localConvocados[espId])      return localConvocados[espId];
+    const espId = spec.especialistaId ?? spec.id;
+    if (eventConvMap.has(espId))  return eventConvMap.get(espId);
+    if (localConvocados[espId])   return localConvocados[espId];
     return (specialistStatuses || {})[String(espId)] || spec.statusCampo || "disponivel";
   }
 
   // Aba Convocar: profissão compatível, apenas disponíveis (exclui convocados, a caminho e no local)
   const eligibleSpecialists = (specialists || [])
-    .filter(s => s.status === "aprovado")
     .filter(s => neededProfiles.length === 0 || neededProfiles.includes(s.profissao))
     .filter(s => getEffectiveStatus(s) === "disponivel");
 
   // Aba Especialistas: apenas quem tem convocação ativa neste evento
   const assignedSpecialists = (specialists || [])
-    .filter(s => s.status === "aprovado")
-    .filter(s => eventConvMap.has(s.especialistaId) || !!localConvocados[s.especialistaId]);
+    .filter(s => {
+      const espId = s.especialistaId ?? s.id;
+      return eventConvMap.has(espId) || !!localConvocados[espId];
+    });
 
   const tabs = [
     { id: "mapa",         label: "🗺️ Mapa" },
@@ -392,13 +393,13 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
                     effectiveStatus={getEffectiveStatus(s)}
                     onAssign={async () => {
                       try {
-                        await convocarManual(event.id, s.especialistaId);
+                        await convocarManual(event.id, s.especialistaId ?? s.id);
                       } catch (e) {
                         alert("Erro ao convocar: " + e.message);
                         return;
                       }
                       // Feedback imediato; onConvocou recarrega do backend em seguida
-                      setLocalConvocados(prev => ({ ...prev, [s.especialistaId]: "pendente" }));
+                      setLocalConvocados(prev => ({ ...prev, [s.especialistaId ?? s.id]: "pendente" }));
                       onConvocou && onConvocou();
                     }}
                   />
@@ -414,7 +415,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
 
 // ─── EventsSection ─────────────────────────────────────────────────────────────
 export default function EventsSection({ events, onSaveEvent, criticalPoints, collectionPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, openEventId, onEventOpened, onGoToCollection, convocacoes, onConvocou }) {
-  const [filter, setFilter]           = useState("todos");
+  const [filter, setFilter] = useState("ativo");
   const [search, setSearch]           = useState("");
   const [editEvent, setEditEvent]     = useState(null);
   const [showNew, setShowNew]         = useState(false);
@@ -453,13 +454,13 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
         <div className="card-header">
           <div>
             <div className="card-title">📋 Gerenciar Eventos Oficiais</div>
-            <div className="card-subtitle">RF01, RF02 — Cadastro e atualização de desastres · clique na linha para detalhes</div>
+            <div className="card-subtitle">Cadastro e atualização de desastres · clique na linha para detalhes</div>
           </div>
           <button className="btn btn-primary" onClick={() => setShowNew(true)}>＋ Novo Evento</button>
         </div>
 
         <div className="filter-row">
-          {["todos", "ativo", "monitoramento", "controlado"].map(f => (
+          {["ativo", "monitoramento", "controlado", "encerrado"].map(f => (
             <span key={f} className={`filter-chip ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </span>

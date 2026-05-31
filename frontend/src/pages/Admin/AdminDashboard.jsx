@@ -99,6 +99,8 @@ function AdminPanel({ onLogout }) {
   const [specialists,      setSpecialists]      = useState([]);
   const [loadError,        setLoadError]        = useState(null);
   const [convocacoes,      setConvocacoes]      = useState([]);
+  const [registrosEsp,     setRegistrosEsp]     = useState([]);
+
 
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [showNewPoint, setShowNewPoint] = useState(false);
@@ -135,14 +137,15 @@ function AdminPanel({ onLogout }) {
 
   async function loadAll() {
     try {
-      const [evts, pts, vols, cols, specs, regs, convs] = await Promise.all([
+      const [evts, pts, vols, cols, specs, regs, convs, regsEsp] = await Promise.all([
         adminApi.getEventos(),
         adminApi.getPontosCriticos(),
         adminApi.getVoluntarios(),
         adminApi.getPontosColeta(),
-        adminApi.getEspecialistas(),
+        adminApi.getEspecialistasAprovados(),
         adminApi.getRegistrosPontoColeta(),
         adminApi.getConvocacoes(),
+        adminApi.getEspecialistas(),       
       ]);
       setEvents(evts);
       setCriticalPoints(pts);
@@ -151,8 +154,9 @@ function AdminPanel({ onLogout }) {
       setSpecialists(specs);
       setRegistros(regs);
       setConvocacoes(convs);
-      setLoadError(null);
+      setRegistrosEsp(regsEsp);            
     } catch (e) {
+      console.error("loadAll error:", e.message);
       setLoadError("Erro ao carregar dados: " + e.message);
     }
   }
@@ -223,12 +227,7 @@ function AdminPanel({ onLogout }) {
     try {
       if (editEvent) await adminApi.updateEvento(editEvent.id, form);
       else           await adminApi.createEvento(form);
-      const [evts, convs] = await Promise.all([
-        adminApi.getEventos(),
-        adminApi.getConvocacoes(),
-      ]);
-      setEvents(evts);
-      setConvocacoes(convs);
+      setEvents(await adminApi.getEventos());
     } catch (e) { alert("Erro ao salvar evento: " + e.message); }
   }
 
@@ -283,14 +282,14 @@ function AdminPanel({ onLogout }) {
   async function handleAprovarEspecialista(id) {
     try {
       await adminApi.aprovarEspecialista(id);
-      setSpecialists(await adminApi.getEspecialistas());
+      setSpecialists(await adminApi.getEspecialistasAprovados());
     } catch (e) { alert("Erro ao aprovar especialista: " + e.message); }
   }
 
   async function handleReprovarEspecialista(id, obs) {
     try {
       await adminApi.reprovarEspecialista(id, obs);
-      setSpecialists(await adminApi.getEspecialistas());
+      setSpecialists(await adminApi.getEspecialistasAprovados());
     } catch (e) { alert("Erro ao reprovar especialista: " + e.message); }
   }
 
@@ -309,7 +308,7 @@ function AdminPanel({ onLogout }) {
   }
 
   const pendingCols          = registros.filter(r => r.status === "pendente").length;
-  const pendingEspecialistas = specialists.filter(s => s.status === "pendente").length;
+  const pendingEspecialistas = registrosEsp.filter(s => s.status === "pendente").length;
   const activeEvents         = events.filter(e => e.status === "ativo").length;
   const totalNotifs          = pendingCols + pendingEspecialistas + activeEvents;
 
@@ -485,7 +484,7 @@ function AdminPanel({ onLogout }) {
                   onEventOpened={() => setPendingOpenEventId(null)}
                   onGoToCollection={(id) => { setPendingOpenCollectionId(id); setSection("collection"); }}
                   convocacoes={convocacoes}
-                  onConvocou={async () => setConvocacoes(await adminApi.getConvocacoes())}
+                  onConvocou={loadAll}
                 />
               )}
               {section === "critical" && (
@@ -512,7 +511,7 @@ function AdminPanel({ onLogout }) {
               )}
               {section === "validacoes" && (
                 <ValidacoesSection
-                  specialists={specialists}
+                  specialists={registrosEsp} 
                   onAprovar={handleAprovarEspecialista}
                   onReprovar={handleReprovarEspecialista}
                   onDeletar={handleDeletarRegistroEspecialista}

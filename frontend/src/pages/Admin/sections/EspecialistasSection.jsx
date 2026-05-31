@@ -211,7 +211,7 @@ function DetailDrawer({ spec, effectiveStatus, onClose, onUpdateStatus, onDelete
               <button
                 disabled={confirmText !== "confirmar"}
                 onClick={() => {
-                  onDelete(spec.especialistaId);
+                  onDelete(spec.especialistaId ?? spec.id);
                   onClose();
                 }}
                 style={{ padding: "8px 18px", background: confirmText === "confirmar" ? "#ef4444" : "var(--bg-elevated)", border: "none", borderRadius: 7, color: confirmText === "confirmar" ? "#fff" : "var(--text-muted)", fontSize: 13, fontWeight: 700, cursor: confirmText === "confirmar" ? "pointer" : "not-allowed", transition: "all 0.15s" }}
@@ -270,10 +270,11 @@ export default function EspecialistasSection({ specialists, specialistStatuses =
   const [filterProf, setFilterProf] = useState("");
   const [activeTab,  setActiveTab]  = useState("disponivel");
 
-  const aprovados = specialists.filter(s => s.status === "aprovado");
+const aprovados = specialists.filter(s => !s.deletado);  
 
   function getEffectiveStatus(spec) {
-    return specialistStatuses[String(spec.especialistaId)] || spec.statusCampo || "disponivel";
+    const id = spec.especialistaId ?? spec.id;
+    return specialistStatuses[String(id)] || spec.statusCampo || "disponivel";
   }
 
   const profissoes = useMemo(

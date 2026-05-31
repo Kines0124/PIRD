@@ -811,7 +811,7 @@ export default function EspecialistaDashboard() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <img src="/resources/logo.png" alt="PIRD" style={{ width: 36, height: 36, objectFit: "contain" }} />
             <div>
-              <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 800, color: "var(--accent)" }}>PIRD</div>
+              <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 800, color: "var(--accent)" }}>BASE</div>
               <div style={{ fontSize: 11, color: "var(--text-secondary)", letterSpacing: "0.1em" }}>PAINEL DO ESPECIALISTA</div>
             </div>
           </div>
@@ -903,7 +903,7 @@ function LoginScreen({ email, setEmail, senha, setSenha, onSubmit, loading, erro
       <div style={{ marginBottom: 40, textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 8 }}>
           <img src="/resources/logo.png" alt="PIRD" style={{ width: 48, height: 48, objectFit: "contain" }} />
-          <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, color: "var(--accent)", letterSpacing: "0.1em" }}>PIRD</span>
+          <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, color: "var(--accent)", letterSpacing: "0.1em" }}>BASE</span>
         </div>
         <p style={{ color: "var(--text-secondary)", fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase" }}>Painel do Especialista</p>
       </div>

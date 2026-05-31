@@ -19,12 +19,8 @@ export default function TelaLogin({ onLogin }) {
       }} />
       <div style={{ textAlign: "center", marginBottom: 48 }}>
         <div style={{ fontSize: 10, letterSpacing: 6, color: "#ef4444", fontFamily: "monospace", marginBottom: 12 }}>TAUBATÉ · SP</div>
-        <h1 style={{ fontSize: 52, fontWeight: 900, color: "#f1f5f9", margin: 0, letterSpacing: -2, lineHeight: 1, fontFamily: "'Courier New', monospace" }}>PIRD</h1>
+        <h1 style={{ fontSize: 52, fontWeight: 900, color: "#f1f5f9", margin: 0, letterSpacing: -2, lineHeight: 1, fontFamily: "'Courier New', monospace" }}>BASE</h1>
         <div style={{ fontSize: 11, color: "#334155", marginTop: 8, letterSpacing: 3, fontFamily: "monospace" }}>PLATAFORMA INTEGRADA DE RESPOSTA A DESASTRES</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center", marginTop: 16 }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444", animation: "blink 1s infinite" }} />
-          <span style={{ fontSize: 12, color: "#ef4444", fontFamily: "monospace" }}>3 EVENTOS ATIVOS EM TAUBATÉ</span>
-        </div>
       </div>
       <div style={{ display: "flex", gap: 16 }}>
         {[

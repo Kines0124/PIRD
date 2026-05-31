@@ -61,6 +61,7 @@ export const aprovarRegistroPontoColeta  = (id)      => req("PATCH", `/registro-
 export const rejeitarRegistroPontoColeta = (id, obs) => req("PATCH", `/registro-pontos-coleta/${id}/rejeitar`, { observacao: obs });
 
 export const getEspecialistas             = ()         => req("GET",    "/especialistas");
+export const getEspecialistasAprovados    = ()         => req("GET",    "/especialistas/aprovados");
 export const aprovarEspecialista          = (id)       => req("PATCH",  `/especialistas/${id}/aprovar`);
 export const reprovarEspecialista         = (id, obs)  => req("PATCH",  `/especialistas/${id}/reprovar`, { observacao: obs });
 export const deletarEspecialista          = (id)       => req("DELETE", `/especialistas/aprovados/${id}`);

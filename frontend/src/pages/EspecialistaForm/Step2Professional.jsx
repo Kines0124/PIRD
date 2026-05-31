@@ -133,7 +133,7 @@ function RuaField({ value, onChange, onSelect, error, inputSt, labelSt, showAddr
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export default function Step2Professional({ userData, onNext }) {
+export default function Step2Professional({ userData, onNext, onBack }) {
   const [profissao, setProfissao] = useState("");
   const [registro,  setRegistro]  = useState("");
   const [uf,        setUf]        = useState("SP");
@@ -250,7 +250,7 @@ export default function Step2Professional({ userData, onNext }) {
       <div style={{ marginBottom: 32, textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 4 }}>
           <img src="/resources/logo.png" alt="PIRD" style={{ width: 40, height: 40, objectFit: "contain" }} />
-          <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: "var(--accent)", letterSpacing: "0.1em" }}>PIRD</span>
+          <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: "var(--accent)", letterSpacing: "0.1em" }}>BASE</span>
         </div>
       </div>
 
@@ -425,6 +425,15 @@ export default function Step2Professional({ userData, onNext }) {
             {submitting ? "Enviando..." : "✓ Enviar para Validação"}
           </button>
         )}
+        <div style={{ width: "100%", maxWidth: 440, marginBottom: 8 }}>
+          <button
+            type="button"
+            onClick={onBack}
+            style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 13, cursor: "pointer", padding: 0, letterSpacing: "0.05em" }}
+          >
+            ← Voltar
+          </button>
+        </div>
       </div>
     </div>
   );
