@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import * as adminApi from "../../../services/adminApi.js";
 import RegistroDrawer from "../components/RegistroDrawer";
 
@@ -87,7 +87,7 @@ function RegistroCard({ reg, onRevisar, onDeletar }) {
 function RegistroPontoCard({ reg, onRevisar }) {
   return (
     <div style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
-      <div style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: "rgba(255,107,26,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
+      <div style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: "rgba(222,57,63,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
         📦
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -268,7 +268,7 @@ function HistoricoCard({ item }) {
 
   return (
     <div style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14 }}>
-      <div style={{ width: 44, height: 44, borderRadius: isPonto ? 8 : "50%", backgroundColor: isPonto ? "rgba(255,107,26,0.12)" : "var(--bg-hover)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: isPonto ? 18 : 16, fontWeight: 700, color: "var(--text-primary)", flexShrink: 0 }}>
+      <div style={{ width: 44, height: 44, borderRadius: isPonto ? 8 : "50%", backgroundColor: isPonto ? "rgba(222,57,63,0.12)" : "var(--bg-hover)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: isPonto ? 18 : 16, fontWeight: 700, color: "var(--text-primary)", flexShrink: 0 }}>
         {isPonto ? "📦" : item._nome.charAt(0).toUpperCase()}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -439,8 +439,8 @@ export default function ValidacoesSection({
             { label: "Rejeitados hoje", value: rejeitadosPCHoje,   color: "#dc2626", bg: "rgba(220,38,38,0.1)" },
           ]} />
 
-          <div style={{ backgroundColor: "rgba(255,107,26,0.06)", border: "1px solid rgba(255,107,26,0.25)", borderRadius: 10, padding: "14px 16px" }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "#FF6B1A", marginBottom: 4 }}>🔒 Aprovação com confirmação de senha</div>
+          <div style={{ backgroundColor: "rgba(222,57,63,0.06)", border: "1px solid rgba(222,57,63,0.25)", borderRadius: 10, padding: "14px 16px" }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--accent)", marginBottom: 4 }}>🔒 Aprovação com confirmação de senha</div>
             <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
               Para aprovar um ponto de coleta, será necessário confirmar sua senha de acesso. Verifique os dados do cadastro antes de prosseguir.
             </div>

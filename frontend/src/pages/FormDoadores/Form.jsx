@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import { MAPBOX_TOKEN } from "../../utils/geocoding.js";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +15,7 @@ function placeMarkersOnMap(map, markersRef, pontosList) {
   (pontosList || []).forEach(p => {
     if (!p.lat || !p.lng) return;
     const el = document.createElement('div');
-    el.style.cssText = 'width:12px;height:12px;background:#FF6B1A;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 4px rgba(255,107,26,0.25);cursor:pointer';
+    el.style.cssText = 'width:12px;height:12px;background:#de393f;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 4px rgba(222,57,63,0.25);cursor:pointer';
     const marker = new mapboxgl.Marker({ element: el })
       .setLngLat([p.lng, p.lat])
       .addTo(map);
@@ -83,20 +83,15 @@ function MapaDoacoes({ flyToCoords, pontos, height }) {
 
   if (!MAPBOX_TOKEN) {
     return (
-      <div style={{ height: height || "100%", borderRadius: 10, background: "#1e293b", border: "1px solid #334155", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 12 }}>
+      <div style={{ height: height || "100%", borderRadius: "var(--radius-lg)", background: "var(--bg-elevated)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>
           Configure VITE_MAPBOX_TOKEN para visualizar o mapa.
         </div>
       </div>
     );
   }
 
-  return (
-    <div
-      ref={containerRef}
-      style={{ height: height || "100%", borderRadius: 10, overflow: "hidden", border: "1px solid #334155" }}
-    />
-  );
+  return <div ref={containerRef} style={{ height: height || "100%", borderRadius: "var(--radius-lg)", overflow: "hidden", border: "1px solid var(--border)" }} />;
 }
 
 export default function DoadoresForm() {
@@ -138,10 +133,12 @@ export default function DoadoresForm() {
     setCategoriaFiltro("");
   }, [pontoId]);
 
+  // Demanda da categoria selecionada (uma por categoria agora)
   const categoriaDemanda = categoriaFiltro
     ? demandas.find(d => d.categoria === categoriaFiltro)
     : null;
 
+  // Subitens disponíveis se a categoria tiver demanda cadastrada
   const subItens = categoriaDemanda
     ? (SUBITENS_POR_CATEGORIA[categoriaFiltro] || [])
     : [];
@@ -175,44 +172,65 @@ export default function DoadoresForm() {
   }
 
   const inp = {
-    background: "#1e293b",
-    border: "1px solid #334155",
-    borderRadius: 6,
-    padding: "8px 12px",
-    color: "#e2e8f0",
+    background: "var(--bg-elevated)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius)",
+    padding: "10px 14px",
+    color: "var(--text-primary)",
     outline: "none",
-    transition: "border-color 0.15s",
-    fontFamily: "'Inter', sans-serif",
+    transition: "border-color 0.15s, box-shadow 0.15s",
+    fontFamily: "var(--font-body)",
     fontSize: 13,
     width: "100%",
     boxSizing: "border-box",
   };
 
   const lbl = {
-    fontSize: 11,
-    color: "#94a3b8",
-    letterSpacing: "0.06em",
+    fontSize: 10,
+    color: "var(--text-muted)",
+    letterSpacing: "0.16em",
     textTransform: "uppercase",
     marginBottom: 5,
-    marginTop: 14,
-    fontFamily: "'Inter', sans-serif",
+    marginTop: 16,
+    fontFamily: "var(--font-mono)",
     display: "block",
-    fontWeight: 600,
+    fontWeight: 500,
   };
 
   const selectedPonto = pontos.find(p => p.id === parseInt(pontoId));
 
   if (sucesso) {
     return (
-      <div style={{ display: "flex", minHeight: "100vh", background: "#0f172a", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', sans-serif" }}>
-        <div style={{ textAlign: "center", padding: "48px 32px", maxWidth: 400 }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: "#f1f5f9", marginBottom: 8 }}>Doação registrada!</h2>
-          <p style={{ color: "#94a3b8", fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+      <div style={{
+        display: "flex", minHeight: "100vh",
+        backgroundColor: "var(--bg-base)",
+        alignItems: "center", justifyContent: "center",
+        fontFamily: "var(--font-body)",
+      }}>
+        <div className="dot-bg" style={{ position: "fixed", inset: 0, pointerEvents: "none" }} />
+        <div style={{ position: "relative", textAlign: "center", padding: "48px 32px", maxWidth: 440 }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: "50%",
+            background: "rgba(34,197,94,0.12)",
+            border: "1px solid rgba(34,197,94,0.3)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 36, margin: "0 auto 20px",
+          }}>✅</div>
+          <h2 style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 32, fontWeight: 800,
+            color: "var(--text-primary)", marginBottom: 10,
+            letterSpacing: "0.02em",
+          }}>
+            Doação registrada!
+          </h2>
+          <p style={{
+            color: "var(--text-muted)", fontSize: 14,
+            lineHeight: 1.7, marginBottom: 28,
+          }}>
             Sua doação foi registrada com sucesso. Leve os itens ao ponto de coleta selecionado e informe seu nome ao responsável.
           </p>
-          <button onClick={() => navigate("/login")}
-            style={{ padding: "10px 24px", background: "#FF6B1A", border: "none", borderRadius: 6, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          <button onClick={() => navigate("/login")} className="pird-btn-primary">
             Voltar ao início
           </button>
         </div>
@@ -223,19 +241,18 @@ export default function DoadoresForm() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
-        .d-inp:focus { border-color: #FF6B1A !important; }
-        .d-inp::placeholder { color: #475569; }
-        .mapboxgl-ctrl-group { background: #fff !important; border: 1px solid #e2e8f0 !important; border-radius: 8px !important; }
-        .mapboxgl-ctrl-group button { background: #fff !important; border-bottom: 1px solid #e2e8f0 !important; }
-        .mapboxgl-ctrl-group button:hover { background: #f8fafc !important; }
+        .d-inp:focus { border-color: var(--red) !important; box-shadow: 0 0 0 3px var(--red-dim) !important; }
+        .d-inp::placeholder { color: var(--text-muted); }
+        .mapboxgl-ctrl-group { background: var(--bg-elevated) !important; border: 1px solid var(--border) !important; border-radius: 8px !important; }
+        .mapboxgl-ctrl-group button { background: var(--bg-elevated) !important; border-bottom: 1px solid var(--border) !important; }
+        .mapboxgl-ctrl-group button:hover { background: var(--bg-hover) !important; }
 
         /* ── Responsive ── */
         .doadores-root {
           display: flex;
           min-height: 100vh;
-          background: #0f172a;
-          font-family: 'Inter', sans-serif;
+          background-color: var(--bg-base);
+          font-family: var(--font-body);
         }
 
         /* Desktop: side-by-side */
@@ -243,7 +260,7 @@ export default function DoadoresForm() {
           .doadores-sidebar {
             width: 420px;
             min-width: 420px;
-            border-right: 1px solid #1e293b;
+            border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             padding: 32px 28px;
@@ -267,7 +284,7 @@ export default function DoadoresForm() {
             width: 100%;
             min-width: unset;
             border-right: none;
-            border-bottom: 1px solid #1e293b;
+            border-bottom: 1px solid var(--border);
             padding: 24px 20px;
             display: flex;
             flex-direction: column;
@@ -281,19 +298,41 @@ export default function DoadoresForm() {
         }
       `}</style>
 
-      <div className="doadores-root">
+      <div className="doadores-root dot-bg">
 
-        {/* ── Painel lateral / formulário ── */}
-        <div className="doadores-sidebar" style={{ background: "#0f172a" }}>
+        {/* ── Painel lateral ── */}
+        <div className="doadores-sidebar dot-bg" style={{
+          backgroundColor: "var(--bg-surface)",
+        }}>
+          {/* Faixa top vermelha */}
+          <div style={{
+            height: 3, marginBottom: 28,
+            background: "linear-gradient(90deg, var(--red), transparent)",
+            borderRadius: 2,
+          }} />
 
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 9, letterSpacing: "0.16em", color: "#FF6B1A", fontFamily: "'JetBrains Mono', monospace", marginBottom: 8, fontWeight: 500 }}>
-              RECURSOS · LOGÍSTICA
+            <div style={{
+              fontFamily: "var(--font-mono)", fontSize: 9,
+              letterSpacing: "0.2em", color: "var(--red)",
+              marginBottom: 8, fontWeight: 500,
+              textTransform: "uppercase",
+            }}>
+              Recursos · Logística
             </div>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: "#f1f5f9", margin: 0, fontFamily: "'Syne', sans-serif" }}>
+            <h2 style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 28, fontWeight: 800,
+              color: "var(--text-primary)", margin: 0,
+              letterSpacing: "0.02em",
+            }}>
               Nova Doação
             </h2>
-            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontFamily: "'JetBrains Mono', monospace" }}>
+            <div style={{
+              fontSize: 11, color: "var(--text-muted)",
+              marginTop: 5, fontFamily: "var(--font-mono)",
+              letterSpacing: "0.06em",
+            }}>
               Formulário público · sem cadastro necessário
             </div>
           </div>
@@ -310,18 +349,18 @@ export default function DoadoresForm() {
               width: "100%",
               marginBottom: 20,
               padding: "9px 14px",
-              background: "#1e293b",
-              border: "1px solid #334155",
-              borderRadius: 8,
-              color: "#94a3b8",
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius)",
+              color: "var(--text-muted)",
               fontSize: 12,
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "var(--font-mono)",
               cursor: "pointer",
               letterSpacing: "0.04em",
             }}
           >
             <span>🗺️ {mapaVisivel ? "Ocultar mapa" : "Ver pontos de coleta no mapa"}</span>
-            <span style={{ fontSize: 10, color: "#475569" }}>{mapaVisivel ? "▲" : "▼"}</span>
+            <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{mapaVisivel ? "▲" : "▼"}</span>
           </button>
 
           {/* Mapa inline — só aparece no mobile quando visível */}
@@ -336,14 +375,14 @@ export default function DoadoresForm() {
             }}
           >
             {selectedPonto && (
-              <div style={{ fontSize: 11, color: "#22c55e", fontFamily: "'JetBrains Mono', monospace", marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: "var(--success)", fontFamily: "var(--font-mono)", marginBottom: 8 }}>
                 📍 {selectedPonto.name}
               </div>
             )}
             <MapaDoacoes flyToCoords={flyToCoords} pontos={pontos} height="240px" />
           </div>
 
-          <div style={{ height: 1, background: "#1e293b", marginBottom: 20 }} />
+          <div style={{ height: 1, background: "var(--border)", marginBottom: 20 }} />
 
           <form style={{ flex: 1, display: "flex", flexDirection: "column" }} onSubmit={handleSubmit}>
 
@@ -387,14 +426,14 @@ export default function DoadoresForm() {
                         style={{
                           padding: "5px 13px",
                           borderRadius: 20,
-                          border: `1px solid ${ativo ? "#FF6B1A" : temDem ? "#334155" : "#1e293b"}`,
-                          background: ativo ? "rgba(255,107,26,0.15)" : "transparent",
-                          color: ativo ? "#FF6B1A" : temDem ? "#94a3b8" : "#2d3748",
+                          border: `1px solid ${ativo ? "rgba(222,57,63,0.5)" : temDem ? "var(--border)" : "transparent"}`,
+                          background: ativo ? "var(--red-dim)" : "transparent",
+                          color: ativo ? "var(--red)" : temDem ? "var(--text-secondary)" : "var(--text-muted)",
                           fontSize: 11,
-                          fontFamily: "'JetBrains Mono', monospace",
+                          fontFamily: "var(--font-mono)",
                           cursor: temDem ? "pointer" : "not-allowed",
                           transition: "all 0.15s",
-                          letterSpacing: "0.04em",
+                          letterSpacing: "0.06em",
                           opacity: temDem ? 1 : 0.35,
                         }}
                       >
@@ -441,7 +480,14 @@ export default function DoadoresForm() {
             )}
 
             {erro && (
-              <div style={{ marginTop: 12, padding: "8px 12px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6, color: "#ef4444", fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>
+              <div style={{
+                marginTop: 12, padding: "10px 14px",
+                background: "var(--red-dim)",
+                border: "1px solid rgba(222,57,63,0.3)",
+                borderRadius: "var(--radius)",
+                color: "var(--red)", fontSize: 12,
+                fontFamily: "var(--font-mono)",
+              }}>
                 {erro}
               </div>
             )}
@@ -450,41 +496,61 @@ export default function DoadoresForm() {
 
             <button type="submit" disabled={!canSubmit || submitting}
               style={{
-                marginTop: 24, padding: "11px 0",
-                background: canSubmit ? "#FF6B1A" : "#334155",
-                border: "none", borderRadius: 6,
-                color: canSubmit ? "#fff" : "#64748b",
-                fontWeight: 700, fontFamily: "'Inter', sans-serif", fontSize: 13,
+                marginTop: 24, padding: "12px 0",
+                background: canSubmit ? "var(--red)" : "var(--bg-elevated)",
+                border: "none", borderRadius: "var(--radius)",
+                color: canSubmit ? "#fff" : "var(--text-muted)",
+                fontWeight: 700, fontFamily: "var(--font-body)", fontSize: 13,
                 letterSpacing: "0.06em", cursor: canSubmit ? "pointer" : "not-allowed",
                 transition: "all 0.15s", textTransform: "uppercase",
               }}
-              onMouseEnter={e => { if (canSubmit) { e.currentTarget.style.background = "#ff7d33"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,107,26,0.25)"; } }}
-              onMouseLeave={e => { if (canSubmit) { e.currentTarget.style.background = "#FF6B1A"; e.currentTarget.style.boxShadow = "none"; } }}>
+              onMouseEnter={e => { if (canSubmit) { e.currentTarget.style.background = "var(--red-hover)"; e.currentTarget.style.boxShadow = "0 0 20px var(--red-glow)"; } }}
+              onMouseLeave={e => { if (canSubmit) { e.currentTarget.style.background = "var(--red)"; e.currentTarget.style.boxShadow = "none"; } }}>
               {submitting ? "Registrando…" : "Registrar Doação"}
             </button>
           </form>
 
           <button onClick={() => navigate("/login")}
-            style={{ marginTop: 16, background: "none", border: "none", color: "#64748b", fontSize: 11, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.04em", padding: 0, textAlign: "left", transition: "color 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.color = "#94a3b8"}
-            onMouseLeave={e => e.currentTarget.style.color = "#64748b"}>
+            style={{
+              marginTop: 16, background: "none", border: "none",
+              color: "var(--text-muted)", fontSize: 11, cursor: "pointer",
+              fontFamily: "var(--font-mono)", letterSpacing: "0.06em",
+              padding: 0, textAlign: "left", transition: "color 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = "var(--text-secondary)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; }}>
             ← Voltar ao início
           </button>
         </div>
 
         {/* ── Mapa (desktop only) ── */}
-        <div className="doadores-map-area mapa-desktop-wrapper" style={{ background: "#0f172a", display: "none" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+        <div className="doadores-map-area mapa-desktop-wrapper" style={{ background: "var(--bg-base)", display: "none" }}>
+          <div style={{
+            display: "flex", justifyContent: "space-between",
+            alignItems: "flex-start", marginBottom: 16,
+          }}>
             <div>
-              <div style={{ fontSize: 9, letterSpacing: "0.16em", color: "#FF6B1A", fontFamily: "'JetBrains Mono', monospace", marginBottom: 6, fontWeight: 500 }}>
-                MAPA · TAUBATÉ, SP
+              <div style={{
+                fontFamily: "var(--font-mono)", fontSize: 9,
+                letterSpacing: "0.2em", color: "var(--text-muted)",
+                marginBottom: 6, fontWeight: 500, textTransform: "uppercase",
+              }}>
+                Mapa · Taubaté, SP
               </div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#f1f5f9", fontFamily: "'Syne', sans-serif" }}>
+              <div style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 20, fontWeight: 700,
+                color: "var(--text-primary)",
+                letterSpacing: "0.02em",
+              }}>
                 Pontos de Coleta
               </div>
             </div>
             {selectedPonto && (
-              <span style={{ fontSize: 11, color: "#22c55e", fontFamily: "'JetBrains Mono', monospace", marginTop: 6 }}>
+              <span style={{
+                fontSize: 11, color: "var(--success)",
+                fontFamily: "var(--font-mono)", marginTop: 6,
+              }}>
                 📍 {selectedPonto.name}
               </span>
             )}

@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+﻿import { useRef } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { Scanline, Logo, GlobalFooter, IconArrowRight } from './shared';
@@ -46,7 +46,7 @@ export default function PontoColetaLanding({ onCadastrar, onAcessar }) {
 
   return (
     <div className="pc-page" ref={containerRef} style={{
-      backgroundImage: 'radial-gradient(ellipse 800px 600px at center, rgba(232,41,76,0.05) 0%, transparent 70%)',
+      backgroundImage: 'radial-gradient(ellipse 800px 600px at center, rgba(222,57,63,0.05) 0%, transparent 70%)',
     }}>
       <Scanline />
 

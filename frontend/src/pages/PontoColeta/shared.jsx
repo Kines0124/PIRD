@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+﻿import { useRef } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -150,7 +150,7 @@ export function IconBell({ size = 14 }) {
 const FIXED_BTN_STYLE = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
   background: 'transparent',
-  border: '1px solid rgba(232,41,76,0.45)',
+  border: '1px solid rgba(222,57,63,0.45)',
   borderRadius: 'var(--radius)',
   color: 'var(--brand)',
   fontFamily: 'var(--font-mono)', fontSize: 11,
@@ -166,7 +166,7 @@ export function FixedBackButton({ onClick, label = 'Voltar' }) {
       type="button"
       onClick={onClick}
       style={{ ...FIXED_BTN_STYLE, position: 'fixed', top: 68, left: 16 }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(232,41,76,0.08)'; }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(222,57,63,0.08)'; }}
       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
     >
       <IconArrowLeft size={11} /> {label}
@@ -180,7 +180,7 @@ export function FixedExitButton({ onClick }) {
       type="button"
       onClick={onClick}
       style={{ ...FIXED_BTN_STYLE, position: 'fixed', bottom: 24, right: 24 }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(232,41,76,0.08)'; }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(222,57,63,0.08)'; }}
       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
     >
       <IconLogout size={11} /> Sair

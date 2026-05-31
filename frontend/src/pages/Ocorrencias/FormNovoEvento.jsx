@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { severityColor } from "../../constants/theme";
 import { registrarEvento } from "../../services/api";
 
@@ -31,34 +31,34 @@ export default function FormNovoEvento({ onFechar }) {
   }
 
   return (
-    <div style={{ background: "#0a1628", border: "1px solid #ef444430", borderRadius: 14, padding: 22, marginBottom: 20 }}>
-      <div style={{ fontSize: 11, color: "#ef4444", letterSpacing: 3, fontFamily: "monospace", marginBottom: 16 }}>NOVA OCORRÊNCIA</div>
+    <div className="dot-bg" style={{ backgroundColor: "var(--bg-surface)", border: "1px solid rgba(222,57,63,0.25)", borderRadius: 14, padding: 22, marginBottom: 20 }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--red)", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 16 }}>Nova Ocorrência</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
         <div>
-          <label style={{ fontSize: 10, color: "#475569", letterSpacing: 1, fontFamily: "monospace", display: "block", marginBottom: 5 }}>TÍTULO</label>
+          <label style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.14em", textTransform: "uppercase", display: "block", marginBottom: 5 }}>Título</label>
           <input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ex: Alagamento Estoril"
-            style={{ width: "100%", background: "#080d14", border: "1px solid #1e293b", borderRadius: 8, padding: "10px 12px", color: "#94a3b8", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+            style={{ width: "100%", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "var(--font-body)" }} />
         </div>
         <div>
-          <label style={{ fontSize: 10, color: "#475569", letterSpacing: 1, fontFamily: "monospace", display: "block", marginBottom: 5 }}>DESCRIÇÃO</label>
+          <label style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.14em", textTransform: "uppercase", display: "block", marginBottom: 5 }}>Descrição</label>
           <input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Detalhes..."
-            style={{ width: "100%", background: "#080d14", border: "1px solid #1e293b", borderRadius: 8, padding: "10px 12px", color: "#94a3b8", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+            style={{ width: "100%", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "var(--font-body)" }} />
         </div>
         <div>
-          <label style={{ fontSize: 10, color: "#475569", letterSpacing: 1, fontFamily: "monospace", display: "block", marginBottom: 5 }}>ENDEREÇO</label>
+          <label style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.14em", textTransform: "uppercase", display: "block", marginBottom: 5 }}>Endereço</label>
           <input value={endereco} onChange={e => setEndereco(e.target.value)} placeholder="Rua, bairro..."
-            style={{ width: "100%", background: "#080d14", border: "1px solid #1e293b", borderRadius: 8, padding: "10px 12px", color: "#94a3b8", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+            style={{ width: "100%", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", boxSizing: "border-box", fontFamily: "var(--font-body)" }} />
         </div>
       </div>
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 10, color: "#475569", letterSpacing: 1, fontFamily: "monospace", display: "block", marginBottom: 8 }}>
-          SEVERIDADE {severidade && <span style={{ color: severityColor[severidade] }}>— {LABEL_SEV[severidade]}</span>}
+        <label style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.14em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>
+          Severidade {severidade && <span style={{ color: severityColor[severidade] }}>— {LABEL_SEV[severidade]}</span>}
         </label>
         <div style={{ display: "flex", gap: 8 }}>
           {[1, 2, 3, 4, 5].map(n => (
             <button key={n} onClick={() => setSeveridade(n)} style={{
               flex: 1, padding: "10px 0", borderRadius: 8, cursor: "pointer",
-              fontFamily: "monospace", fontWeight: 900, fontSize: 16, transition: "all 0.15s",
+              fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 16, transition: "all 0.15s",
               border: severidade === n ? `2px solid ${severityColor[n]}` : `1px solid ${severityColor[n]}40`,
               background: severidade === n ? `${severityColor[n]}30` : `${severityColor[n]}10`,
               color: severityColor[n],
@@ -68,13 +68,16 @@ export default function FormNovoEvento({ onFechar }) {
         </div>
       </div>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        {status === "ok" && <span style={{ fontSize: 12, color: "#10b981", fontFamily: "monospace" }}>✓ Evento registrado e alerta enviado!</span>}
-        {status === "erro" && <span style={{ fontSize: 12, color: "#ef4444", fontFamily: "monospace" }}>✗ Erro ao enviar.</span>}
+        {status === "ok" && <span style={{ fontSize: 12, color: "var(--success)", fontFamily: "var(--font-mono)" }}>✓ Evento registrado e alerta enviado!</span>}
+        {status === "erro" && <span style={{ fontSize: 12, color: "var(--red)", fontFamily: "var(--font-mono)" }}>✗ Erro ao enviar.</span>}
         <button onClick={registrar} disabled={status === "enviando"} style={{
-          marginLeft: "auto", padding: "10px 24px", borderRadius: 10, border: "none",
-          background: status === "enviando" ? "#1e293b" : "linear-gradient(135deg, #ef4444, #c0392b)",
-          color: "#fff", fontWeight: 900, fontSize: 13,
-          cursor: status === "enviando" ? "not-allowed" : "pointer", fontFamily: "monospace",
+          marginLeft: "auto", padding: "10px 24px", borderRadius: "var(--radius)", border: "none",
+          background: status === "enviando" ? "var(--bg-elevated)" : "var(--red)",
+          color: status === "enviando" ? "var(--text-muted)" : "#fff",
+          fontWeight: 700, fontSize: 13,
+          cursor: status === "enviando" ? "not-allowed" : "pointer",
+          fontFamily: "var(--font-body)",
+          transition: "background 0.15s",
         }}>
           {status === "enviando" ? "⏳ ENVIANDO..." : "🚨 REGISTRAR EVENTO"}
         </button>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { severityColor, typeIcon, riskColor, severityBadge, statusBadge } from "../adminTheme.jsx";
@@ -40,7 +40,7 @@ function MapView({ events, criticalPoints, collectionPoints, onVerMaisCritico })
 
       events.forEach(e => {
         if (!e.lat || !e.lng) return;
-        const color = severityColor[e.severity] || "#FF6B1A";
+        const color = severityColor[e.severity] || "var(--accent)";
         const el = document.createElement("div");
         el.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 12px ${color}55;cursor:pointer">${typeIcon[e.type] || "⚠️"}</div>`;
         new mapboxgl.Marker({ element: el, anchor: "center" })
@@ -246,7 +246,7 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
             </div>
           ) : specialists.filter(s => s.status === "pendente").map(s => (
             <div className="volunteer-row" key={s.id}>
-              <div className="vol-avatar" style={{ background: "linear-gradient(135deg,#FF6B1A,#FF3B3B)" }}>
+              <div className="vol-avatar" style={{ background: "linear-gradient(135deg,var(--accent),#FF3B3B)" }}>
                 {(s.nome || "?")[0].toUpperCase()}
               </div>
               <div className="vol-info">

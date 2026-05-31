@@ -33,18 +33,18 @@ export default function PendingScreen() {
   const info = statusInfo[status] || statusInfo.pendente;
 
   return (
-    <div style={{ minHeight: "100dvh", background: "var(--bg-base)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 20px" }}>
+    <div className="dot-bg" style={{ minHeight: "100dvh", backgroundColor: "var(--bg-base)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 20px" }}>
       <div style={{ marginBottom: 40, textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 8 }}>
-          <img src="/resources/logo.png" alt="PIRD" style={{ width: 48, height: 48, objectFit: "contain" }} />
-          <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, color: "var(--accent)", letterSpacing: "0.1em" }}>BASE</span>
+          <img src="/resources/logo.png" alt="BASE" style={{ width: 48, height: 48, objectFit: "contain", borderRadius: 10 }} />
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "var(--accent)", letterSpacing: "0.1em" }}>BASE</span>
         </div>
       </div>
 
       <div style={{ width: "100%", maxWidth: 420, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 16, padding: "40px 28px", textAlign: "center" }}>
         <div style={{ fontSize: 56, marginBottom: 20 }}>{info.icon}</div>
 
-        <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 700, color: info.color, marginBottom: 12 }}>
+        <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, color: info.color, marginBottom: 12 }}>
           {info.label}
         </h2>
 
@@ -60,7 +60,7 @@ export default function PendingScreen() {
         )}
 
         {status !== "pendente" && (
-          <a href="/login" style={{ display: "inline-block", marginTop: 8, padding: "12px 28px", borderRadius: 10, background: "var(--accent)", color: "#fff", fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, textDecoration: "none", letterSpacing: "0.06em" }}>
+          <a href="/login" style={{ display: "inline-block", marginTop: 8, padding: "12px 28px", borderRadius: 10, background: "var(--accent)", color: "#fff", fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, textDecoration: "none", letterSpacing: "0.06em" }}>
             Ir para o início
           </a>
         )}

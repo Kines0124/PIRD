@@ -3,65 +3,109 @@ import { mockEvents } from "../data/events";
 import { mockDemands } from "../data/demands";
 import { mockVolunteers } from "../data/volunteers";
 
+const NAV_DEFESA = [
+  { to: "/app/dashboard",   icon: "▦", label: "Dashboard" },
+  { to: "/app/ocorrencias", icon: "◈", label: "Ocorrências" },
+  { to: "/app/pontos",      icon: "◉", label: "Pontos de Coleta" },
+  { to: "/app/portal",      icon: "◐", label: "Portal Doador" },
+];
+
+const NAV_USUARIO = [
+  { to: "/app/dashboard",   icon: "▦", label: "Dashboard" },
+  { to: "/app/pontos",      icon: "◉", label: "Pontos de Coleta" },
+  { to: "/app/ocorrencias", icon: "◈", label: "Ocorrências" },
+  { to: "/app/portal",      icon: "◑", label: "Quero Ajudar" },
+];
+
 export default function Sidebar({ perfil }) {
   const { pathname } = useLocation();
 
-  const defesaItems = [
-    { to: "/app/dashboard",   icon: "▦", label: "Dashboard" },
-    { to: "/app/ocorrencias", icon: "◈", label: "Ocorrências" },
-    { to: "/app/pontos",      icon: "◉", label: "Pontos de Coleta" },
-    { to: "/app/portal",      icon: "◐", label: "Portal Doador" },
-  ];
+  const items = perfil === "defesa" ? NAV_DEFESA : NAV_USUARIO;
+  const isDefesa = perfil === "defesa";
+  const accent = isDefesa ? "var(--red)" : "var(--blue-info)";
+  const accentHex = isDefesa ? "#de393f" : "#3d9be9";
 
-  const usuarioItems = [
-    { to: "/app/dashboard",   icon: "▦", label: "Dashboard" },
-    { to: "/app/pontos",      icon: "◉", label: "Pontos de Coleta" },
-    { to: "/app/ocorrencias", icon: "◈", label: "Ocorrências" },
-    { to: "/app/portal",      icon: "◑", label: "Quero Ajudar" },
-  ];
-
-  const items = perfil === "defesa" ? defesaItems : usuarioItems;
-  const accentColor = perfil === "defesa" ? "#ff3b3b" : "#0ea5e9";
+  const ea = mockEvents.length;
+  const du = mockDemands.filter(d => d.priority >= 4).length;
+  const va = mockVolunteers.filter(v => v.available).length;
 
   return (
-    <aside
-      style={{
-        background: "#080f1a",
-        borderRight: "1px solid #0f2040",
-        width: 220,
-        minHeight: "100vh",
-        flexShrink: 0,
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <div style={{ padding: "24px 20px 18px", borderBottom: "1px solid #0f2040" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-          <div
-            style={{
-              width: 34, height: 34, borderRadius: 8,
-              background: `linear-gradient(135deg, ${accentColor}, ${accentColor}88)`,
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
-            }}
-          >
-            ⬡
+    <aside style={{
+      background: "var(--bg-surface)",
+      borderRight: "1px solid var(--border)",
+      width: 228,
+      minHeight: "100vh",
+      flexShrink: 0,
+      display: "flex",
+      flexDirection: "column",
+    }}>
+      {/* ── Logo ── */}
+      <div style={{
+        padding: "22px 20px 18px",
+        borderBottom: "1px solid var(--border)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 14 }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: 10,
+            background: accentHex,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <span style={{
+              fontFamily: "var(--font-display)", fontWeight: 800,
+              fontSize: 20, color: "#fff", letterSpacing: "0.02em",
+            }}>P</span>
           </div>
           <div>
-            <div style={{ fontFamily: "'Courier New', monospace", fontWeight: 700, fontSize: 15, color: "#e2e8f0", letterSpacing: 1 }}>BASE</div>
-            <div style={{ fontSize: 9, color: "#475569", letterSpacing: 2, textTransform: "uppercase" }}>Taubaté · SP</div>
+            <div style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 800, fontSize: 20,
+              color: "var(--text-primary)",
+              letterSpacing: "0.04em",
+              lineHeight: 1,
+            }}>BASE</div>
+            <div style={{
+              fontFamily: "var(--font-mono)", fontSize: 9,
+              color: "var(--text-muted)",
+              letterSpacing: "0.2em", textTransform: "uppercase",
+              marginTop: 2,
+            }}>Taubaté · SP</div>
           </div>
         </div>
-        <div style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}30`, borderRadius: 8, padding: "6px 10px" }}>
-          <div style={{ fontSize: 9, color: accentColor, fontWeight: 700, letterSpacing: 1 }}>
-            {perfil === "defesa" ? "🛡️ DEFESA CIVIL" : "👤 CIDADÃO"}
-          </div>
+
+        <div style={{
+          background: `${accentHex}12`,
+          border: `1px solid ${accentHex}28`,
+          borderRadius: 7,
+          padding: "6px 10px",
+          display: "flex", alignItems: "center", gap: 7,
+        }}>
+          <div style={{
+            width: 6, height: 6, borderRadius: "50%",
+            background: accentHex, flexShrink: 0,
+          }} />
+          <span style={{
+            fontFamily: "var(--font-mono)", fontSize: 9,
+            color: accentHex, fontWeight: 500,
+            letterSpacing: "0.14em", textTransform: "uppercase",
+          }}>
+            {isDefesa ? "Defesa Civil" : "Cidadão"}
+          </span>
         </div>
       </div>
 
+      {/* ── Navigation ── */}
       <nav style={{ padding: "12px 10px", flex: 1 }}>
-        {items.map((item) => {
-          // Considera ativo se o pathname começa com o `to` do item
-          const isActive = pathname.startsWith(item.to);
+        <div style={{
+          fontFamily: "var(--font-mono)", fontSize: 9,
+          color: "var(--text-muted)", letterSpacing: "0.2em",
+          textTransform: "uppercase",
+          padding: "6px 12px 8px",
+        }}>
+          Navegação
+        </div>
+        {items.map(item => {
+          const active = pathname.startsWith(item.to);
           return (
             <Link
               key={item.to}
@@ -75,14 +119,19 @@ export default function Sidebar({ perfil }) {
                 marginBottom: 2,
                 textDecoration: "none",
                 transition: "all 0.15s",
-                background: isActive ? `${accentColor}15` : "transparent",
-                borderLeft: isActive ? `2px solid ${accentColor}` : "2px solid transparent",
-                color: isActive ? "#e2e8f0" : "#475569",
+                background: active ? `${accentHex}14` : "transparent",
+                borderLeft: active ? `2px solid ${accentHex}` : "2px solid transparent",
+                color: active ? "var(--text-primary)" : "var(--text-muted)",
                 fontSize: 13,
-                fontWeight: isActive ? 600 : 400,
+                fontWeight: active ? 600 : 400,
+                fontFamily: "var(--font-body)",
               }}
             >
-              <span style={{ fontSize: 15, color: isActive ? accentColor : "#334155" }}>
+              <span style={{
+                fontSize: 12,
+                color: active ? accentHex : "var(--text-muted)",
+                opacity: active ? 1 : 0.5,
+              }}>
                 {item.icon}
               </span>
               {item.label}
@@ -91,21 +140,52 @@ export default function Sidebar({ perfil }) {
         })}
       </nav>
 
+      {/* ── Status mini-panel ── */}
       <div style={{ padding: "0 14px 20px" }}>
-        <div style={{ background: "#0f1f35", borderRadius: 10, padding: "12px 14px", border: "1px solid #1e3a5f" }}>
-          <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
+        <div style={{
+          background: "var(--bg-elevated)",
+          borderRadius: 10,
+          padding: "12px 14px",
+          border: "1px solid var(--border)",
+        }}>
+          <div style={{
+            fontFamily: "var(--font-mono)", fontSize: 9,
+            color: "var(--text-muted)", letterSpacing: "0.16em",
+            textTransform: "uppercase", marginBottom: 10,
+          }}>
+            Status Operacional
+          </div>
+
+          <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
             {[
-              { v: mockEvents.length, l: "E.A", c: "#ef4444" },
-              { v: mockDemands.filter((d) => d.priority >= 4).length, l: "D.U", c: "#f97316" },
-              { v: mockVolunteers.filter((v) => v.available).length, l: "V.A", c: "#10b981" },
-            ].map((k) => (
+              { v: ea, l: "Eventos",    c: "var(--danger)" },
+              { v: du, l: "Urgentes",   c: "#f97316"       },
+              { v: va, l: "Voluntários", c: "var(--success)" },
+            ].map(k => (
               <div key={k.l} style={{ textAlign: "center", flex: 1 }}>
-                <div style={{ fontSize: 16, fontWeight: 900, color: k.c, fontFamily: "monospace" }}>{k.v}</div>
-                <div style={{ fontSize: 8, color: "#475569", letterSpacing: 1 }}>{k.l}</div>
+                <div style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 22, fontWeight: 800,
+                  color: k.c, lineHeight: 1,
+                }}>{k.v}</div>
+                <div style={{
+                  fontFamily: "var(--font-mono)", fontSize: 8,
+                  color: "var(--text-muted)",
+                  letterSpacing: "0.08em", marginTop: 3,
+                }}>{k.l}</div>
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 10, color: "#334155", textAlign: "center" }}>Defesa Civil: 199</div>
+
+          <div style={{
+            borderTop: "1px solid var(--border)",
+            paddingTop: 8,
+            fontFamily: "var(--font-mono)", fontSize: 10,
+            color: "var(--text-muted)", textAlign: "center",
+          }}>
+            Defesa Civil:{" "}
+            <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>199</span>
+          </div>
         </div>
       </div>
     </aside>

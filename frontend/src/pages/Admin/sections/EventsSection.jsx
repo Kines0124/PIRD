@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { severityColor, typeIcon, riskColor, severityBadge, statusBadge } from "../adminTheme.jsx";
@@ -19,7 +19,7 @@ const PROF_COLORS = {
   "Engenheiro de Segurança":   "#d97706",
   "Engenheiro Civil":          "#d97706",
   "Técnico em Resgate":        "#71717a",
-  "Técnico Defesa Civil":      "#FF6B1A",
+  "Técnico Defesa Civil":      "var(--accent)",
   "Guia de Cão de Resgate":    "#71717a",
   "Mergulhador de Resgate":    "#71717a",
 };
@@ -49,7 +49,7 @@ function SpecialistAssignRow({ spec, effectiveStatus, onAssign }) {
       {canAssign ? (
         <button
           onClick={onAssign}
-          style={{ background: "#FF6B1A", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
+          style={{ background: "var(--accent)", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
         >
           Convocar →
         </button>
@@ -100,7 +100,7 @@ function EventDetailMap({ event, collectionPoints, criticalPoints }) {
       }, labelLayer?.id);
     });
 
-    const color = severityColor[event.severity] || "#FF6B1A";
+    const color = severityColor[event.severity] || "var(--accent)";
     const eventEl = document.createElement("div");
     eventEl.innerHTML = `<div style="width:34px;height:34px;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 16px ${color}88;cursor:pointer">${typeIcon[event.type] || "⚠️"}</div>`;
     new mapboxgl.Marker({ element: eventEl, anchor: "center" })
@@ -174,28 +174,27 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
   // Convocações deste evento vindas do backend (exclui recusadas)
   const eventConvMap = new Map(
     (convocacoes || [])
-      .filter(c => c.eventoId === event.id && c.status !== "recusado" && c.status !== "encerrada")
+      .filter(c => c.eventoId === event.id && c.status !== "recusada")
       .map(c => [c.especialistaId, c.status])
   );
 
   function getEffectiveStatus(spec) {
-    const espId = spec.especialistaId ?? spec.id;
-    if (eventConvMap.has(espId))  return eventConvMap.get(espId);
-    if (localConvocados[espId])   return localConvocados[espId];
+    const espId = spec.especialistaId;
+    if (eventConvMap.has(espId))     return eventConvMap.get(espId);
+    if (localConvocados[espId])      return localConvocados[espId];
     return (specialistStatuses || {})[String(espId)] || spec.statusCampo || "disponivel";
   }
 
   // Aba Convocar: profissão compatível, apenas disponíveis (exclui convocados, a caminho e no local)
   const eligibleSpecialists = (specialists || [])
+    .filter(s => s.status === "aprovado")
     .filter(s => neededProfiles.length === 0 || neededProfiles.includes(s.profissao))
     .filter(s => getEffectiveStatus(s) === "disponivel");
 
   // Aba Especialistas: apenas quem tem convocação ativa neste evento
   const assignedSpecialists = (specialists || [])
-    .filter(s => {
-      const espId = s.especialistaId ?? s.id;
-      return eventConvMap.has(espId) || !!localConvocados[espId];
-    });
+    .filter(s => s.status === "aprovado")
+    .filter(s => eventConvMap.has(s.especialistaId) || !!localConvocados[s.especialistaId]);
 
   const tabs = [
     { id: "mapa",         label: "🗺️ Mapa" },
@@ -393,13 +392,13 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
                     effectiveStatus={getEffectiveStatus(s)}
                     onAssign={async () => {
                       try {
-                        await convocarManual(event.id, s.especialistaId ?? s.id);
+                        await convocarManual(event.id, s.especialistaId);
                       } catch (e) {
                         alert("Erro ao convocar: " + e.message);
                         return;
                       }
                       // Feedback imediato; onConvocou recarrega do backend em seguida
-                      setLocalConvocados(prev => ({ ...prev, [s.especialistaId ?? s.id]: "pendente" }));
+                      setLocalConvocados(prev => ({ ...prev, [s.especialistaId]: "pendente" }));
                       onConvocou && onConvocou();
                     }}
                   />
@@ -415,7 +414,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
 
 // ─── EventsSection ─────────────────────────────────────────────────────────────
 export default function EventsSection({ events, onSaveEvent, criticalPoints, collectionPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, openEventId, onEventOpened, onGoToCollection, convocacoes, onConvocou }) {
-  const [filter, setFilter] = useState("ativo");
+  const [filter, setFilter]           = useState("todos");
   const [search, setSearch]           = useState("");
   const [editEvent, setEditEvent]     = useState(null);
   const [showNew, setShowNew]         = useState(false);
@@ -454,13 +453,13 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
         <div className="card-header">
           <div>
             <div className="card-title">📋 Gerenciar Eventos Oficiais</div>
-            <div className="card-subtitle">Cadastro e atualização de desastres · clique na linha para detalhes</div>
+            <div className="card-subtitle">RF01, RF02 — Cadastro e atualização de desastres · clique na linha para detalhes</div>
           </div>
           <button className="btn btn-primary" onClick={() => setShowNew(true)}>＋ Novo Evento</button>
         </div>
 
         <div className="filter-row">
-          {["ativo", "monitoramento", "controlado", "encerrado"].map(f => (
+          {["todos", "ativo", "monitoramento", "controlado"].map(f => (
             <span key={f} className={`filter-chip ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </span>

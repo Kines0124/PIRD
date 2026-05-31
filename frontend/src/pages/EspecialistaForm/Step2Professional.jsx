@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+﻿import { useState, useRef } from "react";
 import { useGeocodingAutocomplete } from "../../hooks/useGeocodingAutocomplete.js";
 
 const BASE = "http://localhost:8080";
@@ -246,11 +246,11 @@ export default function Step2Professional({ userData, onNext, onBack }) {
   const labelSt  = { display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 };
 
   return (
-    <div style={{ minHeight: "100dvh", background: "var(--bg-base)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 20px", overflowY: "auto" }}>
+    <div className="dot-bg" style={{ minHeight: "100dvh", backgroundColor: "var(--bg-base)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 20px", overflowY: "auto" }}>
       <div style={{ marginBottom: 32, textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 4 }}>
-          <img src="/resources/logo.png" alt="PIRD" style={{ width: 40, height: 40, objectFit: "contain" }} />
-          <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: "var(--accent)", letterSpacing: "0.1em" }}>BASE</span>
+          <img src="/resources/logo.png" alt="BASE" style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 8 }} />
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 800, color: "var(--accent)", letterSpacing: "0.1em" }}>BASE</span>
         </div>
       </div>
 
@@ -266,7 +266,7 @@ export default function Step2Professional({ userData, onNext, onBack }) {
 
       <div style={{ width: "100%", maxWidth: 440, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 16, padding: "28px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
         <div>
-          <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>
             Atuação Profissional
           </h2>
           <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
@@ -322,7 +322,7 @@ export default function Step2Professional({ userData, onNext, onBack }) {
               border: `1px solid ${canValidate ? "var(--border-accent)" : "var(--border)"}`,
               background: canValidate ? "rgba(255,107,26,0.1)" : "transparent",
               color: canValidate ? "var(--accent)" : "var(--text-muted)",
-              fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700,
+              fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700,
               cursor: canValidate ? "pointer" : "not-allowed", letterSpacing: "0.08em",
             }}>
             Validar Registro
@@ -334,7 +334,7 @@ export default function Step2Professional({ userData, onNext, onBack }) {
           <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: "14px 16px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <span>✅</span>
-              <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: "#22c55e" }}>Formato verificado</span>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: "#22c55e" }}>Formato verificado</span>
             </div>
             <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
               Número com formato válido. Um administrador da Defesa Civil fará a validação manual antes de liberar seu acesso.
@@ -419,21 +419,22 @@ export default function Step2Professional({ userData, onNext, onBack }) {
               padding: "14px", borderRadius: 10, border: "none",
               background: canConfirm && !submitting ? "var(--accent)" : "var(--bg-hover)",
               color: canConfirm && !submitting ? "#fff" : "var(--text-muted)",
-              fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 700,
+              fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700,
               cursor: canConfirm && !submitting ? "pointer" : "not-allowed", letterSpacing: "0.08em",
             }}>
             {submitting ? "Enviando..." : "✓ Enviar para Validação"}
           </button>
         )}
-        <div style={{ width: "100%", maxWidth: 440, marginBottom: 8 }}>
-          <button
-            type="button"
-            onClick={onBack}
-            style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 13, cursor: "pointer", padding: 0, letterSpacing: "0.05em" }}
+
+        {onBack && (
+          <button onClick={onBack}
+            style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, textAlign: "left", cursor: "pointer", fontFamily: "monospace", letterSpacing: "0.04em", padding: 0 }}
+            onMouseEnter={e => e.currentTarget.style.color = "var(--text-secondary)"}
+            onMouseLeave={e => e.currentTarget.style.color = "var(--text-muted)"}
           >
             ← Voltar
           </button>
-        </div>
+        )}
       </div>
     </div>
   );

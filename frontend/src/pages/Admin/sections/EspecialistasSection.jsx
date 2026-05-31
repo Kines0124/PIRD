@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
+import * as adminApi from "../../../services/adminApi.js";
 
 const PROF_COLORS = {
   "Médico Clínico Geral":      "#2563eb",
@@ -14,7 +15,7 @@ const PROF_COLORS = {
   "Engenheiro de Segurança":   "#d97706",
   "Engenheiro Civil":          "#d97706",
   "Técnico em Resgate":        "#71717a",
-  "Técnico Defesa Civil":      "#FF6B1A",
+  "Técnico Defesa Civil":      "var(--accent)",
   "Guia de Cão de Resgate":    "#71717a",
   "Mergulhador de Resgate":    "#71717a",
 };
@@ -41,6 +42,23 @@ function DetailDrawer({ spec, effectiveStatus, onClose, onUpdateStatus, onDelete
   const statusInfo = STATUS_MAP[effectiveStatus] || STATUS_MAP.disponivel;
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [confirmText,     setConfirmText]     = useState("");
+  const [deleteLoading,   setDeleteLoading]   = useState(false);
+  const [deleteError,     setDeleteError]     = useState(null);
+
+  async function handleDeleteConfirm() {
+    if (!confirmText || deleteLoading) return;
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      await adminApi.login(adminApi.getAdminEmail(), confirmText);
+      onDelete(spec.especialistaId);
+      onClose();
+    } catch {
+      setDeleteError("Senha incorreta. Tente novamente.");
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
 
   return (
     <div
@@ -67,13 +85,27 @@ function DetailDrawer({ spec, effectiveStatus, onClose, onUpdateStatus, onDelete
         </div>
 
         {/* Status badges */}
-        <div style={{ padding: "12px 24px", borderBottom: "1px solid var(--border)", backgroundColor: "var(--bg-elevated)", display: "flex", gap: 8, alignItems: "center" }}>
-          <span style={{ backgroundColor: "rgba(22,163,74,0.12)", color: "#16a34a", borderRadius: 99, fontSize: 12, fontWeight: 600, padding: "4px 12px" }}>
+        <div style={{ padding: "12px 24px", borderBottom: "1px solid var(--border)", backgroundColor: "var(--bg-elevated)", display: "flex", flexDirection: "column", gap: 8 }}>
+          <span style={{ backgroundColor: "rgba(22,163,74,0.12)", color: "#16a34a", borderRadius: 99, fontSize: 12, fontWeight: 600, padding: "4px 12px", alignSelf: "flex-start" }}>
             ✓ Especialista Aprovado
           </span>
-          <span style={{ backgroundColor: statusInfo.bg, color: statusInfo.color, borderRadius: 99, fontSize: 12, fontWeight: 600, padding: "4px 12px" }}>
-            {statusInfo.label}
-          </span>
+          <div style={{ display: "flex", gap: 6 }}>
+            {Object.entries(STATUS_MAP).map(([key, info]) => (
+              <button
+                key={key}
+                onClick={() => onUpdateStatus && onUpdateStatus(spec.especialistaId, key)}
+                style={{
+                  backgroundColor: effectiveStatus === key ? info.bg : "transparent",
+                  color: effectiveStatus === key ? info.color : "var(--text-muted)",
+                  border: `1px solid ${effectiveStatus === key ? info.color : "var(--border)"}`,
+                  borderRadius: 99, fontSize: 12, fontWeight: 600, padding: "4px 12px",
+                  cursor: "pointer", transition: "all 0.15s",
+                }}
+              >
+                {info.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Body */}
@@ -192,31 +224,33 @@ function DetailDrawer({ spec, effectiveStatus, onClose, onUpdateStatus, onDelete
               O especialista <strong style={{ color: "var(--text-primary)" }}>{spec.nome}</strong> perderá o acesso ao sistema, mas seus dados históricos serão preservados.
             </div>
             <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              Para confirmar, digite <strong style={{ color: "#ef4444", fontFamily: "var(--font-mono)" }}>confirmar</strong> abaixo:
+              🔒 Confirme sua senha para prosseguir:
             </div>
             <input
-              type="text"
+              type="password"
               value={confirmText}
-              onChange={e => setConfirmText(e.target.value)}
-              placeholder="confirmar"
-              style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 7, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none", fontFamily: "var(--font-mono)" }}
+              onChange={e => { setConfirmText(e.target.value); setDeleteError(null); }}
+              onKeyDown={e => e.key === "Enter" && !deleteLoading && handleDeleteConfirm()}
+              placeholder="Sua senha"
+              autoFocus
+              style={{ background: "var(--bg-elevated)", border: `1px solid ${deleteError ? "#ef4444" : "var(--border)"}`, borderRadius: 7, padding: "9px 12px", color: "var(--text-primary)", fontSize: 13, outline: "none" }}
             />
+            {deleteError && (
+              <div style={{ fontSize: 12, color: "#ef4444", marginTop: -8 }}>{deleteError}</div>
+            )}
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button
-                onClick={() => { setShowDeleteModal(false); setConfirmText(""); }}
+                onClick={() => { setShowDeleteModal(false); setConfirmText(""); setDeleteError(null); }}
                 style={{ padding: "8px 18px", background: "none", border: "1px solid var(--border)", borderRadius: 7, color: "var(--text-secondary)", fontSize: 13, cursor: "pointer" }}
               >
                 Cancelar
               </button>
               <button
-                disabled={confirmText !== "confirmar"}
-                onClick={() => {
-                  onDelete(spec.especialistaId ?? spec.id);
-                  onClose();
-                }}
-                style={{ padding: "8px 18px", background: confirmText === "confirmar" ? "#ef4444" : "var(--bg-elevated)", border: "none", borderRadius: 7, color: confirmText === "confirmar" ? "#fff" : "var(--text-muted)", fontSize: 13, fontWeight: 700, cursor: confirmText === "confirmar" ? "pointer" : "not-allowed", transition: "all 0.15s" }}
+                disabled={!confirmText || deleteLoading}
+                onClick={handleDeleteConfirm}
+                style={{ padding: "8px 18px", background: confirmText && !deleteLoading ? "#ef4444" : "var(--bg-elevated)", border: "none", borderRadius: 7, color: confirmText && !deleteLoading ? "#fff" : "var(--text-muted)", fontSize: 13, fontWeight: 700, cursor: confirmText && !deleteLoading ? "pointer" : "not-allowed", transition: "all 0.15s" }}
               >
-                Excluir
+                {deleteLoading ? "Verificando..." : "Excluir"}
               </button>
             </div>
           </div>
@@ -270,11 +304,10 @@ export default function EspecialistasSection({ specialists, specialistStatuses =
   const [filterProf, setFilterProf] = useState("");
   const [activeTab,  setActiveTab]  = useState("disponivel");
 
-const aprovados = specialists.filter(s => !s.deletado);  
+  const aprovados = specialists.filter(s => s.status === "aprovado");
 
   function getEffectiveStatus(spec) {
-    const id = spec.especialistaId ?? spec.id;
-    return specialistStatuses[String(id)] || spec.statusCampo || "disponivel";
+    return specialistStatuses[String(spec.especialistaId)] || spec.statusCampo || "disponivel";
   }
 
   const profissoes = useMemo(

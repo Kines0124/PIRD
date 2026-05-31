@@ -24,6 +24,8 @@ public class EspecialistaGetDTO {
     private Double  longitude;
     private String  criadoEm;
     private Integer registroId;
+    private String  status;
+    private Integer especialistaId;
 
     public EspecialistaGetDTO() {}
 
@@ -44,6 +46,8 @@ public class EspecialistaGetDTO {
         this.cep            = e.getCep();
         this.criadoEm       = e.getCriadoEm() != null ? e.getCriadoEm().format(fmt) : null;
         this.registroId     = e.getRegistro() != null ? e.getRegistro().getId() : null;
+        this.status         = "aprovado";
+        this.especialistaId = e.getId();
 
         if (e.getLocalizacao() != null) {
             this.latitude  = e.getLocalizacao().getY();
@@ -72,4 +76,6 @@ public class EspecialistaGetDTO {
     public Double  getLongitude()      { return longitude; }
     public String  getCriadoEm()       { return criadoEm; }
     public Integer getRegistroId()     { return registroId; }
+    public String  getStatus()         { return status; }
+    public Integer getEspecialistaId() { return especialistaId; }
 }

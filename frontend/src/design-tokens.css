@@ -1,0 +1,73 @@
+/*
+  design-tokens.css — Fonte única de verdade para todos os tokens visuais do PIRD.
+
+  Este arquivo é importado por index.css e cascateia para toda a aplicação via :root.
+  Para alterar qualquer cor, fonte ou espaçamento globalmente, edite APENAS aqui.
+
+  Módulos com escopo próprio (Admin, PontoColeta) herdam essas variáveis
+  e podem sobrescrever localmente apenas o que for específico do módulo.
+*/
+
+/* ── Google Fonts — carregadas uma única vez para toda a aplicação ── */
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ── Paleta institucional ─────────────────────────────────────────────────
+     Vermelho: ação, alerta crítico, CTAs primários
+     Navy:     fundos, estrutura, hierarquia visual                          */
+  --red:           #de393f;
+  --red-dim:       rgba(222, 57, 63, 0.12);  /* fundo sutil de elementos red */
+  --red-hover:     #bf2f34;                  /* estado hover de botões red */
+  --red-glow:      rgba(222, 57, 63, 0.22);  /* sombra/glow de elementos red */
+  --navy:          #293c5a;
+  --navy-light:    #3d5a8a;
+  --blue-info:     #3d9be9;                  /* informações, links, badges info */
+
+  /* ── Backgrounds (tema escuro ancorado em navy) ───────────────────────────
+     Hierarquia: base → surface → elevated → hover
+     Quanto mais claro, mais "acima" na pilha visual.                        */
+  --bg-base:       #0c1a27;   /* fundo da página / tela inteira */
+  --bg-surface:    #102030;   /* cards, sidebars, headers */
+  --bg-elevated:   #172d42;   /* modais, dropdowns, inputs */
+  --bg-hover:      #1d3652;   /* estado hover de itens interativos */
+
+  /* ── Bordas ───────────────────────────────────────────────────────────────*/
+  --border:        rgba(55, 80, 115, 0.48);  /* borda padrão (navy sutil) */
+  --border-strong: rgba(55, 80, 115, 0.82);  /* borda em foco / hover */
+
+  /* ── Texto ────────────────────────────────────────────────────────────────
+     primary → secondary → muted: hierarquia de legibilidade                */
+  --text-primary:   #edf2f7;
+  --text-secondary: #7da3c7;
+  --text-muted:     #456282;
+
+  /* ── Cores semânticas / alertas ──────────────────────────────────────────*/
+  --success:  #22c55e;
+  --warning:  #f5c518;
+  --danger:   #de393f;   /* igual ao --red; alias semântico para código de alerta */
+  --amber:    #f59e0b;
+
+  /* ── Aliases de retrocompatibilidade ────────────────────────────────────
+     Permitem que componentes mais antigos usem --accent sem quebrar.        */
+  --accent:        #de393f;
+  --accent2:       #3d5a8a;
+  --accent-glow:   rgba(222, 57, 63, 0.22);
+  --accent2-glow:  rgba(61, 155, 233, 0.2);
+
+  /* ── Tipografia ──────────────────────────────────────────────────────────
+     display: títulos e headings (Barlow Condensed — impactante, compacto)
+     body:    texto corrido (DM Sans — legível, neutro)
+     mono:    labels, dados, código (JetBrains Mono — técnico, preciso)      */
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  /* ── Raios de borda ──────────────────────────────────────────────────────*/
+  --radius:    8px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  /* ── Sombras ─────────────────────────────────────────────────────────────*/
+  --shadow:        0 4px 24px rgba(0, 0, 0, 0.45);
+  --shadow-accent: 0 0 30px rgba(222, 57, 63, 0.15);
+}

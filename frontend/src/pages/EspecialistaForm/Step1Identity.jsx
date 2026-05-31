@@ -1,7 +1,6 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { validateCPF, maskCPF, validatePhone, maskPhone, validateName } from "../../utils/cpfValidator";
-
 
 function validateEmail(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -45,11 +44,11 @@ export default function Step1Identity({ onNext }) {
   }
 
   return (
-    <div style={{ minHeight: "100dvh", background: "var(--bg-base)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 20px" }}>
+    <div className="dot-bg" style={{ minHeight: "100dvh", backgroundColor: "var(--bg-base)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 20px" }}>
       <div style={{ marginBottom: 40, textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 8 }}>
-          <img src="/resources/logo.png" alt="PIRD" style={{ width: 48, height: 48, objectFit: "contain" }} />
-          <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, color: "var(--accent)", letterSpacing: "0.1em" }}>BASE</span>
+          <img src="/resources/logo.png" alt="BASE" style={{ width: 48, height: 48, objectFit: "contain", borderRadius: 10 }} />
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "var(--accent)", letterSpacing: "0.1em" }}>BASE</span>
         </div>
         <p style={{ color: "var(--text-secondary)", fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase" }}>
           Cadastro de Especialista
@@ -68,7 +67,7 @@ export default function Step1Identity({ onNext }) {
 
       <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: 420, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 16, padding: "32px 28px", display: "flex", flexDirection: "column", gap: 20 }}>
         <div>
-          <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>
             Identificação Pessoal
           </h2>
           <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
@@ -98,7 +97,7 @@ export default function Step1Identity({ onNext }) {
             marginTop: 8, padding: "14px", borderRadius: 10, border: "none",
             background: allValid ? "var(--accent)" : "var(--bg-hover)",
             color: allValid ? "#fff" : "var(--text-muted)",
-            fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 700,
+            fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700,
             letterSpacing: "0.08em", cursor: "pointer",
             transition: "all 0.2s ease",
           }}

@@ -41,35 +41,15 @@ export function statusBadge(s) {
 
 // ─── Global CSS ────────────────────────────────────────────────────────────────
 export const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap');
+  /*
+    adminTheme — estilos exclusivos do módulo Admin (Defesa Civil).
+    Tokens de cor/fonte/fundo vêm de design-tokens.css via index.css (já carregado globalmente).
+    Aqui ficam apenas: layout do shell, sidebar, topbar, cards e componentes admin-específicos.
+    Sobrescritas de tokens permitidas apenas para valores que diferem do global (ex: --radius).
+  */
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg-base: #0a0c10;
-    --bg-surface: #111318;
-    --bg-elevated: #181c23;
-    --bg-hover: #1e2330;
-    --border: rgba(255,255,255,0.07);
-    --border-accent: rgba(255,140,0,0.35);
-    --text-primary: #eef0f5;
-    --text-secondary: #7a8099;
-    --text-muted: #4a5068;
-    --accent: #FF6B1A;
-    --accent-glow: rgba(255,107,26,0.25);
-    --accent2: #3B82F6;
-    --accent2-glow: rgba(59,130,246,0.2);
-    --success: #22c55e;
-    --warning: #F5C518;
-    --danger: #ef4444;
-    --font-display: 'Syne', sans-serif;
-    --font-body: 'Inter', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
-    --radius: 10px;
-    --radius-sm: 6px;
-    --shadow: 0 4px 24px rgba(0,0,0,0.4);
-    --shadow-accent: 0 0 30px rgba(255,107,26,0.15);
-  }
+  /* --radius do admin é ligeiramente maior que o global (10px vs 8px) */
+  :root { --radius: 10px; --radius-sm: 6px; }
 
   body { background: var(--bg-base); color: var(--text-primary); font-family: var(--font-body); }
 
@@ -94,7 +74,7 @@ export const styles = `
     width: 34px; height: 34px; background: var(--accent);
     border-radius: 8px; display: flex; align-items: center; justify-content: center;
     font-size: 16px; flex-shrink: 0;
-    box-shadow: 0 0 18px var(--accent-glow);
+    box-shadow: 0 0 14px var(--accent-glow);
   }
   .logo-text { font-family: var(--font-display); font-weight: 800; font-size: 15px; line-height: 1.2; }
   .logo-sub { font-size: 10px; color: var(--text-muted); font-weight: 400; letter-spacing: 0.05em; text-transform: uppercase; }
@@ -111,7 +91,7 @@ export const styles = `
     position: relative;
   }
   .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
-  .nav-item.active { background: rgba(255,107,26,0.12); color: var(--accent); }
+  .nav-item.active { background: rgba(222,57,63,0.12); color: var(--accent); }
   .nav-item.active::before {
     content: ''; position: absolute; left: 0; top: 20%; height: 60%; width: 3px;
     background: var(--accent); border-radius: 0 3px 3px 0;
@@ -128,7 +108,7 @@ export const styles = `
     padding: 14px 10px; border-top: 1px solid var(--border);
     display: flex; align-items: center; gap: 10px;
   }
-  .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #FF6B1A, #FF3B3B); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #de393f, #293c5a); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
   .avatar-info { flex: 1; overflow: hidden; }
   .avatar-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .avatar-role { font-size: 10px; color: var(--accent); font-family: var(--font-mono); }
@@ -140,7 +120,7 @@ export const styles = `
     display: flex; align-items: center; padding: 0 24px; gap: 16px;
     position: sticky; top: 0; z-index: 50;
   }
-  .topbar-title { font-family: var(--font-display); font-weight: 700; font-size: 17px; }
+  .topbar-title { font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: 0.03em; }
   .topbar-breadcrumb { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
   .topbar-spacer { flex: 1; }
   .topbar-status {
@@ -157,7 +137,7 @@ export const styles = `
   }
   .topbar-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
 
-  .content { padding: 24px; flex: 1; }
+  .content { padding: 24px; flex: 1; background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px); background-size: 22px 22px; }
 
   .card {
     background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -205,9 +185,9 @@ export const styles = `
     display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
   }
   .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: #ff7d33; box-shadow: 0 0 16px var(--accent-glow); }
+  .btn-primary:hover { background: #bf2f34; box-shadow: 0 0 16px var(--accent-glow); }
   .btn-secondary { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border); }
-  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-secondary:hover { border-color: var(--border-accent); color: var(--accent); }
   .btn-success { background: rgba(34,197,94,0.15); color: var(--success); border: 1px solid rgba(34,197,94,0.3); }
   .btn-success:hover { background: rgba(34,197,94,0.25); }
   .btn-danger { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
@@ -265,7 +245,7 @@ export const styles = `
     padding: 5px 12px; border-radius: 99px; font-size: 11.5px; font-weight: 600; cursor: pointer;
     border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text-secondary); transition: all 0.15s;
   }
-  .filter-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(255,107,26,0.1); }
+  .filter-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(222,57,63,0.1); }
   .search-input {
     background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
     padding: 6px 12px; color: var(--text-primary); font-size: 12.5px; font-family: var(--font-body);

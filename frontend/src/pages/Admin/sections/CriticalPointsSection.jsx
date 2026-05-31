@@ -70,7 +70,7 @@ export default function CriticalPointsSection({ criticalPoints, onSavePoint, onD
         <div className="card-header">
           <div>
             <div className="card-title">⚠️ Pontos Críticos</div>
-            <div className="card-subtitle">Áreas de alto risco cadastradas pelo administrador · clique na linha para detalhes</div>
+            <div className="card-subtitle">RF14 — Áreas de alto risco cadastradas pelo administrador · clique na linha para detalhes</div>
           </div>
           <button className="btn btn-primary" onClick={() => setShowNew(true)}>＋ Novo Ponto</button>
         </div>

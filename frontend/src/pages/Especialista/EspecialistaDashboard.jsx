@@ -112,14 +112,14 @@ function BottomSheet({ children, state, onStateChange }) {
   return (
     <div
       ref={ref}
-      className="esp-sheet"
+      className="esp-sheet dot-bg"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       style={{
         position: "fixed", left: 0, right: 0,
         bottom: 64, // above the bottom nav
         height: heights[state],
-        background: "var(--bg-base)",
+        backgroundColor: "var(--bg-base)",
         borderRadius: "20px 20px 0 0",
         boxShadow: "0 -4px 32px rgba(0,0,0,0.35)",
         zIndex: 50,
@@ -253,11 +253,12 @@ function ConvocacoesTab({ convs, onResponder, onChegada, userEmail }) {
 }
 
 // ── Aba: Eventos (mapa + bottom sheet) ────────────────────────────────────────
-function EventosTab({ eventos, convs, criticalPoints, userEmail, onRefresh, onResponder, onVoluntariar, onChegada }) {
-  const containerRef = useRef(null);
-  const mapRef       = useRef(null);
-  const markersRef   = useRef([]);
-  const criticoRef   = useRef([]);
+function EventosTab({ eventos, convs, criticalPoints, userEmail, rota, onRefresh, onResponder, onVoluntariar, onChegada }) {
+  const containerRef    = useRef(null);
+  const mapRef          = useRef(null);
+  const markersRef      = useRef([]);
+  const criticoRef      = useRef([]);
+  const rotaMarkersRef  = useRef([]);
   const [mapReady, setMapReady]     = useState(false);
   const [sheetState, setSheetState] = useState("peek");
   const [selEvento, setSelEvento]   = useState(null);
@@ -340,6 +341,78 @@ function EventosTab({ eventos, convs, criticalPoints, userEmail, onRefresh, onRe
     });
   }, [criticalPoints, mapReady]);
 
+  // Desenha a rota "a_caminho" no mapa
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    rotaMarkersRef.current.forEach(m => m.remove());
+    rotaMarkersRef.current = [];
+
+    if (!rota || !rota.coordenadas?.length) {
+      if (map.getLayer("rota-layer"))   map.removeLayer("rota-layer");
+      if (map.getSource("rota-source")) map.removeSource("rota-source");
+      return;
+    }
+
+    const geojson = {
+      type: "Feature",
+      geometry: { type: "LineString", coordinates: rota.coordenadas },
+    };
+
+    if (map.getSource("rota-source")) {
+      map.getSource("rota-source").setData(geojson);
+    } else {
+      map.addSource("rota-source", { type: "geojson", data: geojson });
+      map.addLayer({
+        id: "rota-layer",
+        type: "line",
+        source: "rota-source",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#3b82f6", "line-width": 5, "line-opacity": 0.85 },
+      });
+    }
+
+    // Pin de origem (localização do especialista)
+    const elOrigem = document.createElement("div");
+    elOrigem.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <div style="width:38px;height:38px;border-radius:50%;background:#3b82f6;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 3px 10px rgba(59,130,246,.55);">👤</div>
+        <div style="background:#3b82f6;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.25);font-family:'Syne',sans-serif;letter-spacing:.03em;">Você</div>
+      </div>`;
+    rotaMarkersRef.current.push(
+      new mapboxgl.Marker({ element: elOrigem, anchor: "bottom" })
+        .setLngLat([rota.origemLng, rota.origemLat])
+        .addTo(map)
+    );
+
+    // Pin de destino (local do evento)
+    const elDestino = document.createElement("div");
+    elDestino.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <div style="width:38px;height:38px;border-radius:50%;background:#ef4444;border:3px solid #fff;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 3px 10px rgba(239,68,68,.55);">🚩</div>
+        <div style="background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.25);font-family:'Syne',sans-serif;letter-spacing:.03em;">Evento</div>
+      </div>`;
+    rotaMarkersRef.current.push(
+      new mapboxgl.Marker({ element: elDestino, anchor: "bottom" })
+        .setLngLat([rota.destinoLng, rota.destinoLat])
+        .addTo(map)
+    );
+
+    const bounds = rota.coordenadas.reduce(
+      (b, c) => b.extend(c),
+      new mapboxgl.LngLatBounds(rota.coordenadas[0], rota.coordenadas[0])
+    );
+    map.fitBounds(bounds, { padding: 64, maxZoom: 15, duration: 900 });
+  }, [rota, mapReady]);
+
+  function formatRota(rota) {
+    if (!rota) return null;
+    const km   = (rota.distanciaMetros / 1000).toFixed(1);
+    const min  = Math.ceil(rota.duracaoSegundos / 60);
+    return `${km} km · ~${min} min`;
+  }
+
   return (
     <div style={{ position: "absolute", inset: 0, bottom: 64 }}>
       {/* Mapa */}
@@ -373,9 +446,20 @@ function EventosTab({ eventos, convs, criticalPoints, userEmail, onRefresh, onRe
         );
       })()}
 
+      {/* Banner de rota ativa */}
+      {rota && !selEvento && (
+        <div style={{ position: "absolute", top: 16, left: 12, right: 12, zIndex: 20, background: "rgba(59,130,246,0.92)", backdropFilter: "blur(10px)", borderRadius: 14, padding: "11px 16px", display: "flex", alignItems: "center", gap: 10, boxShadow: "0 4px 20px rgba(59,130,246,.35)", animation: "fadeIn 0.3s ease" }}>
+          <span style={{ fontSize: 18 }}>🧭</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700, color: "#fff" }}>A caminho do evento</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", marginTop: 1 }}>{formatRota(rota)}</div>
+          </div>
+        </div>
+      )}
+
       {/* FAB atualizar */}
       <button onClick={onRefresh}
-        style={{ position: "absolute", top: selEvento ? 150 : 16, left: 16, zIndex: 20, width: 44, height: 44, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.95)", boxShadow: "0 2px 12px rgba(0,0,0,.2)", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "top 0.2s ease" }}>
+        style={{ position: "absolute", top: rota && !selEvento ? 88 : selEvento ? 150 : 16, left: 16, zIndex: 20, width: 44, height: 44, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.95)", boxShadow: "0 2px 12px rgba(0,0,0,.2)", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "top 0.2s ease" }}>
         ↺
       </button>
 
@@ -683,6 +767,7 @@ export default function EspecialistaDashboard() {
   const [convs,          setConvs]          = useState([]);
   const [eventos,        setEventos]        = useState([]);
   const [pontosCriticos, setPontosCriticos] = useState([]);
+  const [rota,           setRota]           = useState(null);
   const [loading,        setLoading]        = useState(false);
   const [fetchErr,       setFetchErr]       = useState(null);
   const [email,          setEmail]          = useState("");
@@ -690,6 +775,8 @@ export default function EspecialistaDashboard() {
   const [loginErr,       setLoginErr]       = useState(null);
   const [loggingIn,      setLoggingIn]      = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [actionError,    setActionError]    = useState(null);
+  const actionErrorTimer = useRef(null);
 
   useEffect(() => { if (user?.email) window._pirdUserEmail = user.email; }, [user]);
 
@@ -717,9 +804,21 @@ export default function EspecialistaDashboard() {
       const res = await fetch(`${BASE}/convocacoes/minhas`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.status === 401) { doLogout(); return; }
       if (!res.ok) throw new Error("Erro ao carregar convocações.");
-      setConvs(await res.json());
+      const data = await res.json();
+      setConvs(data);
+      const acaminho = data.find(c => c.status === "a_caminho");
+      if (acaminho) fetchRota(acaminho.id);
+      else setRota(null);
     } catch (err) { setFetchErr(err.message); }
     finally { setLoading(false); }
+  }
+
+  async function fetchRota(convId) {
+    try {
+      const res = await fetch(`${BASE}/rota/convocacao/${convId}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setRota(await res.json());
+      else setRota(null);
+    } catch { setRota(null); }
   }
 
   async function fetchEventos() {
@@ -755,12 +854,22 @@ export default function EspecialistaDashboard() {
     window._pirdUserEmail = null;
   }
 
+  function showActionError(msg) {
+    if (actionErrorTimer.current) clearTimeout(actionErrorTimer.current);
+    setActionError(msg);
+    actionErrorTimer.current = setTimeout(() => setActionError(null), 6000);
+  }
+
   async function handleResponder(id, acao) {
     try {
       const res = await fetch(`${BASE}/convocacoes/${id}/${acao}`, { method: "PATCH", headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const msg = await res.text().catch(() => "");
+        showActionError(msg || "Erro ao responder à convocação.");
+        return;
+      }
       setConvs(prev => prev.map(c => c.id === id ? { ...c, status: acao === "aceitar" ? "a_caminho" : "recusada", respondidoEm: new Date().toISOString() } : c));
-    } catch { alert("Erro ao responder à convocação."); }
+    } catch { showActionError("Erro de conexão. Tente novamente."); }
   }
 
   async function handleVoluntariar(eventoId) {
@@ -771,22 +880,25 @@ export default function EspecialistaDashboard() {
       });
       if (!res.ok) {
         const msg = await res.text().catch(() => "");
-        alert(msg || "Erro ao registrar presença no evento.");
+        showActionError(msg || "Erro ao registrar presença no evento.");
         return;
       }
       const data = await res.json();
       setConvs(prev => [...prev, data]);
-    } catch {
-      alert("Erro de conexão ao registrar presença.");
-    }
+    } catch { showActionError("Erro de conexão. Tente novamente."); }
   }
 
   async function handleChegada(convId) {
     try {
       const res = await fetch(`${BASE}/convocacoes/${convId}/chegada`, { method: "PATCH", headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const msg = await res.text().catch(() => "");
+        showActionError(msg || "Erro ao confirmar chegada.");
+        return;
+      }
       setConvs(prev => prev.map(c => c.id === convId ? { ...c, status: "no_local", chegadaEm: new Date().toISOString() } : c));
-    } catch { alert("Erro ao confirmar chegada."); }
+      setRota(null);
+    } catch { showActionError("Erro de conexão. Tente novamente."); }
   }
 
   function handleProfileUpdate(updated) {
@@ -800,17 +912,42 @@ export default function EspecialistaDashboard() {
   const pendentes = convs.filter(c => c.status === "pendente").length;
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "var(--bg-base)", display: "flex", flexDirection: "column" }}>
+    <div className="dot-bg" style={{ position: "fixed", inset: 0, backgroundColor: "var(--bg-base)", display: "flex", flexDirection: "column" }}>
       {injectCSS()}
 
       {/* Header (apenas nas abas não-mapa) */}
       {activeTab !== "eventos" && (
         <div style={{ flexShrink: 0, background: "var(--bg-base)", borderBottom: "1px solid var(--border)", padding: "16px 20px env(safe-area-inset-top, 0)", display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/resources/logo.png" alt="PIRD" style={{ width: 26, height: 26, objectFit: "contain" }} />
+          <img src="/resources/logo.png" alt="BASE" style={{ width: 26, height: 26, objectFit: "contain", borderRadius: 6 }} />
           <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 800, color: "var(--accent)" }}>BASE</span>
           <span style={{ marginLeft: "auto", fontSize: 13, color: "var(--text-secondary)" }}>
             {user?.nome?.split(" ")[0]}
           </span>
+        </div>
+      )}
+
+      {/* Toast de erro de ação */}
+      {actionError && (
+        <div style={{
+          flexShrink: 0, margin: "10px 16px 0",
+          background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.35)",
+          borderLeft: "4px solid #ef4444", borderRadius: 12,
+          padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 10,
+          animation: "fadeIn 0.2s ease",
+        }}>
+          <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1.2 }}>⚠️</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700, color: "#ef4444", marginBottom: 2 }}>
+              Ação não permitida: Já está presente em um evento.
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+              {actionError}
+            </div>
+          </div>
+          <button
+            onClick={() => { if (actionErrorTimer.current) clearTimeout(actionErrorTimer.current); setActionError(null); }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: 16, lineHeight: 1, flexShrink: 0, padding: 0, marginTop: 1 }}
+          >×</button>
         </div>
       )}
 
@@ -827,6 +964,7 @@ export default function EspecialistaDashboard() {
             convs={convs}
             criticalPoints={pontosCriticos}
             userEmail={user?.email}
+            rota={rota}
             onRefresh={() => { fetchEventos(); fetchPontosCriticos(); fetchConvs(); }}
             onResponder={handleResponder}
             onVoluntariar={handleVoluntariar}
@@ -866,16 +1004,17 @@ export default function EspecialistaDashboard() {
 // ── Tela de login ─────────────────────────────────────────────────────────────
 function LoginScreen({ email, setEmail, senha, setSenha, onSubmit, loading, error }) {
   const navigate = useNavigate();
+  useEffect(() => { injectCSS(); }, []);
   return (
-    <div style={{ minHeight: "100dvh", background: "var(--bg-base)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 20px" }}>
+    <div className="dot-bg" style={{ minHeight: "100dvh", backgroundColor: "var(--bg-base)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 20px", animation: "fadeIn 0.35s ease" }}>
       <div style={{ marginBottom: 40, textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 8 }}>
-          <img src="/resources/logo.png" alt="PIRD" style={{ width: 48, height: 48, objectFit: "contain" }} />
+          <img src="/resources/logo.png" alt="BASE" style={{ width: 48, height: 48, objectFit: "contain", borderRadius: 10 }} />
           <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, color: "var(--accent)", letterSpacing: "0.1em" }}>BASE</span>
         </div>
         <p style={{ color: "var(--text-secondary)", fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase" }}>Painel do Especialista</p>
       </div>
-      <form onSubmit={onSubmit} style={{ width: "100%", maxWidth: 380, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 20, padding: "32px 24px", display: "flex", flexDirection: "column", gap: 18 }}>
+      <form onSubmit={onSubmit} style={{ width: "100%", maxWidth: 380, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 20, padding: "32px 24px", display: "flex", flexDirection: "column", gap: 18, animation: "fadeIn 0.45s ease 0.08s both" }}>
         <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Entrar</h2>
         <div>
           <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>E-mail</label>

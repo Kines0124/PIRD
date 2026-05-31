@@ -15,22 +15,17 @@ import EspecialistaForm from "./pages/EspecialistaForm/EspecialistaForm";
 import EspecialistaDashboard from "./pages/Especialista/EspecialistaDashboard";
 import PontoColetaApp from "./pages/PontoColeta/PontoColetaApp";
 
-// ---------------------------------------------------------------------------
-// Layout protegido — envolve todas as telas que exigem login (têm Sidebar)
-// ---------------------------------------------------------------------------
 function LayoutProtegido({ perfil, onLogout }) {
   if (!perfil) return <Navigate to="/login" replace />;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#050e1a",
-        fontFamily: "'Segoe UI', system-ui, sans-serif",
-        color: "#e2e8f0",
-      }}
-    >
+    <div style={{
+      display: "flex",
+      minHeight: "100vh",
+      background: "var(--bg-base)",
+      fontFamily: "var(--font-body)",
+      color: "var(--text-primary)",
+    }}>
       <Sidebar perfil={perfil} />
 
       <main style={{ flex: 1, overflowY: "auto", maxHeight: "100vh" }}>
@@ -64,14 +59,24 @@ function LayoutProtegido({ perfil, onLogout }) {
           top: 14,
           right: 16,
           zIndex: 999,
-          background: "#0a1628",
-          border: "1px solid #0f2040",
+          background: "var(--bg-elevated)",
+          border: "1px solid var(--border)",
           borderRadius: 20,
-          padding: "5px 12px",
-          color: "#475569",
+          padding: "5px 14px",
+          color: "var(--text-muted)",
           fontSize: 11,
           cursor: "pointer",
-          fontFamily: "monospace",
+          fontFamily: "var(--font-mono)",
+          letterSpacing: "0.06em",
+          transition: "color 0.15s, border-color 0.15s",
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.color = "var(--text-primary)";
+          e.currentTarget.style.borderColor = "var(--border-strong)";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.color = "var(--text-muted)";
+          e.currentTarget.style.borderColor = "var(--border)";
         }}
       >
         trocar perfil
@@ -80,9 +85,6 @@ function LayoutProtegido({ perfil, onLogout }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// App — gerencia apenas o estado de autenticação e define as rotas raiz
-// ---------------------------------------------------------------------------
 export default function App() {
   const [perfil, setPerfil] = useState(null);
   const navigate = useNavigate();
@@ -106,22 +108,13 @@ export default function App() {
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/especialistas/cadastro" element={<EspecialistaForm />} />
       <Route path="/especialistas/painel" element={<EspecialistaDashboard />} />
-      {/* Rota pública: login */}
       <Route path="/login" element={<TelaLogin onLogin={handleLogin} />} />
-
       <Route path="/form" element={<Form />} />
       <Route path="/pontos-coleta/*" element={<PontoColetaApp />} />
-
-      {/* Rotas públicas sem layout — formulários anônimos ficam aqui */}
-      {/* <Route path="/doar" element={<FormDoadores />} /> */}
-
-      {/* Rotas protegidas — passam pelo LayoutProtegido com Sidebar */}
       <Route
         path="/app/*"
         element={<LayoutProtegido perfil={perfil} onLogout={handleLogout} />}
       />
-
-      {/* Raiz e qualquer URL desconhecida redirecionam adequadamente */}
       <Route
         path="/"
         element={<Navigate to={perfil ? "/app/dashboard" : "/login"} replace />}

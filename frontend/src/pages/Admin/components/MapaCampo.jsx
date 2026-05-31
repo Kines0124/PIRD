@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { MAPBOX_TOKEN } from "../../../utils/geocoding";
 
@@ -11,7 +11,7 @@ const PROF_COLORS = {
   "Enfermeiro(a)":             "#16a34a", "Técnico de Enfermagem":     "#16a34a",
   "Psicólogo":                 "#0891b2", "Assistente Social":         "#0891b2",
   "Engenheiro de Segurança":   "#d97706", "Técnico em Resgate":        "#71717a",
-  "Técnico Defesa Civil":      "#FF6B1A", "Guia de Cão de Resgate":    "#71717a",
+  "Técnico Defesa Civil":      "var(--accent)", "Guia de Cão de Resgate":    "#71717a",
   "Mergulhador de Resgate":    "#71717a",
 };
 
@@ -222,7 +222,7 @@ export default function MapaCampo({ alertas = [], profissionais = [], criticalPo
             {onVerMaisEvento && (
               <button
                 onClick={() => { onVerMaisEvento(selAlerta.id); setSelAlerta(null); }}
-                style={{ marginTop: 8, width: "100%", background: "#FF6B1A", color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                style={{ marginTop: 8, width: "100%", background: "var(--accent)", color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
               >
                 Ver mais →
               </button>

@@ -19,11 +19,10 @@ export default function CampoSection({ events, criticalPoints = [], specialists,
   const [filterView,       setFilterView]       = useState("ambos");
   const [flyTo,            setFlyTo]            = useState(null);
 
-  const aprovados = specialists.filter(s => !s.deletado);
+  const aprovados = specialists.filter(s => s.status === "aprovado");
 
   function getEffectiveStatus(spec) {
-    const id = spec.especialistaId ?? spec.id;
-    return specialistStatuses[String(id)] || spec.statusCampo || "disponivel";
+    return specialistStatuses[String(spec.especialistaId)] || spec.statusCampo || "disponivel";
   }
 
   const tipos = useMemo(
@@ -32,7 +31,7 @@ export default function CampoSection({ events, criticalPoints = [], specialists,
   );
 
   const eventosFiltrados = useMemo(() => {
-    let list = events.filter(e => e.status !== "encerrado");
+    let list = events;
     if (filterTipo) list = list.filter(e => e.type === filterTipo);
     if (filterSeveridade !== "todos") {
       list = list.filter(e => {
@@ -80,12 +79,11 @@ export default function CampoSection({ events, criticalPoints = [], specialists,
       {/* Summary bar */}
       <div style={{ padding: "12px 24px", backgroundColor: "var(--bg-elevated)", borderBottom: "1px solid var(--border)", display: "flex", gap: 24, flexWrap: "wrap" }}>
         {[
-          { label: "Eventos no mapa",         value: filterView !== "criticos" ? eventosFiltrados.length : 0, icon: "🗂️" },
-          { label: "Pontos críticos",         value: filterView !== "eventos"  ? criticalPoints.length : 0,   icon: "⚠️" },
+          { label: "Eventos no mapa",        value: filterView !== "criticos" ? eventosFiltrados.length : 0, icon: "🗂️" },
+          { label: "Pontos críticos",         value: filterView !== "eventos"  ? criticalPoints.length : 0,  icon: "⚠️" },
           { label: "Especialistas aprovados", value: aprovados.length,                                        icon: "👥" },
-          { label: "Disponíveis",             value: disponiveis,                                             icon: "✅" },
-        { label: "A caminho",               value: aCaminho,                                                  icon: "🚗" },
-          { label: "No local",                value: noLocal,                                                 icon: "📍" },
+          { label: "Disponíveis",            value: disponiveis,                                               icon: "✅" },
+          { label: "Em deslocamento",        value: aCaminho + noLocal,                                       icon: "⚡" },
         ].map(s => (
           <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 18 }}>{s.icon}</span>

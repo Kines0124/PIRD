@@ -1,36 +1,41 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+/*
+  pontoColeta.css — Estilos do módulo de Pontos de Coleta (sub-app com GSAP).
+
+  Tokens globais (cor, fonte, fundo) são herdados de design-tokens.css via :root.
+  Este arquivo apenas cria aliases locais com os nomes usados internamente pelo módulo
+  (--brand, --surf-1, --t1, etc.) mapeados para os tokens globais correspondentes.
+  Valores específicos do módulo sem equivalente global ficam definidos diretamente.
+*/
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .pc-root {
-  --brand:        #E8294C;
-  --brand-2:      #FF4D6D;
-  --brand-dim:    rgba(232,41,76,0.14);
-  --success:      #22C55E;
-  --warning:      #F59E0B;
+  /* ── Aliases locais → tokens globais ─────────────────────────────────────
+     Permitem que os componentes JSX usem nomes curtos (--brand, --t1...)
+     sem precisar referenciar os nomes globais completos diretamente.        */
+  --brand:     var(--red);           /* cor de ação principal do módulo */
+  --brand-dim: var(--red-dim);       /* fundo sutil em elementos brand */
+  --bg:        var(--bg-base);       /* fundo da tela inteira */
+  --surf-1:    var(--bg-surface);    /* superfície de cards e header */
+  --surf-2:    var(--bg-elevated);   /* superfície de inputs e overlays */
+  --bd:        var(--border);        /* borda padrão */
+  --t1:        var(--text-primary);  /* texto principal */
+  --t2:        var(--text-secondary);/* texto secundário */
+  --t3:        var(--text-muted);    /* texto desativado / labels */
 
-  --bg:           #080A0F;
-  --surf-1:       #0D1117;
-  --surf-2:       #161B22;
-  --bd:           rgba(232,41,76,0.12);
-  --bd-hover:     rgba(232,41,76,0.22);
-
-  --t1:           #F0F6FC;
-  --t2:           #8B949E;
-  --t3:           rgba(139,148,158,0.55);
-
-  --font-display: 'Syne', sans-serif;
-  --font-mono:    'IBM Plex Mono', monospace;
-
-  --glow-brand:   0 0 0 1px rgba(232,41,76,0.45), 0 0 24px rgba(232,41,76,0.18);
+  /* ── Valores específicos deste módulo (sem equivalente global) ───────────*/
+  --brand-2:      #f04d53;           /* vermelho mais claro p/ hover/acento */
+  --bd-hover:     rgba(222,57,63,0.3);
+  --glow-brand:   0 0 0 1px rgba(222,57,63,0.45), 0 0 24px rgba(222,57,63,0.18);
   --glow-success: 0 0 0 1px rgba(34,197,94,0.35), 0 0 20px rgba(34,197,94,0.10);
 
-  --radius:    6px;
-  --radius-lg: 10px;
+  /* ── Raios de borda — menores que o global (módulo usa estética mais compacta) ── */
+  --radius:    6px;   /* global é 8px */
+  --radius-lg: 10px;  /* global é 14px */
 
   min-height: 100vh;
   background-color: var(--bg);
-  background-image: radial-gradient(circle, rgba(255,251,236,0.07) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
   background-size: 28px 28px;
   color: var(--t1);
   font-family: var(--font-display);
@@ -60,7 +65,7 @@
   white-space: nowrap;
 }
 .pc-btn:disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
-.pc-btn-primary  { background: var(--brand); color: #080A0F; }
+.pc-btn-primary  { background: var(--brand); color: #fff; }
 .pc-btn-ghost    { background: transparent; color: var(--t2); border: 1px solid var(--bd); }
 .pc-btn-ghost:hover { color: var(--t1); border-color: var(--bd-hover); }
 .pc-btn-arrow { transition: transform 0.2s; display: inline-block; }
@@ -74,9 +79,9 @@
   font-family: var(--font-display); font-weight: 600; font-size: 14px;
   transition: border-color 0.2s, background 0.2s;
 }
-.pc-btn-row-card:hover { border-color: var(--brand); background: rgba(232,41,76,0.04); }
-.pc-btn-row-card.primary { background: var(--brand); border-color: var(--brand); color: #080A0F; }
-.pc-btn-row-card.primary:hover { background: #C01F3F; }
+.pc-btn-row-card:hover { border-color: var(--brand); background: rgba(222,57,63,0.04); }
+.pc-btn-row-card.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.pc-btn-row-card.primary:hover { background: #bf2f34; }
 
 /* ── Fields ── */
 .pc-field { display: flex; flex-direction: column; gap: 6px; }
@@ -104,8 +109,8 @@
 
 /* ── Misc ── */
 .pc-err-box {
-  background: rgba(232,41,76,0.08);
-  border: 1px solid rgba(232,41,76,0.3);
+  background: rgba(222,57,63,0.08);
+  border: 1px solid rgba(222,57,63,0.3);
   border-radius: var(--radius); color: var(--brand);
   font-family: var(--font-mono); font-size: 13px; padding: 10px 14px;
   display: flex; align-items: center; gap: 10px;
@@ -141,7 +146,7 @@
   color: var(--t3); flex-shrink: 0; transition: all 0.25s;
 }
 .pc-step-dot.active   { border-color: var(--brand); color: var(--brand); background: var(--brand-dim); }
-.pc-step-dot.complete { background: var(--brand); border-color: var(--brand); color: #080A0F; }
+.pc-step-dot.complete { background: var(--brand); border-color: var(--brand); color: #fff; }
 .pc-step-text { font-family: var(--font-mono); font-size: 11px; color: var(--t3); white-space: nowrap; }
 .pc-step-text.active { color: var(--t1); }
 
@@ -163,7 +168,7 @@
 .pc-logo-mark {
   width: 32px; height: 32px;
   display: inline-flex; align-items: center; justify-content: center;
-  background: var(--brand); color: #080A0F;
+  background: var(--brand); color: #fff;
   border-radius: 6px;
   font-family: var(--font-mono); font-weight: 500;
   font-size: 20px; line-height: 1;
@@ -211,7 +216,7 @@
 .pc-frame-corners::before,
 .pc-frame-corners::after {
   content: ''; position: absolute; width: 14px; height: 14px;
-  border-color: rgba(232,41,76,0.45); border-style: solid;
+  border-color: rgba(222,57,63,0.45); border-style: solid;
   pointer-events: none; z-index: 1;
 }
 .pc-frame-corners::before { top: -1px; left: -1px; border-width: 1.5px 0 0 1.5px; }
@@ -221,7 +226,7 @@
 .pc-app-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 32px; border-bottom: 1px solid var(--bd);
-  background: rgba(8,10,15,0.85); backdrop-filter: blur(8px);
+  background: var(--surf-1);
   position: sticky; top: 0; z-index: 10;
 }
 .pc-app-header-left  { display: flex; align-items: center; gap: 12px; }
@@ -326,7 +331,7 @@
   background: var(--surf-2); border: 1px solid var(--bd); color: var(--t2);
 }
 .pc-dc-tab.active .pc-dc-tab-count {
-  color: var(--brand); border-color: rgba(232,41,76,0.3); background: var(--brand-dim);
+  color: var(--brand); border-color: rgba(222,57,63,0.3); background: var(--brand-dim);
 }
 .pc-dc-list { display: flex; flex-direction: column; gap: 10px; }
 .pc-dc-empty {
@@ -342,7 +347,7 @@
   max-width: 380px; box-shadow: 0 12px 28px rgba(0,0,0,0.45);
 }
 .pc-toast.success { border: 1px solid rgba(34,197,94,0.45); color: #22C55E; }
-.pc-toast.error   { border: 1px solid rgba(232,41,76,0.45); color: var(--brand); }
+.pc-toast.error   { border: 1px solid rgba(222,57,63,0.45); color: var(--brand); }
 
 @keyframes slideInRight {
   from { transform: translateX(100%); opacity: 0; }

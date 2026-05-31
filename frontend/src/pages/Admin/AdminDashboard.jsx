@@ -44,8 +44,8 @@ function LoginGate({ onLogin }) {
   return (
     <>
       <style>{styles}</style>
-      <div className="app-shell" style={{ alignItems: "center", justifyContent: "center" }}>
-        <div className="card" style={{ width: 400, maxWidth: "90vw" }}>
+      <div className="app-shell dot-bg" style={{ alignItems: "center", justifyContent: "center" }}>
+        <div className="card" style={{ width: 400, maxWidth: "90vw", animation: "slideUp 0.4s ease" }}>
           <div className="card-header">
             <div className="card-title">🔐 Acesso — Defesa Civil</div>
           </div>
@@ -101,7 +101,6 @@ function AdminPanel({ onLogout }) {
   const [convocacoes,      setConvocacoes]      = useState([]);
   const [registrosEsp,     setRegistrosEsp]     = useState([]);
 
-
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [showNewPoint, setShowNewPoint] = useState(false);
 
@@ -145,7 +144,7 @@ function AdminPanel({ onLogout }) {
         adminApi.getEspecialistasAprovados(),
         adminApi.getRegistrosPontoColeta(),
         adminApi.getConvocacoes(),
-        adminApi.getEspecialistas(),       
+        adminApi.getEspecialistas(),
       ]);
       setEvents(evts);
       setCriticalPoints(pts);
@@ -154,7 +153,7 @@ function AdminPanel({ onLogout }) {
       setSpecialists(specs);
       setRegistros(regs);
       setConvocacoes(convs);
-      setRegistrosEsp(regsEsp);            
+      setRegistrosEsp(regsEsp);
     } catch (e) {
       console.error("loadAll error:", e.message);
       setLoadError("Erro ao carregar dados: " + e.message);
@@ -284,14 +283,24 @@ function AdminPanel({ onLogout }) {
   async function handleAprovarEspecialista(id) {
     try {
       await adminApi.aprovarEspecialista(id);
-      setSpecialists(await adminApi.getEspecialistasAprovados());
+      const [specs, regsEsp] = await Promise.all([
+        adminApi.getEspecialistasAprovados(),
+        adminApi.getEspecialistas(),
+      ]);
+      setSpecialists(specs);
+      setRegistrosEsp(regsEsp);
     } catch (e) { alert("Erro ao aprovar especialista: " + e.message); }
   }
 
   async function handleReprovarEspecialista(id, obs) {
     try {
       await adminApi.reprovarEspecialista(id, obs);
-      setSpecialists(await adminApi.getEspecialistasAprovados());
+      const [specs, regsEsp] = await Promise.all([
+        adminApi.getEspecialistasAprovados(),
+        adminApi.getEspecialistas(),
+      ]);
+      setSpecialists(specs);
+      setRegistrosEsp(regsEsp);
     } catch (e) { alert("Erro ao reprovar especialista: " + e.message); }
   }
 
@@ -346,7 +355,7 @@ function AdminPanel({ onLogout }) {
         <aside className="sidebar">
           <div className="sidebar-logo">
             <img src="/resources/logo.png" alt="Logo"
-              style={{ width: 100, height: 100, borderRadius: 8, objectFit: "contain" }} />
+              style={{ width: 100, height: 100, borderRadius: 16, objectFit: "contain" }} />
           </div>
           <nav className="sidebar-nav">
             <div className="nav-section-label">Painel</div>
@@ -513,7 +522,7 @@ function AdminPanel({ onLogout }) {
               )}
               {section === "validacoes" && (
                 <ValidacoesSection
-                  specialists={registrosEsp} 
+                  specialists={registrosEsp}
                   onAprovar={handleAprovarEspecialista}
                   onReprovar={handleReprovarEspecialista}
                   onDeletar={handleDeletarRegistroEspecialista}

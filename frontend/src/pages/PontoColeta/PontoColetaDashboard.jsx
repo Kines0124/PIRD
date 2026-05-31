@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+﻿import { useRef, useState, useEffect } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import {
@@ -129,7 +129,7 @@ function ConfigDrawer({ onClose }) {
             </section>
 
             {error && (
-              <div style={{ background: 'rgba(232,41,76,0.08)', border: '1px solid rgba(232,41,76,0.3)', borderRadius: 'var(--radius)', color: 'var(--brand)', fontFamily: 'var(--font-mono)', fontSize: 12, padding: '10px 14px' }}>
+              <div style={{ background: 'rgba(222,57,63,0.08)', border: '1px solid rgba(222,57,63,0.3)', borderRadius: 'var(--radius)', color: 'var(--brand)', fontFamily: 'var(--font-mono)', fontSize: 12, padding: '10px 14px' }}>
                 {error}
               </div>
             )}
@@ -145,7 +145,7 @@ function ConfigDrawer({ onClose }) {
           <button onClick={onClose} style={{ flex: 1, padding: 11, borderRadius: 'var(--radius)', border: '1px solid var(--bd)', background: 'transparent', color: 'var(--t2)', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
             Cancelar
           </button>
-          <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: 11, borderRadius: 'var(--radius)', border: 'none', background: saving ? 'var(--surf-2)' : 'var(--brand)', color: saving ? 'var(--t3)' : '#080A0F', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+          <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: 11, borderRadius: 'var(--radius)', border: 'none', background: saving ? 'var(--surf-2)' : 'var(--brand)', color: saving ? 'var(--t3)' : '#fff', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
             {saving ? 'Salvando…' : 'Salvar'}
           </button>
         </div>
@@ -302,7 +302,7 @@ export default function PontoColetaDashboard({ onLogout, onVerDoacoes, onCadastr
   }, { scope: containerRef, dependencies: [loading, demandas] });
 
   const onHoverEnter = i => {
-    gsap.to(cardRefs.current[i], { y: -4, boxShadow: '0 0 0 1px rgba(232,41,76,0.25), 0 12px 28px rgba(0,0,0,0.45)', duration: 0.22 });
+    gsap.to(cardRefs.current[i], { y: -4, boxShadow: '0 0 0 1px rgba(222,57,63,0.25), 0 12px 28px rgba(0,0,0,0.45)', duration: 0.22 });
     const num = numberRefs.current[i];
     if (num) gsap.to(num, { scale: 1.04, duration: 0.18, yoyo: true, repeat: 1, ease: 'power2.out' });
   };
@@ -371,14 +371,14 @@ export default function PontoColetaDashboard({ onLogout, onVerDoacoes, onCadastr
           <button type="button"
             style={{
               width: '100%', background: 'transparent',
-              border: '1px solid rgba(232,41,76,0.3)', borderRadius: 'var(--radius)',
+              border: '1px solid rgba(222,57,63,0.3)', borderRadius: 'var(--radius)',
               color: 'var(--brand)', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14,
               padding: '14px 18px', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'border-color 0.2s',
             }}
             onClick={onCadastrarDemandas}
-            onMouseEnter={e => gsap.to(e.currentTarget, { boxShadow: '0 0 0 1px rgba(232,41,76,0.5), 0 0 24px rgba(232,41,76,0.12)', borderColor: 'rgba(232,41,76,0.6)', duration: 0.2 })}
-            onMouseLeave={e => gsap.to(e.currentTarget, { boxShadow: 'none', borderColor: 'rgba(232,41,76,0.3)', duration: 0.2 })}>
+            onMouseEnter={e => gsap.to(e.currentTarget, { boxShadow: '0 0 0 1px rgba(222,57,63,0.5), 0 0 24px rgba(222,57,63,0.12)', borderColor: 'rgba(222,57,63,0.6)', duration: 0.2 })}
+            onMouseLeave={e => gsap.to(e.currentTarget, { boxShadow: 'none', borderColor: 'rgba(222,57,63,0.3)', duration: 0.2 })}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
               <IconPlus size={14} /> Cadastrar Demandas
             </span>

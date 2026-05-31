@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 
@@ -50,7 +50,7 @@ function CollectionMap({ points, selectedId }) {
       if (!p.lat || !p.lng) return;
       const isSelected = selectedId === p.id;
       const el = document.createElement("div");
-      el.innerHTML = `<div style="width:26px;height:26px;border-radius:6px;background:${isSelected ? "#FF6B1A" : "#3B82F6"};border:2px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 10px ${isSelected ? "#FF6B1A88" : "#3B82F688"};cursor:pointer">📦</div>`;
+      el.innerHTML = `<div style="width:26px;height:26px;border-radius:6px;background:${isSelected ? "var(--accent)" : "#3B82F6"};border:2px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 10px ${isSelected ? "var(--accent)88" : "#3B82F688"};cursor:pointer">📦</div>`;
       const popup = new mapboxgl.Popup({ offset: 14 }).setHTML(
         `<div style="font-family:sans-serif;min-width:160px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">📦 ${p.name}</div><div style="font-size:11px;color:#555">📍 ${p.address || ""}, ${p.city || ""}</div></div>`
       );
@@ -109,7 +109,7 @@ function PontoDetailDrawer({ ponto, onClose }) {
 
         {/* Header */}
         <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 10, backgroundColor: "rgba(255,107,26,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 10, backgroundColor: "rgba(222,57,63,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
             📦
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -175,7 +175,7 @@ function PontoCard({ ponto, onClick }) {
       onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; e.currentTarget.style.background = "var(--bg-elevated)"; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg-surface)"; }}
     >
-      <div style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: "rgba(255,107,26,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
+      <div style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: "rgba(222,57,63,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
         📦
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -187,7 +187,7 @@ function PontoCard({ ponto, onClick }) {
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
           {ponto.type && (
-            <span style={{ fontSize: 10, backgroundColor: "rgba(255,107,26,0.12)", color: "#FF6B1A", borderRadius: 99, padding: "1px 8px", fontWeight: 600 }}>
+            <span style={{ fontSize: 10, backgroundColor: "rgba(222,57,63,0.12)", color: "var(--accent)", borderRadius: 99, padding: "1px 8px", fontWeight: 600 }}>
               {ponto.type}
             </span>
           )}
@@ -231,7 +231,7 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
       <div className="card-header">
         <div>
           <div className="card-title">📦 Pontos de Coleta</div>
-          <div className="card-subtitle">Visualização e informações dos pontos validados</div>
+          <div className="card-subtitle">RF07, RF08 — Visualização e informações dos pontos validados</div>
         </div>
         <div className="text-sm text-muted mono">{validados.length} ponto(s) validado(s)</div>
       </div>
