@@ -201,7 +201,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
     { id: "mapa",          label: "🗺️ Mapa" },
     { id: "fotos",         label: `📷 Fotos${event.photos?.length ? ` (${event.photos.length})` : ""}` },
     { id: "coleta",        label: `📦 Coleta (${nearbyPoints.length})` },
-    { id: "especialistas", label: `⚕️ Especialistas (${assignedSpecialists.length})` },
+    event.status !== "encerrado" ? { id: "especialistas", label: `⚕️ Especialistas (${assignedSpecialists.length})` } : null,
     event.status !== "encerrado" ? { id: "convocar", label: "🎯 Convocar" } : null,
   ].filter(Boolean);
 

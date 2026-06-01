@@ -260,8 +260,8 @@ export default function EventModal({ event, onClose, onSave }) {
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
           <button
             className="btn btn-primary"
-            disabled={!canSave || form.status === "encerrado"}
-            style={{ opacity: (canSave && form.status !== "encerrado") ? 1 : 0.4 }}
+            disabled={!canSave }
+            style={{ opacity: (canSave) ? 1 : 0.4 }}
             onClick={() => { onSave({ ...form, victims: form.victims ?? 0 }); onClose(); }}
           >
             💾 Salvar Evento
