@@ -414,7 +414,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
 
 // ─── EventsSection ─────────────────────────────────────────────────────────────
 export default function EventsSection({ events, onSaveEvent, criticalPoints, collectionPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, openEventId, onEventOpened, onGoToCollection, convocacoes, onConvocou }) {
-  const [filter, setFilter]           = useState("todos");
+  const [filter, setFilter]           = useState("ativo");
   const [search, setSearch]           = useState("");
   const [editEvent, setEditEvent]     = useState(null);
   const [showNew, setShowNew]         = useState(false);
@@ -453,13 +453,13 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
         <div className="card-header">
           <div>
             <div className="card-title">📋 Gerenciar Eventos Oficiais</div>
-            <div className="card-subtitle">RF01, RF02 — Cadastro e atualização de desastres · clique na linha para detalhes</div>
+            <div className="card-subtitle">Cadastro e atualização de desastres · clique na linha para detalhes</div>
           </div>
           <button className="btn btn-primary" onClick={() => setShowNew(true)}>＋ Novo Evento</button>
         </div>
 
         <div className="filter-row">
-          {["todos", "ativo", "monitoramento", "controlado"].map(f => (
+          {["ativo", "monitoramento", "controlado", "encerrado"].map(f => (
             <span key={f} className={`filter-chip ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </span>

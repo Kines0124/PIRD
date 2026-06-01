@@ -231,7 +231,7 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
       <div className="card-header">
         <div>
           <div className="card-title">📦 Pontos de Coleta</div>
-          <div className="card-subtitle">RF07, RF08 — Visualização e informações dos pontos validados</div>
+          <div className="card-subtitle">Visualização e informações dos pontos validados</div>
         </div>
         <div className="text-sm text-muted mono">{validados.length} ponto(s) validado(s)</div>
       </div>

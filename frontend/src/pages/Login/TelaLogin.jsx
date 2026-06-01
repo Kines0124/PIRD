@@ -150,7 +150,7 @@ export default function TelaLogin({ onLogin }) {
             textTransform: "uppercase",
             margin: "0 0 22px",
           }}>
-            Plataforma Integrada de Resposta a Desastres
+            Banco de Apoio e Suporte em Emergências
           </p>
 
         </div>
