@@ -80,6 +80,20 @@ export default function EventModal({ event, onClose, onSave }) {
         </div>
 
         <div className="modal-body">
+          {form.status === "encerrado" && (
+            <div style={{
+              background: "rgba(220,38,38,0.08)",
+              border: "1px solid rgba(220,38,38,0.25)",
+              borderRadius: 8,
+              padding: "10px 14px",
+              marginBottom: 16,
+              fontSize: 12,
+              color: "#dc2626",
+              fontWeight: 600,
+            }}>
+              🔒 Evento encerrado — não é possível realizar alterações.
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">Título do Evento *</label>
@@ -100,11 +114,18 @@ export default function EventModal({ event, onClose, onSave }) {
             </div>
             <div className="form-group">
               <label className="form-label">Status</label>
-              <select className="form-select" value={form.status} onChange={e => set("status", e.target.value)}>
+              <select
+                className="form-select"
+                value={form.status}
+                onChange={e => set("status", e.target.value)}
+                disabled={form.status === "encerrado"}
+                style={form.status === "encerrado" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+              >
                 <option value="ativo">Ativo</option>
                 <option value="monitoramento">Monitoramento</option>
                 <option value="controlado">Controlado</option>
-                <option value="encerrado">Encerrado</option>
+                {/* Encerrado só aparece na edição de evento já encerrado */}
+                {event && <option value="encerrado">Encerrado</option>}
               </select>
             </div>
           </div>
@@ -239,8 +260,8 @@ export default function EventModal({ event, onClose, onSave }) {
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
           <button
             className="btn btn-primary"
-            disabled={!canSave}
-            style={{ opacity: canSave ? 1 : 0.4 }}
+            disabled={!canSave || form.status === "encerrado"}
+            style={{ opacity: (canSave && form.status !== "encerrado") ? 1 : 0.4 }}
             onClick={() => { onSave({ ...form, victims: form.victims ?? 0 }); onClose(); }}
           >
             💾 Salvar Evento

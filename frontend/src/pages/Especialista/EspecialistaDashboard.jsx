@@ -145,7 +145,7 @@ function ConvCard({ c, onResponder, onChegada, userEmail }) {
   const [pendingAction, setPendingAction] = useState(null);
   const sevColor = SEV_COLOR[c.eventoSeveridade?.toLowerCase()] ?? "#94a3b8";
   const stColor  = STATUS_COLOR[c.status] ?? "#94a3b8";
-  const isPast = c.status === "recusada" || c.status === "no_local" || c.status === "encerrada";
+  const isPast = c.status === "recusado" || c.status === "no_local" || c.status === "encerrada";
 
   return (
     <>
@@ -210,7 +210,7 @@ function ConvocacoesTab({ convs, onResponder, onChegada, userEmail }) {
   const pendentes  = convs.filter(c => c.status === "pendente");
   const ativas     = convs.filter(c => c.status === "a_caminho" || c.status === "no_local");
   const historico = convs.filter(c =>
-    c.status === "recusada" || c.status === "no_local" || c.status === "encerrada"
+    c.status === "recusado" || c.status === "no_local" || c.status === "encerrada"
   );
 
   const sec = (label, count) => (
@@ -868,7 +868,7 @@ export default function EspecialistaDashboard() {
         showActionError(msg || "Erro ao responder à convocação.");
         return;
       }
-      setConvs(prev => prev.map(c => c.id === id ? { ...c, status: acao === "aceitar" ? "a_caminho" : "recusada", respondidoEm: new Date().toISOString() } : c));
+      setConvs(prev => prev.map(c => c.id === id ? { ...c, status: acao === "aceitar" ? "a_caminho" : "recusado", respondidoEm: new Date().toISOString() } : c));
     } catch { showActionError("Erro de conexão. Tente novamente."); }
   }
 

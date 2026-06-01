@@ -103,7 +103,7 @@ public class ConvocacaoService {
         c.setEvento(evento);
         c.setEspecialista(especialista);
         c.setStatus("pendente");
-        c.setTipo("manual");
+        c.setTipo("auto");
         return new ConvocacaoGetDTO(convocacaoRepository.save(c));
     }
 
@@ -170,7 +170,7 @@ public class ConvocacaoService {
         if (!"pendente".equals(c.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Convocação não está pendente.");
         }
-        c.setStatus("recusada");
+        c.setStatus("recusado");               
         c.setRespondidoEm(LocalDateTime.now());
         return new ConvocacaoGetDTO(convocacaoRepository.save(c));
     }
@@ -223,15 +223,13 @@ public class ConvocacaoService {
 
     @Transactional
     public void encerrarPorEvento(Integer eventoId) {
-        List<Convocacao> ativas = convocacaoRepository
+        convocacaoRepository
             .findByEventoIdOrderByConvocadoEmDesc(eventoId)
             .stream()
-            .filter(c -> !c.getStatus().equals("recusado") && !c.getStatus().equals("encerrada"))
-            .toList();
-
-        for (Convocacao c : ativas) {
-            c.setStatus("encerrada");
-            convocacaoRepository.save(c);
-        }
+            .filter(c -> !"recusado".equals(c.getStatus()))  
+            .forEach(c -> {
+                c.setStatus("recusado");
+                convocacaoRepository.save(c);
+            });
     }
 }

@@ -11,6 +11,8 @@ import java.util.List;
 @Repository
 public interface ConvocacaoRepository extends JpaRepository<Convocacao, Integer> {
 
+    List<Convocacao> findByEvento_Id(Integer eventoId);
+
     List<Convocacao> findByEventoIdOrderByConvocadoEmDesc(Integer eventoId);
 
     List<Convocacao> findByEspecialistaIdOrderByConvocadoEmDesc(Integer especialistaId);

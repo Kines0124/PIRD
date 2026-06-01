@@ -22,6 +22,9 @@ import com.pird.pirdBackend.model.PontoCritico;
 import com.pird.pirdBackend.repository.EventoRepository;
 import com.pird.pirdBackend.repository.PontoColetaRepository;
 import com.pird.pirdBackend.repository.PontoCriticoRepository;
+import com.pird.pirdBackend.dto.EventoRelatorioDTO;
+import com.pird.pirdBackend.repository.ConvocacaoRepository;
+import com.pird.pirdBackend.model.Convocacao;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -37,12 +40,23 @@ public class EventoService {
     @Autowired
     private PontoColetaRepository pontoColetaRepository;
 
+    @Autowired
+    private ConvocacaoRepository convocacaoRepository;
+
     @Lazy
     @Autowired
     private ConvocacaoService convocacaoService;
 
     @Transactional
     public EventoGetDTO criar(EventoPostDTO dto, Administrador admin) {
+
+        if ("encerrado".equals(dto.getStatus())) {
+            throw new ResponseStatusException(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "Não é permitido criar um evento já encerrado."
+            );
+        }
+
         Evento evento = dto.convert();
         evento.setCriadoPor(admin);
         vincularPontoCritico(evento, dto);
@@ -73,6 +87,13 @@ public class EventoService {
     public EventoGetDTO atualizar(Integer id, EventoPostDTO dto) {
         Evento evento = eventoRepository.findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado"));
+
+        if ("encerrado".equals(evento.getStatus()) && !"encerrado".equals(dto.getStatus())) {
+            throw new ResponseStatusException(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "Evento encerrado não pode ser reativado."
+            );
+        }
 
         String statusAnterior = evento.getStatus();
 
@@ -154,5 +175,24 @@ public class EventoService {
                          p.getEndereco().toLowerCase().endsWith(sufixo.toLowerCase()))
             .toList();
         evento.setPontosColeta(new ArrayList<>(pontos));
+    }
+
+    /**
+     * Monta o relatório oficial de um evento encerrado.
+     * Inclui todas as convocações não-recusadas (especialistas que atuaram)
+     * e os pontos de coleta vinculados ao evento no momento da consulta.
+     */
+    @Transactional(readOnly = true)
+    public EventoRelatorioDTO gerarRelatorio(Integer id) {
+        Evento evento = eventoRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado"));
+ 
+        List<Convocacao> convocacoes = convocacaoRepository.findByEvento_Id(id);
+ 
+        List<PontoColeta> pontos = evento.getPontosColeta() != null
+                ? evento.getPontosColeta()
+                : List.of();
+ 
+        return new EventoRelatorioDTO(evento, convocacoes, pontos);
     }
 }

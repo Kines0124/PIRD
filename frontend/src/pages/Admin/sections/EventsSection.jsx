@@ -3,6 +3,7 @@ import mapboxgl from "mapbox-gl";
 import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { severityColor, typeIcon, riskColor, severityBadge, statusBadge } from "../adminTheme.jsx";
 import EventModal from "../modals/EventModal.jsx";
+import EventClosureModal from "../modals/EventClosureModal";
 import { convocarManual } from "../../../services/adminApi.js";
 
 const PROF_COLORS = {
@@ -171,10 +172,10 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
   const linkedCritical   = event.criticalPointId ? (criticalPoints || []).find(p => p.id === event.criticalPointId) : null;
   const neededProfiles   = event.neededProfiles || [];
 
-  // Convocações deste evento vindas do backend (exclui recusadas)
+  // Convocações deste evento vindas do backend (exclui recusados)
   const eventConvMap = new Map(
     (convocacoes || [])
-      .filter(c => c.eventoId === event.id && c.status !== "recusada")
+      .filter(c => c.eventoId === event.id && c.status !== "recusado")
       .map(c => [c.especialistaId, c.status])
   );
 
@@ -197,12 +198,12 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
     .filter(s => eventConvMap.has(s.especialistaId) || !!localConvocados[s.especialistaId]);
 
   const tabs = [
-    { id: "mapa",         label: "🗺️ Mapa" },
-    { id: "fotos",        label: `📷 Fotos${event.photos?.length ? ` (${event.photos.length})` : ""}` },
-    { id: "coleta",       label: `📦 Coleta (${nearbyPoints.length})` },
+    { id: "mapa",          label: "🗺️ Mapa" },
+    { id: "fotos",         label: `📷 Fotos${event.photos?.length ? ` (${event.photos.length})` : ""}` },
+    { id: "coleta",        label: `📦 Coleta (${nearbyPoints.length})` },
     { id: "especialistas", label: `⚕️ Especialistas (${assignedSpecialists.length})` },
-    { id: "convocar",     label: "🎯 Convocar" },
-  ];
+    event.status !== "encerrado" ? { id: "convocar", label: "🎯 Convocar" } : null,
+  ].filter(Boolean);
 
   return (
     <div
@@ -235,7 +236,9 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-              <button className="btn btn-secondary btn-sm" onClick={onEdit}>✏️ Editar</button>
+              {event.status !== "encerrado" && (
+                <button className="btn btn-secondary btn-sm" onClick={onEdit}>✏️ Editar</button>
+              )}
               <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid var(--border)", background: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
           </div>
@@ -414,11 +417,13 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
 
 // ─── EventsSection ─────────────────────────────────────────────────────────────
 export default function EventsSection({ events, onSaveEvent, criticalPoints, collectionPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, openEventId, onEventOpened, onGoToCollection, convocacoes, onConvocou }) {
-  const [filter, setFilter]           = useState("ativo");
-  const [search, setSearch]           = useState("");
-  const [editEvent, setEditEvent]     = useState(null);
-  const [showNew, setShowNew]         = useState(false);
-  const [detailEvent, setDetailEvent] = useState(null);
+  const [filter, setFilter]             = useState("ativo");
+  const [search, setSearch]             = useState("");
+  const [editEvent, setEditEvent]       = useState(null);
+  const [showNew, setShowNew]           = useState(false);
+  const [detailEvent, setDetailEvent]   = useState(null);
+  const [closureEvent, setClosureEvent] = useState(null);
+
 
   // Abre automaticamente o drawer quando navegado via "Ver mais" no Campo
   useEffect(() => {
@@ -514,7 +519,29 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
                       <td><span className="mono text-secondary text-sm">{e.date}</span></td>
                       <td>
                         <div className="btn-group" onClick={ev => ev.stopPropagation()}>
-                          <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setEditEvent(e)} title="Editar">✏️</button>
+                          {e.status !== "encerrado" && (
+                            <button
+                              className="btn btn-secondary btn-sm btn-icon"
+                              onClick={() => setEditEvent(e)}
+                              title="Editar"
+                            >
+                              ✏️
+                            </button>
+                          )}
+                          {e.status === "encerrado" && (
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              title="Emitir relatório"
+                              onClick={() => setClosureEvent({
+                                event: e,
+                                snapshot: convocacoes.filter(
+                                  c => String(c.eventoId) === String(e.id)
+                                ),
+                              })}
+                            >
+                              📄 Relatório
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -547,7 +574,35 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
         <EventModal
           event={editEvent}
           onClose={() => { setShowNew(false); setEditEvent(null); }}
-          onSave={form => onSaveEvent && onSaveEvent(editEvent, form)}
+          onSave={async (form) => {
+            const prevStatus = editEvent?.status;
+            const convSnapshot =
+              form.status === "encerrado" && prevStatus !== "encerrado"
+                ? [...convocacoes]
+                : [];
+
+            const saved = await onSaveEvent(editEvent, form);
+
+            if (form.status === "encerrado" && prevStatus !== "encerrado") {
+              setClosureEvent({
+                event:    saved ?? { ...editEvent, ...form },
+                snapshot: convSnapshot,
+              });
+            }
+
+            setShowNew(false);
+            setEditEvent(null);
+          }}
+        />
+      )}
+
+      {closureEvent && (
+        <EventClosureModal
+          event={closureEvent.event}
+          specialists={specialists}
+          collectionPoints={collectionPoints}
+          convocacoes={closureEvent.snapshot}
+          onClose={() => setClosureEvent(null)}
         />
       )}
     </>

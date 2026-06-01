@@ -18,6 +18,7 @@ public class ConvocacaoGetDTO {
     private Integer especialistaId;
     private String  especialistaNome;
     private String  especialistaProfissao;
+    private String  especialistaUf;
     private String  status;
     private String  tipo;
     private String  convocadoEm;
@@ -51,9 +52,10 @@ public class ConvocacaoGetDTO {
         }
 
         if (c.getEspecialista() != null) {
-            this.especialistaId       = c.getEspecialista().getId();
-            this.especialistaNome     = c.getEspecialista().getNome();
-            this.especialistaProfissao = c.getEspecialista().getProfissao();
+            this.especialistaId         = c.getEspecialista().getId();
+            this.especialistaNome       = c.getEspecialista().getNome();
+            this.especialistaProfissao  = c.getEspecialista().getProfissao();
+            this.especialistaUf         = c.getEspecialista().getUf();
         }
     }
 
@@ -72,9 +74,10 @@ public class ConvocacaoGetDTO {
     public Integer getEspecialistaId()        { return especialistaId; }
     public String  getEspecialistaNome()      { return especialistaNome; }
     public String  getEspecialistaProfissao() { return especialistaProfissao; }
+    public String  getEspecialistaUf()        { return especialistaUf; }
     public String  getStatus()                { return status; }
     public String  getTipo()                  { return tipo; }
     public String  getConvocadoEm()           { return convocadoEm; }
     public String  getRespondidoEm()          { return respondidoEm; }
-    public String getChegadaEm()              { return chegadaEm; }
+    public String  getChegadaEm()              { return chegadaEm; }
 }

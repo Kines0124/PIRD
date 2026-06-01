@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.pird.pirdBackend.dto.EventoGetDTO;
 import com.pird.pirdBackend.dto.EventoPostDTO;
+import com.pird.pirdBackend.dto.EventoRelatorioDTO;
 import com.pird.pirdBackend.model.Administrador;
 import com.pird.pirdBackend.service.EventoService;
 
@@ -59,5 +60,11 @@ public class EventoController {
     public ResponseEntity<Void> deletar(@PathVariable Integer id) {
         eventoService.deletar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/relatorio")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<EventoRelatorioDTO> relatorio(@PathVariable Integer id) {
+        return ResponseEntity.ok(eventoService.gerarRelatorio(id));
     }
 }
