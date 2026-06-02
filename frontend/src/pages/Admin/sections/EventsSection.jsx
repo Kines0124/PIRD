@@ -165,11 +165,13 @@ function EventDetailMap({ event, collectionPoints, criticalPoints }) {
 
 // ─── Aba de fotos do evento ───────────────────────────────────────────────────
 function FotosTab({ eventoId, onCountChange }) {
-  const [fotos, setFotos]         = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [expanded, setExpanded]   = useState(null);
-  const fileInputRef              = useRef(null);
+  const [fotos, setFotos]             = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [uploading, setUploading]     = useState(false);
+  const [expanded, setExpanded]       = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deleting, setDeleting]       = useState(false);
+  const fileInputRef                  = useRef(null);
 
   useEffect(() => {
     setLoading(true);
@@ -199,12 +201,20 @@ function FotosTab({ eventoId, onCountChange }) {
   }
 
   async function handleDelete(foto) {
-    if (!window.confirm(`Remover "${foto.nomeArquivo || "esta foto"}"?`)) return;
+    setConfirmDelete(foto);
+  }
+
+  async function confirmDeleteFoto() {
+    if (!confirmDelete) return;
+    setDeleting(true);
     try {
-      await deletarFoto(eventoId, foto.id);
-      setFotos(prev => prev.filter(f => f.id !== foto.id));
+      await deletarFoto(eventoId, confirmDelete.id);
+      setFotos(prev => prev.filter(f => f.id !== confirmDelete.id));
+      setConfirmDelete(null);
     } catch (err) {
       alert("Erro ao remover foto: " + err.message);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -261,6 +271,41 @@ function FotosTab({ eventoId, onCountChange }) {
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {confirmDelete && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 600,
+          background: "rgba(0,0,0,0.55)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <div style={{
+            background: "var(--bg-surface)", border: "1px solid var(--border)",
+            borderRadius: 12, padding: "24px 28px", width: 340, maxWidth: "90vw",
+            boxShadow: "0 16px 48px rgba(0,0,0,0.45)",
+          }}>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Remover foto?</div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 20, wordBreak: "break-all" }}>
+              {confirmDelete.nomeArquivo || "Esta foto será removida permanentemente."}
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                disabled={deleting}
+                onClick={() => setConfirmDelete(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn btn-danger btn-sm"
+                disabled={deleting}
+                onClick={confirmDeleteFoto}
+              >
+                {deleting ? "Removendo…" : "Remover"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
