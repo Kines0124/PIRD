@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import gsap from "gsap";
 
@@ -41,15 +41,65 @@ const PERFIS = [
 ];
 
 const LINKS = [
-  { to: "/form",                label: "Fazer uma doação" },
-  { to: "/pontos-coleta/novo",  label: "Cadastrar ponto de coleta" },
+  { to: "/form",                   label: "Fazer uma doação" },
+  { to: "/pontos-coleta/novo",     label: "Cadastrar ponto de coleta" },
   { to: "/especialistas/cadastro", label: "Cadastrar como especialista" },
 ];
 
 export default function TelaLogin({ onLogin }) {
-  const navigate = useNavigate();
-  const btnRefs = useRef([]);
+  const navigate  = useNavigate();
+  const btnRefs   = useRef([]);
+  const badgeRef  = useRef(null);
+  const titleRef  = useRef(null);
+  const subtitleRef = useRef(null);
+  const cardsRef  = useRef(null);
+  const linksRef  = useRef(null);
 
+  // ── Timeline de entrada ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+      // Badge desce do topo
+      tl.fromTo(badgeRef.current,
+        { y: -18, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5 }
+      )
+      // Wordmark sobe com overshoot leve
+      .fromTo(titleRef.current,
+        { y: 32, opacity: 0, scale: 0.96 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.3)" },
+        "-=0.25"
+      )
+      // Subtítulo logo atrás
+      .fromTo(subtitleRef.current,
+        { y: 14, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.45 },
+        "-=0.35"
+      )
+      // Cards em stagger — cada um sobe e aparece
+      .fromTo(btnRefs.current,
+        { y: 28, opacity: 0, scale: 0.97 },
+        {
+          y: 0, opacity: 1, scale: 1,
+          duration: 0.5,
+          stagger: 0.08,
+          ease: "back.out(1.4)",
+        },
+        "-=0.2"
+      )
+      // Links fade-in ao final
+      .fromTo(linksRef.current?.children ? Array.from(linksRef.current.children) : [],
+        { y: 10, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.35, stagger: 0.06 },
+        "-=0.15"
+      );
+    });
+
+    return () => ctx.revert();
+  }, []);
+
+  // ── Click com elastic feedback ───────────────────────────────────────────────
   function handleCardClick(p, i) {
     if (p.id === "ponto") { navigate("/pontos-coleta"); return; }
     const btn = btnRefs.current[i];
@@ -60,8 +110,37 @@ export default function TelaLogin({ onLogin }) {
         else onLogin(p.id);
       },
     })
-      .to(btn, { scale: 0.93, duration: 0.12, ease: "power2.in" })
-      .to(btn, { scale: 1,    duration: 0.5,  ease: "elastic.out(1, 0.5)" });
+      .to(btn, { scale: 0.93, duration: 0.1,  ease: "power2.in" })
+      .to(btn, { scale: 1,    duration: 0.55, ease: "elastic.out(1, 0.45)" });
+  }
+
+  // ── Hover com GSAP (sem CSS transition nos campos animados) ──────────────────
+  function handleMouseEnter(p, i) {
+    const btn = btnRefs.current[i];
+    if (!btn) return;
+    gsap.to(btn, {
+      y: -5,
+      scale: 1.025,
+      duration: 0.22,
+      ease: "power2.out",
+    });
+    btn.style.borderColor = `${p.cor}55`;
+    btn.style.background  = "var(--bg-elevated)";
+    btn.style.boxShadow   = `0 16px 40px rgba(0,0,0,0.38), 0 0 0 1px ${p.cor}22`;
+  }
+
+  function handleMouseLeave(i) {
+    const btn = btnRefs.current[i];
+    if (!btn) return;
+    gsap.to(btn, {
+      y: 0,
+      scale: 1,
+      duration: 0.28,
+      ease: "power3.out",
+    });
+    btn.style.borderColor = "var(--border)";
+    btn.style.background  = "var(--bg-surface)";
+    btn.style.boxShadow   = "none";
   }
 
   return (
@@ -107,14 +186,18 @@ export default function TelaLogin({ onLogin }) {
       }}>
 
         {/* ── Status badge ── */}
-        <div style={{
-          display: "inline-flex", alignItems: "center", gap: 10,
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 999,
-          padding: "6px 16px",
-          marginBottom: 40,
-        }}>
+        <div
+          ref={badgeRef}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 10,
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 999,
+            padding: "6px 16px",
+            marginBottom: 40,
+            opacity: 0, // começa invisível; GSAP anima
+          }}
+        >
           <span style={{
             display: "block", width: 7, height: 7, borderRadius: "50%",
             background: "#22c55e",
@@ -132,27 +215,36 @@ export default function TelaLogin({ onLogin }) {
 
         {/* ── Wordmark ── */}
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <h1 style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 88,
-            fontWeight: 800,
-            color: "var(--text-primary)",
-            letterSpacing: "-0.01em",
-            lineHeight: 0.92,
-            margin: "0 0 14px",
-          }}>BASE</h1>
+          <h1
+            ref={titleRef}
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 88,
+              fontWeight: 800,
+              color: "var(--text-primary)",
+              letterSpacing: "-0.01em",
+              lineHeight: 0.92,
+              margin: "0 0 14px",
+              opacity: 0, // começa invisível; GSAP anima
+            }}
+          >
+            BASE
+          </h1>
 
-          <p style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            color: "var(--text-muted)",
-            letterSpacing: "0.26em",
-            textTransform: "uppercase",
-            margin: "0 0 22px",
-          }}>
+          <p
+            ref={subtitleRef}
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 10,
+              color: "var(--text-muted)",
+              letterSpacing: "0.26em",
+              textTransform: "uppercase",
+              margin: "0 0 22px",
+              opacity: 0, // começa invisível; GSAP anima
+            }}
+          >
             Banco de Apoio e Suporte em Emergências
           </p>
-
         </div>
 
         {/* ── Profile buttons ── */}
@@ -166,6 +258,8 @@ export default function TelaLogin({ onLogin }) {
               key={p.id}
               ref={el => { btnRefs.current[i] = el; }}
               onClick={() => handleCardClick(p, i)}
+              onMouseEnter={() => handleMouseEnter(p, i)}
+              onMouseLeave={() => handleMouseLeave(i)}
               style={{
                 display: "flex", flexDirection: "column", alignItems: "flex-start",
                 gap: 16,
@@ -175,22 +269,9 @@ export default function TelaLogin({ onLogin }) {
                 borderRadius: "var(--radius-xl)",
                 cursor: "pointer",
                 width: 210,
-                transition: "border-color 0.2s, background 0.2s, box-shadow 0.2s",
                 textAlign: "left",
-              }}
-              onMouseEnter={() => {
-                const btn = btnRefs.current[i];
-                gsap.to(btn, { y: -4, duration: 0.2 });
-                btn.style.borderColor = `${p.cor}55`;
-                btn.style.background = "var(--bg-elevated)";
-                btn.style.boxShadow = `0 12px 32px rgba(0,0,0,0.35)`;
-              }}
-              onMouseLeave={() => {
-                const btn = btnRefs.current[i];
-                gsap.to(btn, { y: 0, duration: 0.2 });
-                btn.style.borderColor = "var(--border)";
-                btn.style.background = "var(--bg-surface)";
-                btn.style.boxShadow = "none";
+                opacity: 0, // começa invisível; GSAP anima
+                willChange: "transform",
               }}
             >
               <div style={{
@@ -227,10 +308,13 @@ export default function TelaLogin({ onLogin }) {
         </div>
 
         {/* ── Quick links ── */}
-        <div style={{
-          display: "flex", gap: 28, justifyContent: "center",
-          flexWrap: "wrap",
-        }}>
+        <div
+          ref={linksRef}
+          style={{
+            display: "flex", gap: 28, justifyContent: "center",
+            flexWrap: "wrap",
+          }}
+        >
           {LINKS.map(lk => (
             <Link
               key={lk.to}
@@ -241,6 +325,7 @@ export default function TelaLogin({ onLogin }) {
                 fontFamily: "var(--font-mono)",
                 textDecoration: "none",
                 letterSpacing: "0.08em",
+                opacity: 0, // começa invisível; GSAP anima
                 transition: "color 0.15s",
               }}
               onMouseEnter={e => { e.currentTarget.style.color = "var(--text-primary)"; }}

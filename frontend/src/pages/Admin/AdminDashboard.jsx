@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import gsap from "gsap";
 import { styles } from "./adminTheme.jsx";
 import * as adminApi from "../../services/adminApi.js";
 import OverviewSection         from "./sections/OverviewSection.jsx";
@@ -13,14 +14,70 @@ import EspecialistasSection    from "./sections/EspecialistasSection.jsx";
 import EventModal              from "./modals/EventModal.jsx";
 import CriticalPointModal      from "./modals/CriticalPointModal.jsx";
 
-// ─── Login gate ───────────────────────────────────────────────────────────────
+// ─── Nav order (para slide direction) ────────────────────────────────────────
+const NAV_ORDER = {
+  overview: 0, dashboard: 1, events: 2, campo: 3,
+  especialistas: 4, critical: 5, collection: 6, validacoes: 7,
+};
 
+// ─── Animated badge ───────────────────────────────────────────────────────────
+function AnimatedBadge({ count, blue }) {
+  const ref   = useRef(null);
+  const prev  = useRef(count);
+
+  useEffect(() => {
+    if (!ref.current || count === prev.current) return;
+    prev.current = count;
+    gsap.fromTo(ref.current,
+      { scale: 0, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.38, ease: "back.out(2)" }
+    );
+  }, [count]);
+
+  if (!count || count <= 0) return null;
+  return (
+    <span
+      ref={ref}
+      className={`nav-badge ${blue ? "blue" : ""}`}
+      style={{ display: "inline-flex" }}
+    >
+      {count}
+    </span>
+  );
+}
+
+// ─── Section wrapper com slide direcional ────────────────────────────────────
+function SectionSlide({ sectionId, prevSectionId, children }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!ref.current || !prevSectionId || prevSectionId === sectionId) return;
+    const dir = (NAV_ORDER[sectionId] ?? 0) > (NAV_ORDER[prevSectionId] ?? 0) ? 1 : -1;
+    gsap.fromTo(ref.current,
+      { x: dir * 28, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.32, ease: "power3.out" }
+    );
+  }, [sectionId]);
+
+  return <div ref={ref} style={{ flex: 1, display: "contents" }}>{children}</div>;
+}
+
+// ─── Login gate ───────────────────────────────────────────────────────────────
 function LoginGate({ onLogin }) {
   const [email,   setEmail]   = useState("");
   const [senha,   setSenha]   = useState("");
   const [error,   setError]   = useState(null);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const cardRef   = useRef(null);
+
+  useEffect(() => {
+    if (!cardRef.current) return;
+    gsap.fromTo(cardRef.current,
+      { y: 48, opacity: 0, scale: 0.97 },
+      { y: 0, opacity: 1, scale: 1, duration: 0.48, ease: "back.out(1.4)" }
+    );
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -45,7 +102,11 @@ function LoginGate({ onLogin }) {
     <>
       <style>{styles}</style>
       <div className="app-shell dot-bg" style={{ alignItems: "center", justifyContent: "center" }}>
-        <div className="card" style={{ width: 400, maxWidth: "90vw", animation: "slideUp 0.4s ease" }}>
+        <div
+          ref={cardRef}
+          className="card"
+          style={{ width: 400, maxWidth: "90vw", opacity: 0 }}
+        >
           <div className="card-header">
             <div className="card-title">🔐 Acesso — Defesa Civil</div>
           </div>
@@ -67,7 +128,8 @@ function LoginGate({ onLogin }) {
                 </div>
               )}
               <button className="btn btn-primary" type="submit"
-                disabled={loading || !email || !senha} style={{ opacity: loading || !email || !senha ? 0.5 : 1 }}>
+                disabled={loading || !email || !senha}
+                style={{ opacity: loading || !email || !senha ? 0.5 : 1 }}>
                 {loading ? "Entrando…" : "Entrar"}
               </button>
             </form>
@@ -87,9 +149,9 @@ function LoginGate({ onLogin }) {
 }
 
 // ─── Admin panel ──────────────────────────────────────────────────────────────
-
 function AdminPanel({ onLogout }) {
-  const [section, setSection] = useState("overview");
+  const [section,    setSection]    = useState("overview");
+  const [prevSection, setPrevSection] = useState(null);
 
   const [events,           setEvents]           = useState([]);
   const [criticalPoints,   setCriticalPoints]   = useState([]);
@@ -104,7 +166,6 @@ function AdminPanel({ onLogout }) {
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [showNewPoint, setShowNewPoint] = useState(false);
 
-  // Statuses de campo dos especialistas (local — provisório)
   const [specialistStatuses, setSpecialistStatuses] = useState({});
 
   useEffect(() => {
@@ -116,15 +177,12 @@ function AdminPanel({ onLogout }) {
     });
     setSpecialistStatuses(map);
   }, [convocacoes]);
-  // ID de evento a abrir automaticamente em EventsSection
+
   const [pendingOpenEventId,      setPendingOpenEventId]      = useState(null);
-  // ID de ponto de coleta a abrir automaticamente em CollectionPointsSection
   const [pendingOpenCollectionId, setPendingOpenCollectionId] = useState(null);
 
-  // Notifications dropdown
   const [showNotifs, setShowNotifs] = useState(false);
 
-  // Settings modal
   const [showSettings,       setShowSettings]       = useState(false);
   const [settingsNome,       setSettingsNome]       = useState("");
   const [settingsSenhaAtual, setSettingsSenhaAtual] = useState("");
@@ -133,6 +191,81 @@ function AdminPanel({ onLogout }) {
   const [settingsEmail,      setSettingsEmail]      = useState("");
   const [settingsSaving,     setSettingsSaving]     = useState(false);
   const [settingsMsg,        setSettingsMsg]        = useState(null);
+
+  // Refs para animações de entrada
+  const sidebarRef  = useRef(null);
+  const topbarRef   = useRef(null);
+  const navItemsRef = useRef([]);
+  const notifsRef   = useRef(null);
+  const settingsModalRef = useRef(null);
+
+  // ── Entrada do painel ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+      // Sidebar desliza da esquerda
+      tl.fromTo(sidebarRef.current,
+        { x: -48, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.5 }
+      )
+      // Nav items em stagger
+      .fromTo(navItemsRef.current.filter(Boolean),
+        { x: -18, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.35, stagger: 0.045 },
+        "-=0.25"
+      )
+      // Topbar desce do topo
+      .fromTo(topbarRef.current,
+        { y: -24, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.4 },
+        "-=0.3"
+      );
+    });
+
+    return () => ctx.revert();
+  }, []);
+
+  // ── Notificações dropdown ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!notifsRef.current) return;
+    if (showNotifs) {
+      gsap.fromTo(notifsRef.current,
+        { scaleY: 0.7, opacity: 0, transformOrigin: "top right" },
+        { scaleY: 1, opacity: 1, duration: 0.28, ease: "back.out(1.5)" }
+      );
+    }
+  }, [showNotifs]);
+
+  // ── Modal de configurações ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (!showSettings || !settingsModalRef.current) return;
+    const overlay = settingsModalRef.current.querySelector("[data-overlay]");
+    const modal   = settingsModalRef.current.querySelector("[data-modal]");
+    gsap.fromTo(overlay,
+      { opacity: 0 },
+      { opacity: 1, duration: 0.22, ease: "power2.out" }
+    );
+    gsap.fromTo(modal,
+      { y: 36, opacity: 0, scale: 0.97 },
+      { y: 0, opacity: 1, scale: 1, duration: 0.42, ease: "back.out(1.4)" }
+    );
+  }, [showSettings]);
+
+  function closeSettings() {
+    if (!settingsModalRef.current) { setShowSettings(false); return; }
+    const overlay = settingsModalRef.current.querySelector("[data-overlay]");
+    const modal   = settingsModalRef.current.querySelector("[data-modal]");
+    gsap.to(modal,   { y: 28, opacity: 0, scale: 0.97, duration: 0.25, ease: "power3.in" });
+    gsap.to(overlay, { opacity: 0, duration: 0.2, ease: "power2.in",
+      onComplete: () => setShowSettings(false) });
+  }
+
+  // ── Nav ────────────────────────────────────────────────────────────────────
+  function handleSetSection(id) {
+    setPrevSection(section);
+    setSection(id);
+  }
 
   async function loadAll() {
     try {
@@ -160,9 +293,7 @@ function AdminPanel({ onLogout }) {
     }
   }
 
-  useEffect(() => {
-    loadAll();
-  }, []);
+  useEffect(() => { loadAll(); }, []);
 
   async function openSettings() {
     setSettingsSaving(false);
@@ -183,21 +314,11 @@ function AdminPanel({ onLogout }) {
 
   async function handleSaveSettings() {
     if (settingsSenha.trim()) {
-      if (!settingsSenhaAtual.trim()) {
-        setSettingsMsg({ ok: false, text: "Informe a senha atual para alterar a senha." });
-        return;
-      }
-      if (settingsSenha !== settingsConfirm) {
-        setSettingsMsg({ ok: false, text: "A nova senha e a confirmação não coincidem." });
-        return;
-      }
-      if (settingsSenha.trim().length < 6) {
-        setSettingsMsg({ ok: false, text: "A nova senha deve ter pelo menos 6 caracteres." });
-        return;
-      }
+      if (!settingsSenhaAtual.trim()) { setSettingsMsg({ ok: false, text: "Informe a senha atual para alterar a senha." }); return; }
+      if (settingsSenha !== settingsConfirm) { setSettingsMsg({ ok: false, text: "A nova senha e a confirmação não coincidem." }); return; }
+      if (settingsSenha.trim().length < 6)  { setSettingsMsg({ ok: false, text: "A nova senha deve ter pelo menos 6 caracteres." }); return; }
     }
-    setSettingsSaving(true);
-    setSettingsMsg(null);
+    setSettingsSaving(true); setSettingsMsg(null);
     try {
       const body = {};
       if (settingsNome.trim())       body.nome       = settingsNome.trim();
@@ -206,14 +327,10 @@ function AdminPanel({ onLogout }) {
       await adminApi.updateAdminPerfil(body);
       if (body.nome) sessionStorage.setItem("admin_nome", body.nome);
       setSettingsMsg({ ok: true, text: "Perfil atualizado com sucesso." });
-      setSettingsSenhaAtual("");
-      setSettingsSenha("");
-      setSettingsConfirm("");
+      setSettingsSenhaAtual(""); setSettingsSenha(""); setSettingsConfirm("");
     } catch (e) {
       setSettingsMsg({ ok: false, text: e.message || "Erro ao salvar." });
-    } finally {
-      setSettingsSaving(false);
-    }
+    } finally { setSettingsSaving(false); }
   }
 
   function handleUpdateSpecialistStatus(id, status) {
@@ -225,9 +342,7 @@ function AdminPanel({ onLogout }) {
       if (editEvent) await adminApi.updateEvento(editEvent.id, form);
       else           await adminApi.createEvento(form);
       await loadAll();
-    } catch (e) {
-      alert("Erro ao salvar evento: " + e.message);
-    }
+    } catch (e) { alert("Erro ao salvar evento: " + e.message); }
   }
 
   async function handleSavePoint(editPoint, form) {
@@ -262,12 +377,8 @@ function AdminPanel({ onLogout }) {
   async function handleAprovarRegistro(id) {
     try {
       await adminApi.aprovarRegistroPontoColeta(id);
-      const [cols, regs] = await Promise.all([
-        adminApi.getPontosColeta(),
-        adminApi.getRegistrosPontoColeta(),
-      ]);
-      setCollectionPoints(cols);
-      setRegistros(regs);
+      const [cols, regs] = await Promise.all([adminApi.getPontosColeta(), adminApi.getRegistrosPontoColeta()]);
+      setCollectionPoints(cols); setRegistros(regs);
     } catch (e) { alert("Erro ao aprovar cadastro: " + e.message); }
   }
 
@@ -281,24 +392,16 @@ function AdminPanel({ onLogout }) {
   async function handleAprovarEspecialista(id) {
     try {
       await adminApi.aprovarEspecialista(id);
-      const [specs, regsEsp] = await Promise.all([
-        adminApi.getEspecialistasAprovados(),
-        adminApi.getEspecialistas(),
-      ]);
-      setSpecialists(specs);
-      setRegistrosEsp(regsEsp);
+      const [specs, regsEsp] = await Promise.all([adminApi.getEspecialistasAprovados(), adminApi.getEspecialistas()]);
+      setSpecialists(specs); setRegistrosEsp(regsEsp);
     } catch (e) { alert("Erro ao aprovar especialista: " + e.message); }
   }
 
   async function handleReprovarEspecialista(id, obs) {
     try {
       await adminApi.reprovarEspecialista(id, obs);
-      const [specs, regsEsp] = await Promise.all([
-        adminApi.getEspecialistasAprovados(),
-        adminApi.getEspecialistas(),
-      ]);
-      setSpecialists(specs);
-      setRegistrosEsp(regsEsp);
+      const [specs, regsEsp] = await Promise.all([adminApi.getEspecialistasAprovados(), adminApi.getEspecialistas()]);
+      setSpecialists(specs); setRegistrosEsp(regsEsp);
     } catch (e) { alert("Erro ao reprovar especialista: " + e.message); }
   }
 
@@ -323,24 +426,19 @@ function AdminPanel({ onLogout }) {
 
   const navItems = [
     { id: "overview",      icon: "◉",  label: "Visão Geral" },
-    { id: "dashboard",    icon: "📊", label: "Dashboard" },
-    { id: "events",       icon: "🌊", label: "Eventos",          badge: events.filter(e => e.status === "ativo").length },
-    { id: "campo",        icon: "🗺️", label: "Campo" },
-    { id: "especialistas",icon: "⚕️", label: "Especialistas",    badge: specialists.filter(s => s.status === "aprovado").length, badgeClass: "blue" },
-    { id: "critical",     icon: "⚠️", label: "Pontos Críticos",  badge: criticalPoints.length },
-    { id: "collection",   icon: "📦", label: "Pontos de Coleta" },
-    { id: "validacoes",   icon: "🙋", label: "Validações",       badge: pendingEspecialistas + pendingCols },
+    { id: "dashboard",     icon: "📊", label: "Dashboard" },
+    { id: "events",        icon: "🌊", label: "Eventos",         badge: events.filter(e => e.status === "ativo").length },
+    { id: "campo",         icon: "🗺️", label: "Campo" },
+    { id: "especialistas", icon: "⚕️", label: "Especialistas",   badge: specialists.filter(s => s.status === "aprovado").length, badgeBlue: true },
+    { id: "critical",      icon: "⚠️", label: "Pontos Críticos", badge: criticalPoints.length },
+    { id: "collection",    icon: "📦", label: "Pontos de Coleta" },
+    { id: "validacoes",    icon: "🙋", label: "Validações",      badge: pendingEspecialistas + pendingCols },
   ];
 
   const sectionTitles = {
-    overview:       "Visão Geral",
-    dashboard:      "Dashboard",
-    events:         "Eventos Oficiais",
-    campo:          "Campo",
-    especialistas:  "Especialistas Aprovados",
-    critical:       "Pontos Críticos",
-    collection:     "Pontos de Coleta",
-    validacoes:     "Validações de Cadastro",
+    overview: "Visão Geral", dashboard: "Dashboard", events: "Eventos Oficiais",
+    campo: "Campo", especialistas: "Especialistas Aprovados", critical: "Pontos Críticos",
+    collection: "Pontos de Coleta", validacoes: "Validações de Cadastro",
   };
 
   const adminNome = adminApi.getAdminNome();
@@ -350,19 +448,25 @@ function AdminPanel({ onLogout }) {
       <style>{styles}</style>
       <div className="app-shell">
 
-        <aside className="sidebar">
+        {/* ── Sidebar ── */}
+        <aside ref={sidebarRef} className="sidebar" style={{ opacity: 0 }}>
           <div className="sidebar-logo">
             <img src="/resources/logo.png" alt="Logo"
               style={{ width: 100, height: 100, borderRadius: 16, objectFit: "contain" }} />
           </div>
           <nav className="sidebar-nav">
             <div className="nav-section-label">Painel</div>
-            {navItems.map(item => (
-              <div key={item.id} className={`nav-item ${section === item.id ? "active" : ""}`}
-                onClick={() => setSection(item.id)}>
+            {navItems.map((item, i) => (
+              <div
+                key={item.id}
+                ref={el => { navItemsRef.current[i] = el; }}
+                className={`nav-item ${section === item.id ? "active" : ""}`}
+                onClick={() => handleSetSection(item.id)}
+                style={{ opacity: 0 }}
+              >
                 <span className="nav-icon">{item.icon}</span>
                 <span>{item.label}</span>
-                {item.badge > 0 && <span className={`nav-badge ${item.badgeClass || ""}`}>{item.badge}</span>}
+                <AnimatedBadge count={item.badge} blue={item.badgeBlue} />
               </div>
             ))}
           </nav>
@@ -383,8 +487,11 @@ function AdminPanel({ onLogout }) {
           </div>
         </aside>
 
+        {/* ── Main ── */}
         <main className="main">
-          <div className="topbar">
+
+          {/* Topbar */}
+          <div ref={topbarRef} className="topbar" style={{ opacity: 0 }}>
             <div>
               <div className="topbar-title">{sectionTitles[section]}</div>
               <div className="topbar-breadcrumb">BASE / {sectionTitles[section]}</div>
@@ -396,15 +503,13 @@ function AdminPanel({ onLogout }) {
                 <button className="btn btn-secondary btn-sm" onClick={loadAll}>↺ Retry</button>
               </div>
             )}
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={loadAll}
-              title="Recarregar dados"
-              style={{ display: "flex", alignItems: "center", gap: 5 }}
-            >
+            <button className="btn btn-secondary btn-sm" onClick={loadAll} title="Recarregar dados"
+              style={{ display: "flex", alignItems: "center", gap: 5 }}>
               ↺ Atualizar
             </button>
             <div className="topbar-status"><div className="status-dot" />Sistema Online</div>
+
+            {/* Notificações */}
             <div style={{ position: "relative" }}>
               <button
                 className="topbar-btn"
@@ -421,7 +526,8 @@ function AdminPanel({ onLogout }) {
               </button>
               {showNotifs && (
                 <div
-                  style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: 300, background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 10, zIndex: 300, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}
+                  ref={notifsRef}
+                  style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, width: 300, background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 10, zIndex: 300, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", transformOrigin: "top right" }}
                   onMouseLeave={() => setShowNotifs(false)}
                 >
                   <div style={{ padding: "12px 16px 8px", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>
@@ -430,11 +536,11 @@ function AdminPanel({ onLogout }) {
                   {[
                     { count: pendingEspecialistas, label: "Especialistas aguardando validação", icon: "⚕️", target: "validacoes" },
                     { count: pendingCols,          label: "Pontos de coleta pendentes",         icon: "📦", target: "validacoes" },
-                    { count: activeEvents,         label: "Eventos ativos no momento",          icon: "🌊", target: "events" },
+                    { count: activeEvents,         label: "Eventos ativos no momento",          icon: "🌊", target: "events"    },
                   ].map(n => (
                     <div
-                      key={n.target}
-                      onClick={() => { setSection(n.target); setShowNotifs(false); }}
+                      key={n.target + n.label}
+                      onClick={() => { handleSetSection(n.target); setShowNotifs(false); }}
                       style={{ padding: "11px 16px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", borderBottom: "1px solid var(--border)", transition: "background 0.1s" }}
                       onMouseEnter={e => e.currentTarget.style.background = "var(--bg-elevated)"}
                       onMouseLeave={e => e.currentTarget.style.background = ""}
@@ -451,97 +557,85 @@ function AdminPanel({ onLogout }) {
                 </div>
               )}
             </div>
+
             <button className="topbar-btn" title="Configurações" onClick={openSettings}>⚙️</button>
           </div>
 
+          {/* Conteúdo com slide direcional */}
           {section === "campo" ? (
             <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-              <CampoSection
-                events={events}
-                criticalPoints={criticalPoints}
-                specialists={specialists}
-                specialistStatuses={specialistStatuses}
-                onGoToEvent={(id) => { setPendingOpenEventId(String(id)); setSection("events"); }}
-              />
+              <SectionSlide sectionId={section} prevSectionId={prevSection}>
+                <CampoSection
+                  events={events}
+                  criticalPoints={criticalPoints}
+                  specialists={specialists}
+                  specialistStatuses={specialistStatuses}
+                  onGoToEvent={(id) => { setPendingOpenEventId(String(id)); handleSetSection("events"); }}
+                />
+              </SectionSlide>
             </div>
           ) : (
             <div className="content">
-              {section === "overview" && (
-                <OverviewSection
-                  events={events}
-                  criticalPoints={criticalPoints}
-                  volunteers={volunteers}
-                  collectionPoints={collectionPoints}
-                  specialists={specialists}
-                  onNewEvent={() => setShowNewEvent(true)}
-                  onNewPoint={() => setShowNewPoint(true)}
-                  onGoToCritical={() => setSection("critical")}
-                />
-              )}
-              {section === "dashboard" && (
-                <DashboardSection
-                  events={events}
-                  criticalPoints={criticalPoints}
-                  collectionPoints={collectionPoints}
-                  specialists={specialists}
-                  volunteers={volunteers}
-                />
-              )}
-              {section === "events" && (
-                <EventsSection
-                  events={events}
-                  onSaveEvent={handleSaveEvent}
-                  criticalPoints={criticalPoints}
-                  collectionPoints={collectionPoints}
-                  volunteers={volunteers}
-                  specialists={specialists}
-                  specialistStatuses={specialistStatuses}
-                  onUpdateStatus={handleUpdateSpecialistStatus}
-                  openEventId={pendingOpenEventId}
-                  onEventOpened={() => setPendingOpenEventId(null)}
-                  onGoToCollection={(id) => { setPendingOpenCollectionId(id); setSection("collection"); }}
-                  convocacoes={convocacoes}
-                  onConvocou={loadAll}
-                />
-              )}
-              {section === "critical" && (
-                <CriticalPointsSection
-                  criticalPoints={criticalPoints}
-                  onSavePoint={handleSavePoint}
-                  onDeletePoint={handleDeletePoint}
-                />
-              )}
-              {section === "collection" && (
-                <CollectionPointsSection
-                  collectionPoints={collectionPoints}
-                  openCollectionId={pendingOpenCollectionId}
-                  onCollectionOpened={() => setPendingOpenCollectionId(null)}
-                />
-              )}
-              {section === "especialistas" && (
-                <EspecialistasSection
-                  specialists={specialists}
-                  specialistStatuses={specialistStatuses}
-                  onUpdateStatus={handleUpdateSpecialistStatus}
-                  onDelete={handleDeletarEspecialista}
-                />
-              )}
-              {section === "validacoes" && (
-                <ValidacoesSection
-                  specialists={registrosEsp}
-                  onAprovar={handleAprovarEspecialista}
-                  onReprovar={handleReprovarEspecialista}
-                  onDeletar={handleDeletarRegistroEspecialista}
-                  registros={registros}
-                  onAprovarRegistro={handleAprovarRegistro}
-                  onRejeitarRegistro={handleRejeitarRegistro}
-                />
-              )}
+              <SectionSlide sectionId={section} prevSectionId={prevSection}>
+                {section === "overview" && (
+                  <OverviewSection
+                    events={events} criticalPoints={criticalPoints} volunteers={volunteers}
+                    collectionPoints={collectionPoints} specialists={specialists}
+                    onNewEvent={() => setShowNewEvent(true)} onNewPoint={() => setShowNewPoint(true)}
+                    onGoToCritical={() => handleSetSection("critical")}
+                  />
+                )}
+                {section === "dashboard" && (
+                  <DashboardSection
+                    events={events} criticalPoints={criticalPoints}
+                    collectionPoints={collectionPoints} specialists={specialists} volunteers={volunteers}
+                  />
+                )}
+                {section === "events" && (
+                  <EventsSection
+                    events={events} onSaveEvent={handleSaveEvent}
+                    criticalPoints={criticalPoints} collectionPoints={collectionPoints}
+                    volunteers={volunteers} specialists={specialists}
+                    specialistStatuses={specialistStatuses} onUpdateStatus={handleUpdateSpecialistStatus}
+                    openEventId={pendingOpenEventId} onEventOpened={() => setPendingOpenEventId(null)}
+                    onGoToCollection={(id) => { setPendingOpenCollectionId(id); handleSetSection("collection"); }}
+                    convocacoes={convocacoes} onConvocou={loadAll}
+                  />
+                )}
+                {section === "critical" && (
+                  <CriticalPointsSection
+                    criticalPoints={criticalPoints} onSavePoint={handleSavePoint} onDeletePoint={handleDeletePoint}
+                  />
+                )}
+                {section === "collection" && (
+                  <CollectionPointsSection
+                    collectionPoints={collectionPoints}
+                    openCollectionId={pendingOpenCollectionId}
+                    onCollectionOpened={() => setPendingOpenCollectionId(null)}
+                  />
+                )}
+                {section === "especialistas" && (
+                  <EspecialistasSection
+                    specialists={specialists} specialistStatuses={specialistStatuses}
+                    onUpdateStatus={handleUpdateSpecialistStatus} onDelete={handleDeletarEspecialista}
+                  />
+                )}
+                {section === "validacoes" && (
+                  <ValidacoesSection
+                    specialists={registrosEsp}
+                    onAprovar={handleAprovarEspecialista} onReprovar={handleReprovarEspecialista}
+                    onDeletar={handleDeletarRegistroEspecialista}
+                    registros={registros} onAprovarRegistro={handleAprovarRegistro}
+                    onRejeitarRegistro={handleRejeitarRegistro}
+                  />
+                )}
+              </SectionSlide>
             </div>
           )}
         </main>
       </div>
 
+      {/* Modais de evento e ponto */}
       {showNewEvent && (
         <EventModal
           onClose={() => setShowNewEvent(false)}
@@ -555,55 +649,63 @@ function AdminPanel({ onLogout }) {
         />
       )}
 
+      {/* Modal de configurações animado */}
       {showSettings && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowSettings(false)}>
-          <div className="modal" style={{ maxWidth: 440 }}>
-            <div className="modal-header">
-              <div className="modal-title">⚙️ Configurações do Perfil</div>
-              <button className="modal-close" onClick={() => setShowSettings(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label className="form-label">E-mail (somente leitura)</label>
-                <input className="form-input" value={settingsEmail} readOnly
-                  style={{ opacity: 0.6, cursor: "default", color: "var(--text-muted)" }} />
+        <div ref={settingsModalRef}>
+          <div
+            data-overlay
+            className="modal-overlay"
+            onClick={e => e.target === e.currentTarget && closeSettings()}
+            style={{ opacity: 0 }}
+          >
+            <div data-modal className="modal" style={{ maxWidth: 440, opacity: 0 }}>
+              <div className="modal-header">
+                <div className="modal-title">⚙️ Configurações do Perfil</div>
+                <button className="modal-close" onClick={closeSettings}>✕</button>
               </div>
-              <div className="form-group">
-                <label className="form-label">Nome</label>
-                <input className="form-input" value={settingsNome}
-                  onChange={e => setSettingsNome(e.target.value)}
-                  placeholder="Seu nome completo" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Senha Atual</label>
-                <input className="form-input" type="password" value={settingsSenhaAtual}
-                  onChange={e => { setSettingsSenhaAtual(e.target.value); setSettingsMsg(null); }}
-                  placeholder="Digite sua senha atual" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Nova Senha</label>
-                <input className="form-input" type="password" value={settingsSenha}
-                  onChange={e => { setSettingsSenha(e.target.value); setSettingsMsg(null); }}
-                  placeholder="Deixe em branco para manter a atual" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Confirmar Nova Senha</label>
-                <input className="form-input" type="password" value={settingsConfirm}
-                  onChange={e => { setSettingsConfirm(e.target.value); setSettingsMsg(null); }}
-                  placeholder="Repita a nova senha"
-                  style={{ borderColor: settingsConfirm && settingsSenha !== settingsConfirm ? "var(--danger)" : undefined }} />
-              </div>
-              {settingsMsg && (
-                <div style={{ fontSize: 13, padding: "8px 12px", borderRadius: 6, background: settingsMsg.ok ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${settingsMsg.ok ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`, color: settingsMsg.ok ? "#22c55e" : "#ef4444" }}>
-                  {settingsMsg.text}
+              <div className="modal-body">
+                <div className="form-group">
+                  <label className="form-label">E-mail (somente leitura)</label>
+                  <input className="form-input" value={settingsEmail} readOnly
+                    style={{ opacity: 0.6, cursor: "default", color: "var(--text-muted)" }} />
                 </div>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowSettings(false)}>Cancelar</button>
-              <button className="btn btn-primary" disabled={settingsSaving} style={{ opacity: settingsSaving ? 0.5 : 1 }} onClick={handleSaveSettings}>
-                {settingsSaving ? "Salvando..." : "💾 Salvar"}
-              </button>
+                <div className="form-group">
+                  <label className="form-label">Nome</label>
+                  <input className="form-input" value={settingsNome}
+                    onChange={e => setSettingsNome(e.target.value)} placeholder="Seu nome completo" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Senha Atual</label>
+                  <input className="form-input" type="password" value={settingsSenhaAtual}
+                    onChange={e => { setSettingsSenhaAtual(e.target.value); setSettingsMsg(null); }}
+                    placeholder="Digite sua senha atual" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Nova Senha</label>
+                  <input className="form-input" type="password" value={settingsSenha}
+                    onChange={e => { setSettingsSenha(e.target.value); setSettingsMsg(null); }}
+                    placeholder="Deixe em branco para manter a atual" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Confirmar Nova Senha</label>
+                  <input className="form-input" type="password" value={settingsConfirm}
+                    onChange={e => { setSettingsConfirm(e.target.value); setSettingsMsg(null); }}
+                    placeholder="Repita a nova senha"
+                    style={{ borderColor: settingsConfirm && settingsSenha !== settingsConfirm ? "var(--danger)" : undefined }} />
+                </div>
+                {settingsMsg && (
+                  <div style={{ fontSize: 13, padding: "8px 12px", borderRadius: 6, background: settingsMsg.ok ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${settingsMsg.ok ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`, color: settingsMsg.ok ? "#22c55e" : "#ef4444" }}>
+                    {settingsMsg.text}
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={closeSettings}>Cancelar</button>
+                <button className="btn btn-primary" disabled={settingsSaving}
+                  style={{ opacity: settingsSaving ? 0.5 : 1 }} onClick={handleSaveSettings}>
+                  {settingsSaving ? "Salvando..." : "💾 Salvar"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -612,8 +714,7 @@ function AdminPanel({ onLogout }) {
   );
 }
 
-// ─── Root component ───────────────────────────────────────────────────────────
-
+// ─── Root ─────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState(adminApi.isAuthenticated());
 
