@@ -71,3 +71,24 @@ export const convocarManual       = (eventoId, especialistaId) => req("POST", `/
 
 export const getAdminPerfil    = ()     => req("GET", "/admin/perfil");
 export const updateAdminPerfil = (data) => req("PUT", "/admin/perfil", data);
+
+export const getFotosByEvento = (eventoId)            => req("GET",    `/eventos/${eventoId}/fotos`);
+export const deletarFoto      = (eventoId, fotoId)    => req("DELETE", `/eventos/${eventoId}/fotos/${fotoId}`);
+
+export async function uploadFoto(eventoId, file) {
+  const formData = new FormData();
+  formData.append("arquivo", file);
+  const headers = {};
+  const token = getToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${BASE}/eventos/${eventoId}/fotos`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(msg || `HTTP ${res.status}`);
+  }
+  return res.json();
+}

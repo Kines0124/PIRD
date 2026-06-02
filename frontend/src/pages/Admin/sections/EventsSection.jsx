@@ -4,7 +4,8 @@ import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { severityColor, typeIcon, riskColor, severityBadge, statusBadge } from "../adminTheme.jsx";
 import EventModal from "../modals/EventModal.jsx";
 import EventClosureModal from "../modals/EventClosureModal";
-import { convocarManual } from "../../../services/adminApi.js";
+import { convocarManual, getFotosByEvento, uploadFoto, deletarFoto } from "../../../services/adminApi.js";
+import { FaTrash } from "react-icons/fa";
 
 const PROF_COLORS = {
   "Médico Clínico Geral":      "#2563eb",
@@ -162,10 +163,145 @@ function EventDetailMap({ event, collectionPoints, criticalPoints }) {
   );
 }
 
+// ─── Aba de fotos do evento ───────────────────────────────────────────────────
+function FotosTab({ eventoId, onCountChange }) {
+  const [fotos, setFotos]         = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [expanded, setExpanded]   = useState(null);
+  const fileInputRef              = useRef(null);
+
+  useEffect(() => {
+    setLoading(true);
+    getFotosByEvento(eventoId)
+      .then(setFotos)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [eventoId]);
+
+  useEffect(() => {
+    if (!loading) onCountChange?.(fotos.length);
+  }, [fotos, loading]);
+
+  async function handleUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setUploading(true);
+    try {
+      const nova = await uploadFoto(eventoId, file);
+      setFotos(prev => [...prev, nova]);
+    } catch (err) {
+      alert("Erro ao enviar foto: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleDelete(foto) {
+    if (!window.confirm(`Remover "${foto.nomeArquivo || "esta foto"}"?`)) return;
+    try {
+      await deletarFoto(eventoId, foto.id);
+      setFotos(prev => prev.filter(f => f.id !== foto.id));
+    } catch (err) {
+      alert("Erro ao remover foto: " + err.message);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button
+          className="btn btn-primary btn-sm"
+          disabled={uploading}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {uploading ? "Enviando…" : "＋ Adicionar foto"}
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleUpload} />
+      </div>
+
+      {loading ? (
+        <div className="empty-state">
+          <div className="empty-state-icon">⏳</div>
+          <div className="empty-state-text">Carregando fotos…</div>
+        </div>
+      ) : fotos.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-state-icon">📷</div>
+          <div className="empty-state-text">Nenhuma foto registrada para este evento</div>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+          {fotos.map(foto => (
+            <div
+              key={foto.id}
+              style={{ position: "relative", borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)", aspectRatio: "16/9", background: "var(--bg-elevated)" }}
+            >
+              <img
+                src={foto.fotoUrl}
+                alt={foto.nomeArquivo || "foto"}
+                style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "zoom-in", display: "block" }}
+                onClick={() => setExpanded(foto)}
+                onError={e => { e.target.style.display = "none"; }}
+              />
+              <button
+                onClick={() => handleDelete(foto)}
+                title="Remover foto"
+                style={{
+                  position: "absolute", top: 6, right: 6,
+                  width: 28, height: 28, borderRadius: "50%",
+                  border: "1.5px solid rgba(220,38,38,0.85)", background: "rgba(220,38,38,0.45)",
+                  color: "#fff", fontSize: 13, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  backdropFilter: "blur(4px)",
+                }}
+              >
+                <FaTrash />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {expanded && (
+        <div
+          onClick={() => setExpanded(null)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 500,
+            background: "rgba(0,0,0,0.88)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "zoom-out",
+          }}
+        >
+          <img
+            src={expanded.fotoUrl}
+            alt={expanded.nomeArquivo || "foto"}
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: "90vw", maxHeight: "88vh",
+              borderRadius: 10, objectFit: "contain",
+              boxShadow: "0 8px 48px rgba(0,0,0,0.6)",
+              cursor: "default",
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Drawer de detalhes do evento ─────────────────────────────────────────────
 function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, onClose, onEdit, onGoToCollection, convocacoes, onConvocou }) {
-  const [tab, setTab] = useState("mapa");
+  const [tab, setTab]                   = useState("mapa");
   const [localConvocados, setLocalConvocados] = useState({});
+  const [fotosCount, setFotosCount]     = useState(null);
+
+  useEffect(() => {
+    getFotosByEvento(event.id)
+      .then(data => setFotosCount(data.length))
+      .catch(() => {});
+  }, [event.id]);
 
   const nearbyPoints     = (event.nearbyCollectionIds || []).map(id => (collectionPoints || []).find(p => p.id === id)).filter(p => p && p.status === "validado");
   const activeVolunteers = (event.volunteerIds || []).map(id => (volunteers || []).find(v => v.id === id)).filter(v => v && v.status === "aprovado");
@@ -199,7 +335,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
 
   const tabs = [
     { id: "mapa",          label: "🗺️ Mapa" },
-    { id: "fotos",         label: `📷 Fotos${event.photos?.length ? ` (${event.photos.length})` : ""}` },
+    { id: "fotos",         label: `📷 Fotos${fotosCount !== null ? ` (${fotosCount})` : ""}` },
     { id: "coleta",        label: `📦 Coleta (${nearbyPoints.length})` },
     event.status !== "encerrado" ? { id: "especialistas", label: `⚕️ Especialistas (${assignedSpecialists.length})` } : null,
     event.status !== "encerrado" ? { id: "convocar", label: "🎯 Convocar" } : null,
@@ -310,21 +446,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
             </div>
           )}
 
-          {tab === "fotos" && (
-            <div>
-              {!event.photos || event.photos.length === 0 ? (
-                <div className="empty-state"><div className="empty-state-icon">📷</div><div className="empty-state-text">Nenhuma foto registrada para este evento</div></div>
-              ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
-                  {event.photos.map((url, i) => (
-                    <div key={i} style={{ borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)", aspectRatio: "16/9", background: "var(--bg-elevated)" }}>
-                      <img src={url} alt={`Foto ${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          {tab === "fotos" && <FotosTab eventoId={event.id} onCountChange={setFotosCount} />}
 
           {tab === "coleta" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

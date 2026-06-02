@@ -162,8 +162,6 @@ function AdminPanel({ onLogout }) {
 
   useEffect(() => {
     loadAll();
-    const id = setInterval(loadAll, 30_000);
-    return () => clearInterval(id);
   }, []);
 
   async function openSettings() {
@@ -398,6 +396,14 @@ function AdminPanel({ onLogout }) {
                 <button className="btn btn-secondary btn-sm" onClick={loadAll}>↺ Retry</button>
               </div>
             )}
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={loadAll}
+              title="Recarregar dados"
+              style={{ display: "flex", alignItems: "center", gap: 5 }}
+            >
+              ↺ Atualizar
+            </button>
             <div className="topbar-status"><div className="status-dot" />Sistema Online</div>
             <div style={{ position: "relative" }}>
               <button
