@@ -57,6 +57,18 @@ public class EventoService {
             );
         }
 
+        if (dto.getType() != null && dto.getAddress() != null && !dto.getAddress().isBlank()) {
+            boolean duplicado = eventoRepository.existsByTipoAndEnderecoIgnoreCaseAndStatus(
+                dto.getType(), dto.getAddress().trim(), "ativo"
+            );
+            if (duplicado) {
+                throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Já existe um evento ativo do tipo \"" + dto.getType() + "\" neste endereço."
+                );
+            }
+        }
+
         Evento evento = dto.convert();
         evento.setCriadoPor(admin);
         vincularPontoCritico(evento, dto);

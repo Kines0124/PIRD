@@ -22,7 +22,9 @@ async function req(method, path, body) {
     body: body != null ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
-    const msg = await res.text().catch(() => res.statusText);
+    const text = await res.text().catch(() => res.statusText);
+    let msg = text;
+    try { const j = JSON.parse(text); msg = j.message || j.detail || j.error || text; } catch (_) {}
     throw new Error(msg || `HTTP ${res.status}`);
   }
   if (res.status === 204) return null;

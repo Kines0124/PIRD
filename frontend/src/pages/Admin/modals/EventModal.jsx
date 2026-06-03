@@ -23,6 +23,9 @@ const PROFISSOES_NECESSARIAS = [
 ];
 
 export default function EventModal({ event, onClose, onSave }) {
+  const [saving, setSaving]     = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
   const [form, setForm] = useState({
     title: "",
     type: "enchente",
@@ -47,7 +50,7 @@ export default function EventModal({ event, onClose, onSave }) {
 
   const { sugestoes, carregando } = useGeocodingAutocomplete(addrQuery);
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setSaveError(null); };
 
   function toggleProfile(prof) {
     set("neededProfiles",
@@ -70,6 +73,18 @@ export default function EventModal({ event, onClose, onSave }) {
   }
 
   const canSave = form.title.trim() && form.lat && form.lng;
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onSave({ ...form, victims: form.victims ?? 0 });
+    } catch (e) {
+      setSaveError(e.message || "Erro ao salvar evento.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -256,15 +271,34 @@ export default function EventModal({ event, onClose, onSave }) {
 
         </div>
 
+        {saveError && (
+          <div style={{
+            margin: "0 24px 4px",
+            background: "rgba(220,38,38,0.08)",
+            border: "1px solid rgba(220,38,38,0.3)",
+            borderRadius: 8,
+            padding: "12px 14px",
+            fontSize: 13,
+            color: "#dc2626",
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+          }}>
+            <span style={{ flexShrink: 0 }}>⛔</span>
+            <span>{saveError}</span>
+          </div>
+        )}
+
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
           <button
             className="btn btn-primary"
-            disabled={!canSave }
-            style={{ opacity: (canSave) ? 1 : 0.4 }}
-            onClick={() => { onSave({ ...form, victims: form.victims ?? 0 }); onClose(); }}
+            disabled={!canSave || saving}
+            style={{ opacity: (canSave && !saving) ? 1 : 0.4 }}
+            onClick={handleSave}
           >
-            💾 Salvar Evento
+            {saving ? "Salvando…" : "💾 Salvar Evento"}
           </button>
         </div>
       </div>

@@ -44,7 +44,7 @@ public class Evento {
     )
     private Administrador criadoPor;
 
-    @Column(nullable = false, length = 200, unique = true)
+    @Column(nullable = false, length = 200)
     private String titulo;
 
     @Column(nullable = false, columnDefinition = "TEXT")

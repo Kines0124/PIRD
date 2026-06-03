@@ -338,11 +338,9 @@ function AdminPanel({ onLogout }) {
   }
 
   async function handleSaveEvent(editEvent, form) {
-    try {
-      if (editEvent) await adminApi.updateEvento(editEvent.id, form);
-      else           await adminApi.createEvento(form);
-      await loadAll();
-    } catch (e) { alert("Erro ao salvar evento: " + e.message); }
+    if (editEvent) await adminApi.updateEvento(editEvent.id, form);
+    else           await adminApi.createEvento(form);
+    await loadAll();
   }
 
   async function handleSavePoint(editPoint, form) {
@@ -639,7 +637,18 @@ function AdminPanel({ onLogout }) {
       {showNewEvent && (
         <EventModal
           onClose={() => setShowNewEvent(false)}
-          onSave={form => { handleSaveEvent(null, form); setShowNewEvent(false); }}
+          onSave={async form => {
+            if (form.type && form.address) {
+              const dup = events.find(e =>
+                e.status !== "encerrado" &&
+                e.type === form.type &&
+                (e.address || "").trim().toLowerCase() === form.address.trim().toLowerCase()
+              );
+              if (dup) throw new Error(`Já existe um evento ativo do tipo "${form.type}" neste endereço.`);
+            }
+            await handleSaveEvent(null, form);
+            setShowNewEvent(false);
+          }}
         />
       )}
       {showNewPoint && (

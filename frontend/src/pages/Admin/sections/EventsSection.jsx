@@ -742,6 +742,15 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
           event={editEvent}
           onClose={() => { setShowNew(false); setEditEvent(null); }}
           onSave={async (form) => {
+            if (!editEvent && form.type && form.address) {
+              const dup = (events || []).find(e =>
+                e.status !== "encerrado" &&
+                e.type === form.type &&
+                (e.address || "").trim().toLowerCase() === form.address.trim().toLowerCase()
+              );
+              if (dup) throw new Error(`Já existe um evento ativo do tipo "${form.type}" neste endereço.`);
+            }
+
             const prevStatus = editEvent?.status;
             const convSnapshot =
               form.status === "encerrado" && prevStatus !== "encerrado"
