@@ -5,7 +5,7 @@ import { Scanline, Logo, GlobalFooter, IconArrowRight, IconArrowLeft, IconLoader
 import { formatCNPJ } from './shared';
 import { loginPonto } from '../../services/pontoColetaApi';
 
-export default function PontoColetaLogin({ onLogin, onBack }) {
+export default function PontoColetaLogin({ onLogin, onBack, onRegister }) {
   const containerRef = useRef(null);
   const cardRef      = useRef(null);
   const submitRef    = useRef(null);
@@ -127,6 +127,16 @@ export default function PontoColetaLogin({ onLogin, onBack }) {
         </div>
 
       </form>
+
+      <div className="pc-lg-row" style={{ marginTop: 20, textAlign: 'center' }}>
+        <span style={{ color: 'var(--t2)', fontSize: 12, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
+          Não tenho uma conta e quero me{' '}
+        </span>
+        <button type="button" onClick={onRegister}
+          style={{ background: 'none', border: 'none', color: 'var(--t1)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontWeight: 700, textDecoration: 'underline', padding: 0, letterSpacing: '0.04em' }}>
+          CADASTRAR
+        </button>
+      </div>
 
       <GlobalFooter />
     </div>

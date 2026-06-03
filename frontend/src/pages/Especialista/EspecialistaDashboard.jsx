@@ -1108,6 +1108,15 @@ function LoginScreen({ email, setEmail, senha, setSenha, onSubmit, loading, erro
           style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", fontFamily: "monospace", letterSpacing: "0.04em", padding: 0, alignSelf: "flex-start" }}>
           ← Voltar à tela inicial
         </button>
+        <div style={{ textAlign: "center", paddingTop: 4 }}>
+          <span style={{ color: "var(--text-muted)", fontSize: 12, fontFamily: "monospace" }}>
+            Não tenho uma conta e quero me{" "}
+          </span>
+          <button type="button" onClick={() => navigate("/especialistas/cadastro")}
+            style={{ background: "none", border: "none", color: "var(--text-primary)", fontSize: 12, cursor: "pointer", fontFamily: "monospace", fontWeight: 700, textDecoration: "underline", padding: 0, letterSpacing: "0.04em" }}>
+            CADASTRAR
+          </button>
+        </div>
       </form>
     </div>
   );

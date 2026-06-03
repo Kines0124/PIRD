@@ -37,6 +37,7 @@ export default function PontoColetaApp() {
         <PontoColetaLogin
           onLogin={() => setView('dashboard')}
           onBack={() => navigate('/login')}
+          onRegister={() => { navigate('/pontos-coleta/novo'); setView('formulario'); }}
         />
       )}
       {view === 'formulario' && (
