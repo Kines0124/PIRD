@@ -1,8 +1,13 @@
-﻿import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
+import { gsap } from "gsap";
 import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { severityColor, typeIcon, riskColor, severityBadge, statusBadge } from "../adminTheme.jsx";
 
+// ─── Constantes ────────────────────────────────────────────────────────────────
+const SEVERITY_ORDER = { critico: 0, alto: 1, medio: 2, baixo: 3 };
+
+// ─── MapView (sem alterações) ──────────────────────────────────────────────────
 function MapView({ events, criticalPoints, collectionPoints, onVerMaisCritico }) {
   const containerRef = useRef(null);
   const mapRef       = useRef(null);
@@ -112,45 +117,170 @@ function MapView({ events, criticalPoints, collectionPoints, onVerMaisCritico })
   );
 }
 
+// ─── OverviewSection ───────────────────────────────────────────────────────────
 export default function OverviewSection({ events, criticalPoints, volunteers, collectionPoints, specialists = [], onNewEvent, onNewPoint, onGoToCritical }) {
+  // Refs para animação — um por grupo de elementos
+  const kpiCardsRef    = useRef([]);
+  const accentBarsRef  = useRef([]);
+  const kpiValuesRef   = useRef([]);
+  const grid60Ref      = useRef([]);
+  const eventItemsRef  = useRef([]);
+  const grid2Ref       = useRef([]);
+  const tableRowsRef   = useRef([]);
+  const volRowsRef     = useRef([]);
+  const volAvatarsRef  = useRef([]);
+  const alertRef       = useRef(null);
+  const prevAlertRef   = useRef(false);
+
+  // Helpers para popular os ref arrays via callback ref
+  const setKpiCardRef   = i => el => { kpiCardsRef.current[i]   = el; };
+  const setAccentBarRef = i => el => { accentBarsRef.current[i] = el; };
+  const setKpiValueRef  = i => el => { kpiValuesRef.current[i]  = el; };
+  const setGrid60Ref    = i => el => { grid60Ref.current[i]     = el; };
+  const setEventRef     = i => el => { eventItemsRef.current[i] = el; };
+  const setGrid2Ref     = i => el => { grid2Ref.current[i]      = el; };
+  const setTableRowRef  = i => el => { tableRowsRef.current[i]  = el; };
+  const setVolRowRef    = i => el => { volRowsRef.current[i]    = el; };
+  const setVolAvatarRef = i => el => { volAvatarsRef.current[i] = el; };
+
+  // ── Dados derivados ──────────────────────────────────────────────────────
   const activeEvents  = events.filter(e => e.status === "ativo").length;
   const pendingSpecs  = specialists.filter(s => s.status === "pendente").length;
   const approvedSpecs = specialists.filter(s => s.status === "aprovado").length;
   const pendingCols   = collectionPoints.filter(p => p.status === "pendente").length;
   const totalVictims  = events.reduce((s, e) => s + (e.victims || 0), 0);
+  const hasAlert      = pendingSpecs > 0 || pendingCols > 0;
 
+  // Máx. 4 eventos, sem encerrados, críticos primeiro
+  const recentEvents = events
+    .filter(e => e.status !== "encerrado")
+    .sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 99) - (SEVERITY_ORDER[b.severity] ?? 99))
+    .slice(0, 4);
+
+  const kpiData = [
+    { label: "Eventos Ativos",    value: activeEvents,  locale: false, icon: "🌊", color: "#ef4444", delta: `${events.length} total`,          deltaClass: activeEvents > 0 ? "up" : "ok" },
+    { label: "Vítimas Afetadas",  value: totalVictims,  locale: true,  icon: "👥", color: "#F5C518", delta: `${events.length} eventos`,         deltaClass: "ok" },
+    { label: "Especialistas",     value: approvedSpecs, locale: false, icon: "⚕️", color: "#22c55e", delta: `${pendingSpecs} pendentes`,        deltaClass: pendingSpecs > 0 ? "up" : "ok" },
+    { label: "Pontos de Coleta",  value: collectionPoints.filter(p => p.status === "validado").length, locale: false, icon: "📦", color: "#3B82F6", delta: `${pendingCols} para validar`, deltaClass: pendingCols > 0 ? "up" : "ok" },
+  ];
+
+  const pendingSpecialists = specialists.filter(s => s.status === "pendente");
+
+  // ── Animação principal ───────────────────────────────────────────────────
+  useLayoutEffect(() => {
+    if (!events.length && !criticalPoints.length && !specialists.length) return;
+
+    // Filtra nulls (elementos que não montaram)
+    const kpiCards   = kpiCardsRef.current.filter(Boolean);
+    const accentBars = accentBarsRef.current.filter(Boolean);
+    const kpiValues  = kpiValuesRef.current.filter(Boolean);
+    const grid60     = grid60Ref.current.filter(Boolean);
+    const eventItems = eventItemsRef.current.filter(Boolean);
+    const grid2      = grid2Ref.current.filter(Boolean);
+    const tableRows  = tableRowsRef.current.filter(Boolean);
+    const volRows    = volRowsRef.current.filter(Boolean);
+    const volAvatars = volAvatarsRef.current.filter(Boolean);
+
+    // Estado inicial — evita flicker
+    gsap.set([...kpiCards, ...grid60, ...grid2], { opacity: 0, y: 18 });
+    gsap.set(accentBars,  { scaleX: 0, transformOrigin: "left center" });
+    gsap.set(eventItems,  { opacity: 0, x: 20 });
+    gsap.set(tableRows,   { opacity: 0, y: 6 });
+    gsap.set(volRows,     { opacity: 0, x: -16 });
+    gsap.set(volAvatars,  { scale: 0.7 });
+
+    const ease = "power3.out";
+
+    // Todos os grupos disparam simultaneamente, com delays mínimos escalonados
+    gsap.to(kpiCards,   { opacity: 1, y: 0, duration: 0.4, stagger: 0.07, ease });
+    gsap.to(accentBars, { scaleX: 1,  duration: 0.45, stagger: 0.07, ease });
+    gsap.to(grid60,     { opacity: 1, y: 0, duration: 0.4, stagger: 0.08, ease, delay: 0.05 });
+    gsap.to(grid2,      { opacity: 1, y: 0, duration: 0.4, stagger: 0.08, ease, delay: 0.05 });
+    gsap.to(eventItems, { opacity: 1, x: 0, duration: 0.35, stagger: 0.06, ease, delay: 0.1 });
+    gsap.to(tableRows,  { opacity: 1, y: 0, duration: 0.3,  stagger: 0.05, ease, delay: 0.1 });
+    gsap.to(volRows,    { opacity: 1, x: 0, duration: 0.35, stagger: 0.06, ease, delay: 0.1 });
+    gsap.to(volAvatars, { scale: 1,   duration: 0.35, stagger: 0.06, ease: "back.out(1.8)", delay: 0.1 });
+
+    // Contadores dos KPIs
+    kpiValues.forEach(el => {
+      const end = parseFloat(el.dataset.target);
+      if (isNaN(end) || end === 0) return;
+      const isLocale = el.dataset.locale === "true";
+      const fmt = v => isLocale ? Math.round(v).toLocaleString("pt-BR") : Math.round(v);
+      el.textContent = "0";
+      gsap.to({ val: 0 }, {
+        val: end, duration: 0.9, ease: "power2.out",
+        onUpdate() { el.textContent = fmt(this.targets()[0].val); },
+        onComplete() { el.textContent = isLocale ? end.toLocaleString("pt-BR") : end; },
+      });
+    });
+
+    // Cleanup: reverte transforms ao desmontar
+    return () => {
+      gsap.killTweensOf([
+        ...kpiCards, ...accentBars, ...kpiValues,
+        ...grid60, ...eventItems, ...grid2,
+        ...tableRows, ...volRows, ...volAvatars,
+      ]);
+    };
+  }, [events.length, criticalPoints.length, specialists.length]);
+
+  // ── Alert strip ──────────────────────────────────────────────────────────
+  useLayoutEffect(() => {
+    if (!alertRef.current) return;
+    const wasVisible = prevAlertRef.current;
+    prevAlertRef.current = hasAlert;
+
+    if (hasAlert && !wasVisible) {
+      gsap.fromTo(alertRef.current,
+        { opacity: 0, y: -16 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }
+      );
+    } else if (!hasAlert && wasVisible) {
+      gsap.to(alertRef.current, { opacity: 0, y: -16, duration: 0.3, ease: "power2.in" });
+    }
+  }, [hasAlert]);
+
+  // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <>
-      {(pendingSpecs > 0 || pendingCols > 0) && (
-        <div className="alert-strip">
+    <div>
+      {hasAlert && (
+        <div ref={alertRef} className="alert-strip">
           <span className="alert-icon">🔴</span>
           <span>
             <b>Atenção:</b>
             {pendingSpecs > 0 && <> <b>{pendingSpecs}</b> especialista(s) aguardando aprovação. </>}
-            {pendingCols > 0 && <><b>{pendingCols}</b> ponto(s) de coleta aguardando validação.</>}
+            {pendingCols  > 0 && <><b>{pendingCols}</b> ponto(s) de coleta aguardando validação.</>}
           </span>
         </div>
       )}
 
+      {/* KPI Cards */}
       <div className="kpi-grid">
-        {[
-          { label: "Eventos Ativos",    value: activeEvents,                                                 icon: "🌊", color: "#ef4444", delta: `${events.length} total`,             deltaClass: activeEvents > 0 ? "up" : "ok" },
-          { label: "Vítimas Afetadas",  value: totalVictims.toLocaleString("pt-BR"),                         icon: "👥", color: "#F5C518", delta: `${events.length} eventos`,             deltaClass: "ok" },
-          { label: "Especialistas",     value: approvedSpecs,                                                icon: "⚕️", color: "#22c55e", delta: `${pendingSpecs} pendentes`,            deltaClass: pendingSpecs > 0 ? "up" : "ok" },
-          { label: "Pontos de Coleta",  value: collectionPoints.filter(p => p.status === "validado").length, icon: "📦", color: "#3B82F6", delta: `${pendingCols} para validar`,         deltaClass: pendingCols > 0 ? "up" : "ok" },
-        ].map((k, i) => (
-          <div className="kpi-card" key={i}>
-            <div className="kpi-accent-bar" style={{ background: k.color }} />
+        {kpiData.map((k, i) => (
+          <div className="kpi-card" key={i} ref={setKpiCardRef(i)}>
+            <div className="kpi-accent-bar" ref={setAccentBarRef(i)} style={{ background: k.color }} />
             <span className="kpi-icon">{k.icon}</span>
             <div className="kpi-label">{k.label}</div>
-            <div className="kpi-value" style={{ color: k.color }}>{k.value}</div>
+            <div
+              className="kpi-value"
+              ref={setKpiValueRef(i)}
+              data-target={k.value}
+              data-locale={k.locale ? "true" : "false"}
+              style={{ color: k.color }}
+            >
+              {k.locale ? k.value.toLocaleString("pt-BR") : k.value}
+            </div>
             <div className={`kpi-delta ${k.deltaClass}`}>{k.delta}</div>
           </div>
         ))}
       </div>
 
+      {/* Grid 60/40 — Mapa + Eventos Recentes */}
       <div className="grid-6040 section-gap">
-        <div className="card">
+
+        {/* Card: Mapa Operacional */}
+        <div className="card" ref={setGrid60Ref(0)}>
           <div className="card-header">
             <div>
               <div className="card-title">🗺️ Mapa Operacional</div>
@@ -161,7 +291,12 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
               <button className="btn btn-secondary btn-sm" onClick={onNewPoint}>＋ Ponto Crítico</button>
             </div>
           </div>
-          <MapView events={events} criticalPoints={criticalPoints} collectionPoints={collectionPoints} onVerMaisCritico={onGoToCritical} />
+          <MapView
+            events={events}
+            criticalPoints={criticalPoints}
+            collectionPoints={collectionPoints}
+            onVerMaisCritico={onGoToCritical}
+          />
           <div style={{ display: "flex", gap: 14, marginTop: 10, fontSize: 11, color: "var(--text-muted)", flexWrap: "wrap", alignItems: "center" }}>
             <span>🌊 Evento</span>
             <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -172,20 +307,26 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
           </div>
         </div>
 
-        <div className="card">
+        {/* Card: Eventos Recentes (máx. 4, sem encerrados, críticos primeiro) */}
+        <div className="card" ref={setGrid60Ref(1)}>
           <div className="card-header">
             <div><div className="card-title">⚡ Eventos Recentes</div></div>
             <button className="btn btn-secondary btn-sm" onClick={onNewEvent}>＋ Adicionar</button>
           </div>
-          {events.length === 0 ? (
+          {recentEvents.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">🌊</div>
-              <div className="empty-state-text">Nenhum evento registrado</div>
+              <div className="empty-state-text">Nenhum evento ativo registrado</div>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {events.map(e => (
-                <div key={e.id} style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", padding: "12px 14px", border: "1px solid var(--border)" }}>
+              {recentEvents.map((e, i) => (
+                <div
+                  key={e.id}
+                  ref={setEventRef(i)}
+                  className="event-recent-item"
+                  style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", padding: "12px 14px", border: "1px solid var(--border)" }}
+                >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                     <span style={{ fontSize: 16 }}>{typeIcon[e.type] || "⚠️"}</span>
                     <span style={{ fontWeight: 600, fontSize: 13, flex: 1 }}>{e.title}</span>
@@ -203,10 +344,16 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
         </div>
       </div>
 
+      {/* Grid 2 — Pontos Críticos + Especialistas Pendentes */}
       <div className="grid-2">
-        <div className="card">
+
+        {/* Card: Pontos Críticos */}
+        <div className="card" ref={setGrid2Ref(0)}>
           <div className="card-header">
-            <div><div className="card-title">⚠️ Pontos Críticos</div><div className="card-subtitle">{criticalPoints.length} registrados</div></div>
+            <div>
+              <div className="card-title">⚠️ Pontos Críticos</div>
+              <div className="card-subtitle">{criticalPoints.length} registrados</div>
+            </div>
             <button className="btn btn-secondary btn-sm" onClick={onNewPoint}>＋ Adicionar</button>
           </div>
           {criticalPoints.length === 0 ? (
@@ -219,8 +366,8 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
               <table>
                 <thead><tr><th>Local</th><th>Tipo</th><th>Risco</th></tr></thead>
                 <tbody>
-                  {criticalPoints.map(p => (
-                    <tr key={p.id}>
+                  {criticalPoints.map((p, i) => (
+                    <tr key={p.id} ref={setTableRowRef(i)} className="critical-table-row">
                       <td>
                         <div style={{ fontWeight: 600, fontSize: 12.5 }}>{p.name}</div>
                         <div className="text-muted text-sm">{(p.description || "").slice(0, 45)}{p.description?.length > 45 ? "…" : ""}</div>
@@ -235,18 +382,26 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
           )}
         </div>
 
-        <div className="card">
+        {/* Card: Especialistas Pendentes */}
+        <div className="card" ref={setGrid2Ref(1)}>
           <div className="card-header">
-            <div><div className="card-title">⚕️ Especialistas Pendentes</div><div className="card-subtitle">Aguardando aprovação</div></div>
+            <div>
+              <div className="card-title">⚕️ Especialistas Pendentes</div>
+              <div className="card-subtitle">Aguardando aprovação</div>
+            </div>
           </div>
-          {specialists.filter(s => s.status === "pendente").length === 0 ? (
+          {pendingSpecialists.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">✅</div>
               <div className="empty-state-text">Nenhum especialista pendente</div>
             </div>
-          ) : specialists.filter(s => s.status === "pendente").map(s => (
-            <div className="volunteer-row" key={s.id}>
-              <div className="vol-avatar" style={{ background: "linear-gradient(135deg,var(--accent),#FF3B3B)" }}>
+          ) : pendingSpecialists.map((s, i) => (
+            <div className="volunteer-row" key={s.id} ref={setVolRowRef(i)}>
+              <div
+                className="vol-avatar"
+                ref={setVolAvatarRef(i)}
+                style={{ background: "linear-gradient(135deg,var(--accent),#FF3B3B)" }}
+              >
                 {(s.nome || "?")[0].toUpperCase()}
               </div>
               <div className="vol-info">
@@ -258,6 +413,6 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
           ))}
         </div>
       </div>
-    </>
+    </div>
   );
 }
