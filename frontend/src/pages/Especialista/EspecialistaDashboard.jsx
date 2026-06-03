@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import mapboxgl from "mapbox-gl";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -7,6 +8,7 @@ import { Draggable } from "gsap/Draggable";
 import { MAPBOX_TOKEN } from "../../utils/geocoding";
 import { maskPhone } from "../../utils/cpfValidator";
 import { useGeocodingAutocomplete } from "../../hooks/useGeocodingAutocomplete";
+
 
 gsap.registerPlugin(ScrollTrigger, Draggable);
 
@@ -194,7 +196,7 @@ function BottomSheet({ children, state, onStateChange }) {
         right: 0,
         top: 0,
         transform: `translateY(${window.innerHeight - 64 - 160}px)`,  // peek inicial
-        height: (window.innerHeight - 64) * 0.95,
+        height: "calc(var(--dvh, 1dvh) * 100 - 64px)",
         backgroundColor: "var(--bg-base)",
         borderRadius: "20px 20px 0 0",
         boxShadow: "0 -4px 32px rgba(0,0,0,0.35)",
@@ -202,7 +204,6 @@ function BottomSheet({ children, state, onStateChange }) {
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        willChange: "transform",
       }}
     >
       {/* Drag handle */}
@@ -250,8 +251,8 @@ function ConvCard({ c, onResponder, onChegada, userEmail }) {
 
   return (
     <>
-      {pendingAction && (
-        <ConfirmModal
+      {pendingAction && 
+      createPortal(<ConfirmModal
           title={pendingAction === "aceitar" ? "Aceitar convocação" : pendingAction === "recusar" ? "Recusar convocação" : "Confirmar chegada"}
           description={
             pendingAction === "aceitar" ? `Você está aceitando a convocação para "${c.eventoTitulo}". Confirme sua senha para prosseguir.`
@@ -266,7 +267,7 @@ function ConvCard({ c, onResponder, onChegada, userEmail }) {
           }}
           onCancel={() => setPendingAction(null)}
         />
-      )}
+      , document.body)}
       <div
         ref={cardRef}
         className="esp-card"
@@ -624,9 +625,18 @@ function EventosTab({ eventos, convs, criticalPoints, userEmail, rota, onRefresh
         })}
       </BottomSheet>
 
-      {pendingVoluntario && <ConfirmModal title="Quero ajudar" description={`Você irá comparecer voluntariamente ao evento "${pendingVoluntario.title}". Confirme sua senha.`} email={userEmail} onConfirm={() => { onVoluntariar(pendingVoluntario.id); setPendingVoluntario(null); }} onCancel={() => setPendingVoluntario(null)} />}
-      {pendingAceitar    && <ConfirmModal title="Aceitar convocação" description={`Confirme para aceitar a convocação para "${pendingAceitar.eventoTitulo}".`} email={userEmail} onConfirm={() => { onResponder(pendingAceitar.id, "aceitar"); setPendingAceitar(null); }} onCancel={() => setPendingAceitar(null)} />}
-      {pendingChegadaEv  && <ConfirmModal title="Confirmar chegada" description={`Confirme que você chegou ao local do evento "${pendingChegadaEv.eventoTitulo}".`} email={userEmail} onConfirm={() => { onChegada(pendingChegadaEv.id); setPendingChegadaEv(null); }} onCancel={() => setPendingChegadaEv(null)} />}
+      {pendingVoluntario && createPortal(
+        <ConfirmModal title="Quero ajudar" description={`Você irá comparecer voluntariamente ao evento "${pendingVoluntario.title}". Confirme sua senha.`} email={userEmail} onConfirm={() => { onVoluntariar(pendingVoluntario.id); setPendingVoluntario(null); }} onCancel={() => setPendingVoluntario(null)} />,
+        document.body
+      )}
+      {pendingAceitar && createPortal(
+        <ConfirmModal title="Aceitar convocação" description={`Confirme para aceitar a convocação para "${pendingAceitar.eventoTitulo}".`} email={userEmail} onConfirm={() => { onResponder(pendingAceitar.id, "aceitar"); setPendingAceitar(null); }} onCancel={() => setPendingAceitar(null)} />,
+        document.body
+      )}
+      {pendingChegadaEv && createPortal(
+        <ConfirmModal title="Confirmar chegada" description={`Confirme que você chegou ao local do evento "${pendingChegadaEv.eventoTitulo}".`} email={userEmail} onConfirm={() => { onChegada(pendingChegadaEv.id); setPendingChegadaEv(null); }} onCancel={() => setPendingChegadaEv(null)} />,
+        document.body
+      )}
 
       {!MAPBOX_TOKEN && (
         <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%,-50%)", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 16, padding: "32px", textAlign: "center" }}>
@@ -825,7 +835,7 @@ function TabContent({ activeTab, prevTab, children }) {
   }, [activeTab]);
 
   return (
-    <div ref={ref} style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+    <div ref={ref} style={{ flex: 1, overflow: "hidden", position: "relative", zIndex: 1 }}>
       {children}
     </div>
   );
@@ -853,12 +863,17 @@ function ActionToast({ message, onDismiss }) {
   }, []);
 
   return (
-    <div ref={ref} style={{
-      flexShrink: 0, margin: "10px 16px 0",
-      background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.35)",
-      borderLeft: "4px solid #ef4444", borderRadius: 12,
-      padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 10,
-    }}>
+      <div ref={ref} style={{
+        position: "fixed",
+        margin: "10px 16px 0",
+        background: "rgba(239,68,68,0.18)",       
+        backdropFilter: "blur(12px)",              
+        WebkitBackdropFilter: "blur(12px)",        
+        border: "1px solid rgba(239,68,68,0.35)",
+        borderLeft: "4px solid #ef4444", borderRadius: 12,
+        padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 10,
+        zIndex: 150,
+      }}>
       <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1.2 }}>⚠️</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700, color: "#ef4444", marginBottom: 2 }}>
@@ -876,7 +891,7 @@ function ActionToast({ message, onDismiss }) {
 export default function EspecialistaDashboard() {
   const [token,          setToken]          = useState(() => sessionStorage.getItem(TOKEN_KEY));
   const [user,           setUser]           = useState(() => { try { return JSON.parse(sessionStorage.getItem(USER_KEY)); } catch { return null; } });
-  const [activeTab,      setActiveTab]      = useState("convocacoes");
+  const [activeTab,      setActiveTab]      = useState("eventos");
   const [prevTab,        setPrevTab]        = useState(null);
   const [convs,          setConvs]          = useState([]);
   const [eventos,        setEventos]        = useState([]);
@@ -980,11 +995,20 @@ export default function EspecialistaDashboard() {
 
   async function handleVoluntariar(eventoId) {
     try {
-      const res = await fetch(`${BASE}/convocacoes/evento/${eventoId}/voluntario`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) { setActionError(await res.text().catch(() => "Erro ao registrar presença no evento.")); return; }
+      const res = await fetch(`${BASE}/convocacoes/evento/${eventoId}/voluntario`, { 
+        method: "POST", headers: { Authorization: `Bearer ${token}` } 
+      });
+      if (!res.ok) { 
+        // Tenta JSON primeiro, cai no text se falhar
+        const err = await res.json().catch(() => res.text());
+        setActionError(typeof err === "string" ? err : err?.message ?? "Erro ao registrar presença.");
+        return; 
+      }
       const data = await res.json();
       setConvs(prev => [...prev, data]);
-    } catch { setActionError("Erro de conexão. Tente novamente."); }
+    } catch { 
+      setActionError("Erro de conexão. Tente novamente."); 
+    }
   }
 
   async function handleChegada(convId) {
