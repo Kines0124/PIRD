@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef, Fragment, useLayoutEffect } from "react";
+import { gsap } from "gsap";
 import mapboxgl from "mapbox-gl";
 import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { severityColor, typeIcon, riskColor, severityBadge, statusBadge } from "../adminTheme.jsx";
@@ -6,6 +7,7 @@ import EventModal from "../modals/EventModal.jsx";
 import EventClosureModal from "../modals/EventClosureModal";
 import { convocarManual, getFotosByEvento, uploadFoto, deletarFoto } from "../../../services/adminApi.js";
 import { FaTrash } from "react-icons/fa";
+import { IoWarningOutline } from "react-icons/io5";
 
 const PROF_COLORS = {
   "Médico Clínico Geral":      "#2563eb",
@@ -164,7 +166,7 @@ function EventDetailMap({ event, collectionPoints, criticalPoints }) {
 }
 
 // ─── Aba de fotos do evento ───────────────────────────────────────────────────
-function FotosTab({ eventoId, onCountChange }) {
+function FotosTab({ eventoId, onCountChange, onFotosChange }) {
   const [fotos, setFotos]             = useState([]);
   const [loading, setLoading]         = useState(true);
   const [uploading, setUploading]     = useState(false);
@@ -182,7 +184,10 @@ function FotosTab({ eventoId, onCountChange }) {
   }, [eventoId]);
 
   useEffect(() => {
-    if (!loading) onCountChange?.(fotos.length);
+    if (!loading) {
+      onCountChange?.(fotos.length);
+      onFotosChange?.(fotos);
+    }
   }, [fotos, loading]);
 
   async function handleUpload(e) {
@@ -336,11 +341,118 @@ function FotosTab({ eventoId, onCountChange }) {
   );
 }
 
+// ─── Photo strip no card do evento ───────────────────────────────────────────
+function EventPhotoStrip({ fotos, onPhotoClick }) {
+  const [startIdx, setStartIdx] = useState(0);
+  const VISIBLE = 3;
+  const hasMore = fotos.length > VISIBLE;
+  const canPrev = startIdx > 0;
+  const canNext = startIdx + VISIBLE < fotos.length;
+
+  const arrowStyle = (enabled) => ({
+    width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+    border: "1px solid var(--border)",
+    background: enabled ? "var(--bg-elevated)" : "transparent",
+    color: enabled ? "var(--text-primary)" : "var(--border)",
+    cursor: enabled ? "pointer" : "default",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: 18,
+  });
+
+  if (fotos.length === 0) {
+    return (
+      <div style={{ height: 84, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>📷 Não há fotos do evento ainda</span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 16px 10px" }}>
+      {hasMore && (
+        <button
+          disabled={!canPrev}
+          onClick={ev => { ev.stopPropagation(); setStartIdx(i => Math.max(0, i - 1)); }}
+          style={arrowStyle(canPrev)}
+        >‹</button>
+      )}
+      <div style={{ display: "flex", gap: 8 }}>
+        {fotos.slice(startIdx, startIdx + VISIBLE).map(foto => (
+          <div
+            key={foto.id}
+            onClick={ev => { ev.stopPropagation(); onPhotoClick(foto, fotos); }}
+            style={{
+              width: 120, height: 68, flexShrink: 0,
+              borderRadius: 6, overflow: "hidden",
+              border: "1px solid var(--border)",
+              background: "var(--bg-elevated)",
+              cursor: "zoom-in",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <img
+              src={foto.fotoUrl}
+              alt={foto.nomeArquivo || "foto"}
+              style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block" }}
+              onError={e => { e.target.style.display = "none"; }}
+            />
+          </div>
+        ))}
+      </div>
+      {hasMore && (
+        <button
+          disabled={!canNext}
+          onClick={ev => { ev.stopPropagation(); setStartIdx(i => Math.min(fotos.length - VISIBLE, i + 1)); }}
+          style={arrowStyle(canNext)}
+        >›</button>
+      )}
+      {hasMore && (
+        <span style={{ fontSize: 10, color: "var(--text-muted)", flexShrink: 0, fontFamily: "var(--font-mono)" }}>
+          {startIdx + 1}–{Math.min(startIdx + VISIBLE, fotos.length)}/{fotos.length}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ─── Hook: anima linhas da tabela quando o array muda ────────────────────────
+function useTableRowAnimation(filtered) {
+  const tbodyRef = useRef(null);
+  const prevLen  = useRef(0);
+
+  useLayoutEffect(() => {
+    if (!tbodyRef.current) return;
+    const rows = tbodyRef.current.querySelectorAll("tr");
+    if (!rows.length) return;
+
+    if (rows.length === prevLen.current) return;
+    prevLen.current = rows.length;
+
+    gsap.fromTo(
+      rows,
+      { opacity: 0, x: 24 },
+      { opacity: 1, x: 0, duration: 0.25, stagger: 0.04, ease: "power2.out" }
+    );
+  }, [filtered]);
+
+  return tbodyRef;
+}
+
 // ─── Drawer de detalhes do evento ─────────────────────────────────────────────
-function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, onClose, onEdit, onGoToCollection, convocacoes, onConvocou }) {
+function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers, specialists, specialistStatuses, onUpdateStatus, onClose, onEdit, onGoToCollection, convocacoes, onConvocou, onFotosChange }) {
   const [tab, setTab]                   = useState("mapa");
   const [localConvocados, setLocalConvocados] = useState({});
   const [fotosCount, setFotosCount]     = useState(null);
+  const drawerRef                       = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!drawerRef.current) return;
+    gsap.fromTo(
+      drawerRef.current,
+      { x: 60, opacity: 0 },
+      { x: 0,  opacity: 1, duration: 0.28, ease: "power3.out" }
+    );
+  }, []);
 
   useEffect(() => {
     getFotosByEvento(event.id)
@@ -391,7 +503,10 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 300, display: "flex", justifyContent: "flex-end" }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
-      <div style={{ width: 580, maxWidth: "95vw", height: "100vh", overflowY: "auto", background: "var(--bg-surface)", borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", animation: "slideInRight 0.22s ease" }}>
+      <div
+        ref={drawerRef}
+        style={{ width: 580, maxWidth: "95vw", height: "100vh", overflowY: "auto", background: "var(--bg-surface)", borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column" }}
+      >
 
         <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
@@ -491,7 +606,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
             </div>
           )}
 
-          {tab === "fotos" && <FotosTab eventoId={event.id} onCountChange={setFotosCount} />}
+          {tab === "fotos" && <FotosTab eventoId={event.id} onCountChange={setFotosCount} onFotosChange={onFotosChange} />}
 
           {tab === "coleta" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -589,8 +704,21 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
   const [editEvent, setEditEvent]       = useState(null);
   const [showNew, setShowNew]           = useState(false);
   const [detailEvent, setDetailEvent]   = useState(null);
-  const [closureEvent, setClosureEvent] = useState(null);
+  const [closureEvent, setClosureEvent]   = useState(null);
+  const [eventPhotos, setEventPhotos]     = useState({});
+  const [lightboxPhoto, setLightboxPhoto] = useState(null);
+  const fetchedPhotoIds                   = useRef(new Set());
+  const [hoveredEventId, setHoveredEventId] = useState(null);
+  const cardRef                           = useRef(null);
 
+  useLayoutEffect(() => {
+    if (!cardRef.current) return;
+    gsap.fromTo(
+      cardRef.current,
+      { opacity: 0, y: 16 },
+      { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" }
+    );
+  }, []);
 
   // Abre automaticamente o drawer quando navegado via "Ver mais" no Campo
   useEffect(() => {
@@ -601,6 +729,17 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
       if (onEventOpened) onEventOpened();
     }
   }, [openEventId, events]);
+
+  useEffect(() => {
+    events.forEach(evt => {
+      if (!fetchedPhotoIds.current.has(evt.id)) {
+        fetchedPhotoIds.current.add(evt.id);
+        getFotosByEvento(evt.id)
+          .then(fotos => setEventPhotos(prev => ({ ...prev, [evt.id]: fotos })))
+          .catch(() => setEventPhotos(prev => ({ ...prev, [evt.id]: [] })));
+      }
+    });
+  }, [events]);
 
   const severityOrder = { critico: 0, alto: 1, medio: 2, baixo: 3 };
   const criticalIds   = new Set((criticalPoints || []).map(p => p.id));
@@ -619,9 +758,18 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
       return (severityOrder[a.severity] ?? 9) - (severityOrder[b.severity] ?? 9);
     });
 
+  const tbodyRef = useTableRowAnimation(filtered);
+
   return (
     <>
-      <div className="card">
+      <style>{`
+        @keyframes warning-pulse {
+          0%, 100% { color: yellow; opacity: 1; }
+          50%       { color: #b8860b; opacity: 0.45; }
+        }
+        .icon-warning-pulse { animation: warning-pulse 1.4s ease-in-out infinite; }
+      `}</style>
+      <div ref={cardRef} className="card">
         <div className="card-header">
           <div>
             <div className="card-title">📋 Gerenciar Eventos Oficiais</div>
@@ -647,24 +795,32 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
               <div className="empty-state-text">Nenhum evento encontrado</div>
             </div>
           ) : (
-            <table>
+            <table style={{ borderCollapse: "separate", borderSpacing: 0 }}>
               <thead>
                 <tr>
                   <th>Evento</th><th>Tipo</th><th>Severidade</th><th>Status</th>
                   <th>Vítimas</th><th>Data</th><th>Ações</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody ref={tbodyRef}>
                 {filtered.map(e => {
                   const isOnCritical   = e.criticalPointId && criticalIds.has(e.criticalPointId);
                   const neededProfiles = e.neededProfiles || [];
+                  const rowPhotos      = eventPhotos[e.id];
+                  const hasPhotos      = Array.isArray(rowPhotos);
                   return (
-                    <tr key={e.id} onClick={() => setDetailEvent(e)} style={{ cursor: "pointer" }}>
-                      <td>
+                    <Fragment key={e.id}>
+                    <tr
+                      onClick={() => setDetailEvent(e)}
+                      onMouseEnter={() => setHoveredEventId(e.id)}
+                      onMouseLeave={() => setHoveredEventId(null)}
+                      style={{ cursor: "pointer", background: hoveredEventId === e.id ? "var(--bg-hover)" : "transparent" }}
+                    >
+                      <td style={{ borderTop: "1px solid var(--border)", borderLeft: "1px solid var(--border)", borderBottom: "none", borderRadius: "6px 0 0 0" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          {isOnCritical && <span title="Evento em ponto crítico" style={{ fontSize: 12, color: "#FF3B3B", flexShrink: 0 }}>⚠️</span>}
+                          {isOnCritical && <IoWarningOutline title="Evento em ponto crítico" className="icon-warning-pulse" style={{ fontSize: 25, flexShrink: 0}} />}
                           <div>
-                            <div style={{ fontWeight: 600 }}>{e.title}</div>
+                            <div style={{ fontWeight: 600, fontSize: 18 }}>{e.title}</div>
                             <div className="text-muted text-sm mono">📍 {e.address || e.city}</div>
                             {neededProfiles.length > 0 && (
                               <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginTop: 3 }}>
@@ -679,12 +835,12 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
                           </div>
                         </div>
                       </td>
-                      <td><span style={{ fontSize: 18 }}>{typeIcon[e.type] || "⚠️"}</span></td>
-                      <td>{severityBadge(e.severity)}</td>
-                      <td>{statusBadge(e.status)}</td>
-                      <td><span className="mono" style={{ color: "var(--warning)" }}>{e.victims}</span></td>
-                      <td><span className="mono text-secondary text-sm">{e.date}</span></td>
-                      <td>
+                      <td style={{ borderTop: "1px solid var(--border)", borderBottom: "none" }}><span style={{ fontSize: 18 }}>{typeIcon[e.type] || "⚠️"}</span></td>
+                      <td style={{ borderTop: "1px solid var(--border)", borderBottom: "none" }}>{severityBadge(e.severity)}</td>
+                      <td style={{ borderTop: "1px solid var(--border)", borderBottom: "none" }}>{statusBadge(e.status)}</td>
+                      <td style={{ borderTop: "1px solid var(--border)", borderBottom: "none" }}><span className="mono" style={{ color: "var(--warning)" }}>{e.victims}</span></td>
+                      <td style={{ borderTop: "1px solid var(--border)", borderBottom: "none" }}><span className="mono text-secondary text-sm">{e.date}</span></td>
+                      <td style={{ borderTop: "1px solid var(--border)", borderRight: "1px solid var(--border)", borderBottom: "none", borderRadius: "0 6px 0 0" }}>
                         <div className="btn-group" onClick={ev => ev.stopPropagation()}>
                           {e.status !== "encerrado" && (
                             <button
@@ -712,6 +868,22 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
                         </div>
                       </td>
                     </tr>
+                    {hasPhotos && (
+                      <tr
+                        onClick={() => setDetailEvent(e)}
+                        onMouseEnter={() => setHoveredEventId(e.id)}
+                        onMouseLeave={() => setHoveredEventId(null)}
+                        style={{ cursor: "pointer", background: hoveredEventId === e.id ? "var(--bg-hover)" : "transparent" }}
+                      >
+                        <td colSpan={7} style={{ padding: 0, borderLeft: "1px solid var(--border)", borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", borderRadius: "0 0 6px 6px" }}>
+                          <EventPhotoStrip fotos={rowPhotos} onPhotoClick={(foto, fotos) => setLightboxPhoto({ fotos, idx: fotos.findIndex(f => f.id === foto.id) })} />
+                        </td>
+                      </tr>
+                    )}
+                    <tr aria-hidden="true">
+                      <td colSpan={7} style={{ padding: 0, height: 8, border: "none" }} />
+                    </tr>
+                    </Fragment>
                   );
                 })}
               </tbody>
@@ -734,6 +906,7 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
           onGoToCollection={onGoToCollection}
           convocacoes={convocacoes}
           onConvocou={onConvocou}
+          onFotosChange={(fotos) => setEventPhotos(prev => ({ ...prev, [detailEvent.id]: fotos }))}
         />
       )}
 
@@ -781,6 +954,51 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
           onClose={() => setClosureEvent(null)}
         />
       )}
+
+      {lightboxPhoto && (() => {
+        const current  = lightboxPhoto.fotos[lightboxPhoto.idx];
+        const canPrev  = lightboxPhoto.idx > 0;
+        const canNext  = lightboxPhoto.idx < lightboxPhoto.fotos.length - 1;
+        const navStyle = (enabled) => ({
+          position: "absolute", top: "50%", transform: "translateY(-50%)",
+          width: 48, height: 48, borderRadius: "50%",
+          background: enabled ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.06)",
+          border: "1px solid rgba(255,255,255,0.25)",
+          color: enabled ? "#fff" : "rgba(255,255,255,0.25)",
+          fontSize: 28, cursor: enabled ? "pointer" : "default",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          backdropFilter: "blur(4px)", transition: "background 0.15s",
+        });
+        return (
+          <div
+            onClick={() => setLightboxPhoto(null)}
+            style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.88)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}
+          >
+            <button
+              onClick={ev => { ev.stopPropagation(); if (canPrev) setLightboxPhoto(p => ({ ...p, idx: p.idx - 1 })); }}
+              style={{ ...navStyle(canPrev), left: 24 }}
+            >‹</button>
+
+            <img
+              src={current.fotoUrl}
+              alt={current.nomeArquivo || "foto"}
+              onClick={e => e.stopPropagation()}
+              style={{ maxWidth: "80vw", maxHeight: "88vh", borderRadius: 10, objectFit: "contain", boxShadow: "0 8px 48px rgba(0,0,0,0.6)", cursor: "default" }}
+            />
+
+            <button
+              onClick={ev => { ev.stopPropagation(); if (canNext) setLightboxPhoto(p => ({ ...p, idx: p.idx + 1 })); }}
+              style={{ ...navStyle(canNext), right: 24 }}
+            >›</button>
+
+            {lightboxPhoto.fotos.length > 1 && (
+              <span onClick={e => e.stopPropagation()} style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", fontSize: 12, color: "rgba(255,255,255,0.55)", fontFamily: "var(--font-mono)", pointerEvents: "none" }}>
+                {lightboxPhoto.idx + 1} / {lightboxPhoto.fotos.length}
+              </span>
+            )}
+          </div>
+        );
+      })()}
     </>
   );
 }

@@ -13,6 +13,7 @@ import CollectionPointsSection from "./sections/CollectionPointsSection.jsx";
 import EspecialistasSection    from "./sections/EspecialistasSection.jsx";
 import EventModal              from "./modals/EventModal.jsx";
 import CriticalPointModal      from "./modals/CriticalPointModal.jsx";
+import { IoWarningOutline } from "react-icons/io5";
 
 // ─── Nav order (para slide direction) ────────────────────────────────────────
 const NAV_ORDER = {
@@ -428,7 +429,7 @@ function AdminPanel({ onLogout }) {
     { id: "events",        icon: "🌊", label: "Eventos",         badge: events.filter(e => e.status === "ativo").length },
     { id: "campo",         icon: "🗺️", label: "Campo" },
     { id: "especialistas", icon: "⚕️", label: "Especialistas",   badge: specialists.filter(s => s.status === "aprovado").length, badgeBlue: true },
-    { id: "critical",      icon: "⚠️", label: "Pontos Críticos", badge: criticalPoints.length },
+    { id: "critical",      icon: <IoWarningOutline style={{color:"yellow", fontSize: 18}} />, label: "Pontos Críticos", badge: criticalPoints.length },
     { id: "collection",    icon: "📦", label: "Pontos de Coleta" },
     { id: "validacoes",    icon: "🙋", label: "Validações",      badge: pendingEspecialistas + pendingCols },
   ];
