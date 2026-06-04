@@ -1,16 +1,80 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { SEVERITY_OPTIONS } from "../adminTheme.jsx";
 import { useGeocodingAutocomplete } from "../../../hooks/useGeocodingAutocomplete.js";
+import { MdFlood } from "react-icons/md";
+import { LuLandPlot } from "react-icons/lu";
+import { LuDroplets } from "react-icons/lu";
+import { LuFlame } from "react-icons/lu";
+import { LuConstruction } from "react-icons/lu";
+import { PiBiohazardThin } from "react-icons/pi";
+import { IoWarningOutline } from "react-icons/io5";
 
 const TIPO_OPTIONS = [
-  { value: "enchente",     label: "🌊 Enchente" },
-  { value: "deslizamento", label: "⛰️ Deslizamento" },
-  { value: "alagamento",   label: "💧 Alagamento" },
-  { value: "incendio",     label: "🔥 Incêndio" },
-  { value: "desabamento",  label: "🏚️ Desabamento" },
-  { value: "intoxicacao",  label: "☣️ Intoxicação" },
-  { value: "outro",        label: "⚠️ Outro" },
+  { value: "enchente",     label: "Enchente",     icon: MdFlood,         color: "#3b82f6" }, // azul
+  { value: "deslizamento", label: "Deslizamento", icon: LuLandPlot,      color: "#a16207" }, // marrom
+  { value: "alagamento",   label: "Alagamento",   icon: LuDroplets,      color: "#06b6d4" }, // ciano
+  { value: "incendio",     label: "Incêndio",     icon: LuFlame,         color: "#ef4444" }, // vermelho
+  { value: "desabamento",  label: "Desabamento",  icon: LuConstruction,  color: "#f97316" }, // laranja
+  { value: "intoxicacao",  label: "Intoxicação",  icon: PiBiohazardThin, color: "#84cc16" }, // verde-limão
+  { value: "outro",        label: "Outro",        icon: IoWarningOutline, color: "#eab308" }, // amarelo
 ];
+
+function TipoSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  const selected = TIPO_OPTIONS.find(o => o.value === value) || TIPO_OPTIONS[0];
+  const SelectedIcon = selected.icon;
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        className="form-select"
+        style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", width: "100%", textAlign: "left", background: "var(--bg-elevated)" }}
+        onClick={() => setOpen(o => !o)}
+      >
+        <SelectedIcon size={15} style={{ color: selected.color }} />
+        <span style={{ color: selected.color }}>{selected.label}</span>
+      </button>
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 200, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
+          {TIPO_OPTIONS.map((opt, i) => {
+            const OptIcon = opt.icon;
+            const isSelected = opt.value === value;
+            return (
+              <div
+                key={opt.value}
+                onMouseDown={() => { onChange(opt.value); setOpen(false); }}
+                style={{
+                  padding: "9px 12px", fontSize: 13, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 8,
+                  color: "var(--text-primary)",
+                  background: isSelected ? `${opt.color}18` : "",
+                  borderBottom: i < TIPO_OPTIONS.length - 1 ? "1px solid var(--border)" : "none",
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = `${opt.color}28`}
+                onMouseLeave={e => e.currentTarget.style.background = isSelected ? `${opt.color}18` : ""}
+              >
+                <OptIcon size={15} style={{ color: opt.color }} />
+                <span style={{ color: opt.color, fontWeight: isSelected ? 600 : 400 }}>{opt.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 const PROFISSOES_NECESSARIAS = [
   "Médico Clínico Geral", "Médico Emergencista", "Médico Cardiologista",
@@ -123,9 +187,7 @@ export default function EventModal({ event, onClose, onSave }) {
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Tipo</label>
-              <select className="form-select" value={form.type} onChange={e => set("type", e.target.value)}>
-                {TIPO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              <TipoSelect value={form.type} onChange={v => set("type", v)} />
             </div>
             <div className="form-group">
               <label className="form-label">Status</label>

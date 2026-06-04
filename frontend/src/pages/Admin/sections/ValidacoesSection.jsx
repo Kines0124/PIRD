@@ -6,6 +6,7 @@ import { FaStaffSnake }        from "react-icons/fa6";
 import { BsBox2HeartFill }     from "react-icons/bs";
 import { FaTrash }             from "react-icons/fa";
 import { FcOk }                from "react-icons/fc";
+import { MdOutlineHistoryEdu } from "react-icons/md";
 
 const CONSELHOS = [
   { nome: "CFM — Médicos",             url: "https://portal.cfm.org.br/busca-medicos" },
@@ -510,7 +511,7 @@ export default function ValidacoesSection({
           )}
         </button>
         <button style={tabStyle("historico")} onClick={() => setMainTab("historico")}>
-          🕐 Histórico
+          <MdOutlineHistoryEdu style={{color:"white", fontSize:18}}/> Histórico
         </button>
       </div>
 

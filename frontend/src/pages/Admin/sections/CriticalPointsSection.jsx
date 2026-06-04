@@ -5,6 +5,8 @@ import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { riskColor, severityBadge } from "../adminTheme.jsx";
 import CriticalPointModal from "../modals/CriticalPointModal.jsx";
 import { IoWarningOutline }    from "react-icons/io5";
+import { CiEdit } from "react-icons/ci";
+import { FaTrash, FaMapMarkedAlt } from "react-icons/fa";
 
 // ---------- Mapa (sem alterações) ----------
 function CriticalPointMap({ point }) {
@@ -113,8 +115,8 @@ function CriticalPointRow({ point, index, onDetail, onEdit, onDelete }) {
       <td><span className="text-sm text-secondary">{(point.description || "").slice(0, 50)}{point.description?.length > 50 ? "…" : ""}</span></td>
       <td>
         <div className="btn-group" onClick={e => e.stopPropagation()}>
-          <button className="btn btn-secondary btn-sm btn-icon" onClick={() => onEdit(point)}>✏️</button>
-          <button className="btn btn-danger btn-sm btn-icon" onClick={() => onDelete && onDelete(point.id)}>🗑️</button>
+          <button className="btn btn-secondary btn-sm btn-icon" onClick={() => onEdit(point)}><CiEdit style={{color:"white", fontSize:18}}/></button>
+          <button className="btn btn-danger btn-sm btn-icon" onClick={() => onDelete && onDelete(point.id)}><FaTrash style={{ color:"gray", fontSize:18}}/></button>
         </div>
       </td>
     </tr>
@@ -181,7 +183,7 @@ function DetailDrawer({ point, onClose, onEdit }) {
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-              <button className="btn btn-secondary btn-sm" onClick={() => { onEdit(point); handleClose(); }}>✏️ Editar</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => { onEdit(point); handleClose(); }}><CiEdit style={{color:"white", fontSize:18}} /> Editar</button>
               <button
                 onClick={handleClose}
                 style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid var(--border)", background: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -239,6 +241,14 @@ export default function CriticalPointsSection({ criticalPoints, onSavePoint, onD
   }, [criticalPoints.length]);
 
   return (
+    <>
+          <style>{`
+        @keyframes warning-pulse {
+          0%, 100% { color: yellow; opacity: 1; }
+          50%       { color: #b8860b; opacity: 0.45; }
+        }
+        .icon-warning-pulse { animation: warning-pulse 1.4s ease-in-out infinite; }
+      `}</style>
     <>
       <div className="card">
         {/* Header */}
@@ -299,6 +309,7 @@ export default function CriticalPointsSection({ criticalPoints, onSavePoint, onD
           onSave={form => onSavePoint && onSavePoint(editPoint, form)}
         />
       )}
+    </>
     </>
   );
 }

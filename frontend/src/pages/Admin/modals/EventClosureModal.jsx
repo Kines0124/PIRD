@@ -468,7 +468,7 @@ export default function EventClosureModal({
           {/* Resumo em chips */}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
             {[
-              { icon: "📅", label: event.date ?? event.dataInicio ?? "—" },
+              { icon: <FaCalendarDays />, label: event.date ?? event.dataInicio ?? "—" },
               { icon: "🩺", label: `${linkedSpecialists.length} especialistas` },
               { icon: "📦", label: `${(event.nearbyCollectionIds ?? []).length} pontos de coleta` },
               { icon: "👥", label: `${event.victims ?? event.vitimasEstimadas ?? 0} vítimas` },

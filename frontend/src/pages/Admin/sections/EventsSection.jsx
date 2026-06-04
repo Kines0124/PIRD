@@ -11,6 +11,11 @@ import { IoWarningOutline }        from "react-icons/io5";
 import { MdPhotoCamera }           from "react-icons/md";
 import { BsBox2HeartFill }         from "react-icons/bs";
 import { FaStaffSnake }            from "react-icons/fa6";
+import { FaCalendarDays }          from "react-icons/fa6";
+import { IoIosPin }                from "react-icons/io";
+import { MdFlood }                 from "react-icons/md";
+import { GoGoal }                  from "react-icons/go";
+import { CiEdit }                  from "react-icons/ci";
 
 const PROF_COLORS = {
   "Médico Clínico Geral":      "#2563eb",
@@ -498,7 +503,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
     { id: "fotos",         label: <><MdPhotoCamera style={{color:"gray", fontSize:18}}/> Fotos{fotosCount !== null ? ` (${fotosCount})` : ""}</> },
     { id: "coleta",        label: <><BsBox2HeartFill style={{color:"#3B82F6", fontSize:18}}/> Coleta ({nearbyPoints.length})</> },
     event.status !== "encerrado" ? { id: "especialistas", label: <><FaStaffSnake style={{color:"#22c55e", fontSize:18}}/> Especialistas ({assignedSpecialists.length})</> } : null,
-    event.status !== "encerrado" ? { id: "convocar", label: "🎯 Convocar" } : null,
+    event.status !== "encerrado" ? { id: "convocar", label: <> <GoGoal style={{color:"red", fontSize:18}}/> Convocar </> } : null,
   ].filter(Boolean);
 
   return (
@@ -527,16 +532,16 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
                 {severityBadge(event.severity)}
                 {statusBadge(event.status)}
                 {(event.address || event.city) && (
-                  <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-                    📍 {event.address || event.city}
+                  <span style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                    <IoIosPin style={{fontSize:13}}/> {event.address || event.city}
                   </span>
                 )}
-                <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>📅 {event.date}</span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}><FaCalendarDays style={{color:"#5e91b5", fontSize:11}}/> {event.date}</span>
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
               {event.status !== "encerrado" && (
-                <button className="btn btn-secondary btn-sm" onClick={onEdit}>✏️ Editar</button>
+                <button className="btn btn-secondary btn-sm" onClick={onEdit}><CiEdit style={{color:"white", fontSize:18}}/> Editar</button>
               )}
               <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid var(--border)", background: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
             </div>
@@ -851,7 +856,7 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
                               onClick={() => setEditEvent(e)}
                               title="Editar"
                             >
-                              ✏️
+                              <CiEdit style={{color:"white", fontSize:20}}/>
                             </button>
                           )}
                           {e.status === "encerrado" && (

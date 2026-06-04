@@ -4,6 +4,10 @@ import { gsap } from "gsap";
 import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { BsBox2HeartFill }     from "react-icons/bs";
 import { FaMapMarkedAlt }      from "react-icons/fa";
+import { IoIosPin }            from "react-icons/io";
+import { BiMapPin } from "react-icons/bi";
+import { FaClipboard } from "react-icons/fa";
+import { FaSearch } from "react-icons/fa";
 
 function fmt(iso) {
   if (!iso) return "—";
@@ -286,9 +290,9 @@ function MapListItem({ ponto, isSelected, onClick, animIndex }) {
       }}
     >
       <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 3 }}>{ponto.name}</div>
-      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>📍 {ponto.address}</div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}><BiMapPin style={{fontSize: 12}}/> {ponto.address}</div>
       <span style={{ fontSize: 10, color: isSelected ? "var(--accent)" : "var(--text-muted)" }}>
-        {isSelected ? "📍 no mapa ✓" : "ver no mapa →"}
+        {isSelected ? <> <IoIosPin /> no mapa ✓</> : "ver no mapa →"}
       </span>
     </div>
   );
@@ -359,10 +363,10 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
       {/* Tabs */}
       <div ref={tabsRef} className="tabs" style={{ opacity: 0 }}>
         <div className={`tab ${tab === "informacoes" ? "active" : ""}`} onClick={() => setTab("informacoes")}>
-          📋 Informações ({validados.length})
+          <FaClipboard style={{fontSize:14}}/> Informações ({validados.length})
         </div>
         <div className={`tab ${tab === "localizacoes" ? "active" : ""}`} onClick={() => { setTab("localizacoes"); setSelId(null); }}>
-          <FaMapMarkedAlt /> Localizações
+          <FaMapMarkedAlt style={{fontSize:14}}/> Localizações
         </div>
       </div>
 
