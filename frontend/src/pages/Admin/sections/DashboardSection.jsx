@@ -1,5 +1,8 @@
 import { useMemo, useRef, useLayoutEffect } from "react";
 import { gsap } from "gsap";
+import { AiOutlineAlert } from "react-icons/ai";
+import { IoWarningOutline }    from "react-icons/io5";
+import { FaCircle } from "react-icons/fa";
 
 const TIPO_COLOR = {
   enchente:          "#0EA5E9",
@@ -54,9 +57,9 @@ export default function DashboardSection({
   const criticos = ativos.filter(e => e.severity === "critico").length;
 
   const stats = [
-    { label: "Eventos Ativos",   value: ativos.length,         icon: "🚨", color: "#dc2626", bg: "rgba(220,38,38,0.08)",  isCritical: true  },
-    { label: "Eventos Críticos", value: criticos,              icon: "🔴", color: "#dc2626", bg: "rgba(220,38,38,0.08)",  isCritical: true  },
-    { label: "Pontos Críticos",  value: criticalPoints.length, icon: "⚠️", color: "#ea580c", bg: "rgba(234,88,12,0.08)",  isCritical: false },
+    { label: "Eventos Ativos",   value: ativos.length,         icon: <AiOutlineAlert style={{color: "red", fontSize: 23}}/>, color: "#dc2626", bg: "rgba(220,38,38,0.08)",  isCritical: true  },
+    { label: "Eventos Críticos", value: criticos,              icon: <FaCircle style={{color:"red"}}/>, color: "#dc2626", bg: "rgba(220,38,38,0.08)",  isCritical: true  },
+    { label: "Pontos Críticos",  value: criticalPoints.length, icon: <IoWarningOutline style={{color: "yellow", fontSize:22}}/>, color: "#ea580c", bg: "rgba(234,88,12,0.08)",  isCritical: false },
   ];
 
   const countByTipo = useMemo(() => {
@@ -197,7 +200,7 @@ export default function DashboardSection({
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
                 className={s.isCritical ? "stat-icon stat-icon--critical" : "stat-icon"}
-                style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: s.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}
               >
                 {s.icon}
               </div>

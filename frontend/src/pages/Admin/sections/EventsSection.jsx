@@ -6,8 +6,11 @@ import { severityColor, typeIcon, riskColor, severityBadge, statusBadge } from "
 import EventModal from "../modals/EventModal.jsx";
 import EventClosureModal from "../modals/EventClosureModal";
 import { convocarManual, getFotosByEvento, uploadFoto, deletarFoto } from "../../../services/adminApi.js";
-import { FaTrash } from "react-icons/fa";
-import { IoWarningOutline } from "react-icons/io5";
+import { FaTrash, FaMapMarkedAlt } from "react-icons/fa";
+import { IoWarningOutline }        from "react-icons/io5";
+import { MdPhotoCamera }           from "react-icons/md";
+import { BsBox2HeartFill }         from "react-icons/bs";
+import { FaStaffSnake }            from "react-icons/fa6";
 
 const PROF_COLORS = {
   "Médico Clínico Geral":      "#2563eb",
@@ -243,7 +246,7 @@ function FotosTab({ eventoId, onCountChange, onFotosChange }) {
         </div>
       ) : fotos.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">📷</div>
+          <div className="empty-state-icon"><MdPhotoCamera /></div>
           <div className="empty-state-text">Nenhuma foto registrada para este evento</div>
         </div>
       ) : (
@@ -362,7 +365,7 @@ function EventPhotoStrip({ fotos, onPhotoClick }) {
   if (fotos.length === 0) {
     return (
       <div style={{ height: 84, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>📷 Não há fotos do evento ainda</span>
+        <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}><MdPhotoCamera /> Não há fotos do evento ainda</span>
       </div>
     );
   }
@@ -491,10 +494,10 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
     .filter(s => eventConvMap.has(s.especialistaId) || !!localConvocados[s.especialistaId]);
 
   const tabs = [
-    { id: "mapa",          label: "🗺️ Mapa" },
-    { id: "fotos",         label: `📷 Fotos${fotosCount !== null ? ` (${fotosCount})` : ""}` },
-    { id: "coleta",        label: `📦 Coleta (${nearbyPoints.length})` },
-    event.status !== "encerrado" ? { id: "especialistas", label: `⚕️ Especialistas (${assignedSpecialists.length})` } : null,
+    { id: "mapa",          label: <><FaMapMarkedAlt style={{color:"lightblue", fontSize:18}} /> Mapa</> },
+    { id: "fotos",         label: <><MdPhotoCamera style={{color:"gray", fontSize:18}}/> Fotos{fotosCount !== null ? ` (${fotosCount})` : ""}</> },
+    { id: "coleta",        label: <><BsBox2HeartFill style={{color:"#3B82F6", fontSize:18}}/> Coleta ({nearbyPoints.length})</> },
+    event.status !== "encerrado" ? { id: "especialistas", label: <><FaStaffSnake style={{color:"#22c55e", fontSize:18}}/> Especialistas ({assignedSpecialists.length})</> } : null,
     event.status !== "encerrado" ? { id: "convocar", label: "🎯 Convocar" } : null,
   ].filter(Boolean);
 

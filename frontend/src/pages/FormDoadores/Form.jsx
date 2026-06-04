@@ -6,6 +6,8 @@ import { MAPBOX_TOKEN } from "../../utils/geocoding.js";
 import { useNavigate } from "react-router-dom";
 import { maskPhone } from "../../utils/cpfValidator.js";
 import { CATEGORIA_CONFIG, SUBITENS_POR_CATEGORIA } from "../PontoColeta/shared";
+import { FcOk }         from "react-icons/fc";
+import { FaMapMarkedAlt } from "react-icons/fa";
 
 const BASE = "http://localhost:8080";
 const CATEGORIAS_ORDER = ['solido', 'liquido', 'dormitorios', 'roupas', 'higiene_limpeza'];
@@ -173,7 +175,7 @@ function SuccessScreen({ onVoltar }) {
           ref={iconRef}
           style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto 20px" }}
         >
-          ✅
+          <FcOk />
         </div>
 
         <h2 className="sc-row" style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 800, color: "var(--text-primary)", marginBottom: 10, letterSpacing: "0.02em" }}>
@@ -384,7 +386,7 @@ export default function DoadoresForm() {
           {/* Toggle mapa mobile */}
           <button className="df-row mapa-toggle-btn" type="button" onClick={() => setMapaVisivel(v => !v)}
             style={{ display: "none", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: 20, padding: "9px 14px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "var(--radius)", color: "var(--text-muted)", fontSize: 12, fontFamily: "var(--font-mono)", cursor: "pointer", letterSpacing: "0.04em" }}>
-            <span>🗺️ {mapaVisivel ? "Ocultar mapa" : "Ver pontos de coleta no mapa"}</span>
+            <span><FaMapMarkedAlt /> {mapaVisivel ? "Ocultar mapa" : "Ver pontos de coleta no mapa"}</span>
             <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{mapaVisivel ? "▲" : "▼"}</span>
           </button>
 

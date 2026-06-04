@@ -2,6 +2,8 @@
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useGeocodingAutocomplete } from "../../hooks/useGeocodingAutocomplete.js";
+import { IoWarningOutline } from "react-icons/io5";
+import { FcOk }            from "react-icons/fc";
 
 const BASE = "http://localhost:8080";
 
@@ -453,7 +455,7 @@ export default function Step2Professional({ userData, onNext, onBack }) {
             </div>
             {fmtError && (
               <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginTop: 6, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 7, padding: "8px 10px" }}>
-                <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
+                <IoWarningOutline style={{ fontSize: 14, flexShrink: 0 }} />
                 <p style={{ fontSize: 12, color: "var(--accent)", margin: 0 }}>{fmtError}</p>
               </div>
             )}
@@ -486,7 +488,7 @@ export default function Step2Professional({ userData, onNext, onBack }) {
         {validated && (
           <div ref={validatedBoxRef} style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: "14px 16px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <span>✅</span>
+              <FcOk />
               <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: "#22c55e" }}>Formato verificado</span>
             </div>
             <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>

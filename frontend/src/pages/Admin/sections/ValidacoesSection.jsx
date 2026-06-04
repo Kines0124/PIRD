@@ -4,6 +4,8 @@ import * as adminApi from "../../../services/adminApi.js";
 import RegistroDrawer from "../components/RegistroDrawer";
 import { FaStaffSnake }        from "react-icons/fa6";
 import { BsBox2HeartFill }     from "react-icons/bs";
+import { FaTrash }             from "react-icons/fa";
+import { FcOk }                from "react-icons/fc";
 
 const CONSELHOS = [
   { nome: "CFM — Médicos",             url: "https://portal.cfm.org.br/busca-medicos" },
@@ -125,7 +127,7 @@ function RegistroCard({ reg, onRevisar, onDeletar, animIndex }) {
               style={{ background: "none", border: "1px solid transparent", borderRadius: 7, color: "var(--text-muted)", fontSize: 15, padding: "4px 8px", cursor: "pointer", lineHeight: 1 }}
               onMouseEnter={e => { e.target.style.color = "#dc2626"; e.target.style.background = "rgba(220,38,38,0.07)"; }}
               onMouseLeave={e => { e.target.style.color = "var(--text-muted)"; e.target.style.background = "none"; }}>
-              🗑
+              <FaTrash />
             </button>
           ) : (
             <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
@@ -172,7 +174,7 @@ function RegistroPontoCard({ reg, onRevisar, animIndex }) {
       style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14, opacity: 0, willChange: "transform, opacity" }}
     >
       <div style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: "rgba(222,57,63,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
-        📦
+        <BsBox2HeartFill />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-primary)", marginBottom: 2 }}>{reg.nomeLocal}</div>
@@ -219,7 +221,7 @@ function HistoricoCard({ item, animIndex }) {
       style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14, opacity: 0, willChange: "transform, opacity" }}
     >
       <div style={{ width: 44, height: 44, borderRadius: isPonto ? 8 : "50%", backgroundColor: isPonto ? "rgba(222,57,63,0.12)" : "var(--bg-hover)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: isPonto ? 18 : 16, fontWeight: 700, color: "var(--text-primary)", flexShrink: 0 }}>
-        {isPonto ? "📦" : item._nome.charAt(0).toUpperCase()}
+        {isPonto ? <BsBox2HeartFill /> : item._nome.charAt(0).toUpperCase()}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-primary)", marginBottom: 2 }}>{item._nome}</div>
@@ -327,7 +329,7 @@ function RegistroPontoDrawer({ registro, onClose, onAprovarRegistro, onRejeitarR
           <button onClick={handleClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer", fontSize: 20, lineHeight: 1, padding: 0 }}>←</button>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text-primary)" }}>Revisar Cadastro</div>
-            <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>📦 Ponto de Coleta</div>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)" }}><BsBox2HeartFill /> Ponto de Coleta</div>
           </div>
           <span style={{ backgroundColor: "rgba(234,179,8,0.12)", color: "#ca8a04", borderRadius: 99, fontSize: 11, fontWeight: 600, padding: "3px 10px" }}>⏳ Pendente</span>
         </div>
@@ -540,7 +542,7 @@ export default function ValidacoesSection({
             </div>
 
             {pendentesEsp.length === 0
-              ? <div style={{ textAlign: "center", color: "var(--text-secondary)", fontSize: 14, padding: "40px 0" }}>✅ Nenhum especialista pendente</div>
+              ? <div style={{ textAlign: "center", color: "var(--text-secondary)", fontSize: 14, padding: "40px 0" }}><FcOk /> Nenhum especialista pendente</div>
               : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {pendentesEsp.map((reg, i) => (
                     <RegistroCard key={reg.id} reg={reg} animIndex={i}
@@ -569,7 +571,7 @@ export default function ValidacoesSection({
             </div>
 
             {pendentesPC.length === 0
-              ? <div style={{ textAlign: "center", color: "var(--text-secondary)", fontSize: 14, padding: "40px 0" }}>✅ Nenhum ponto de coleta pendente</div>
+              ? <div style={{ textAlign: "center", color: "var(--text-secondary)", fontSize: 14, padding: "40px 0" }}><FcOk /> Nenhum ponto de coleta pendente</div>
               : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {pendentesPC.map((reg, i) => (
                     <RegistroPontoCard key={reg.id} reg={reg} animIndex={i}

@@ -92,7 +92,7 @@ function MapView({ events, criticalPoints, collectionPoints, onVerMaisCritico })
   if (!MAPBOX_TOKEN) {
     return (
       <div id="admin-map" style={{ display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8 }}>
-        <span style={{ fontSize: 28 }}>🗺️</span>
+        <FaMapMarkedAlt style={{ fontSize: 28 }} />
         <div style={{ fontSize: 12, color: "var(--text-secondary)", textAlign: "center" }}>
           Configure <code>VITE_MAPBOX_TOKEN</code> para visualizar o mapa.
         </div>
@@ -343,7 +343,7 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
                   </div>
                   <div style={{ display: "flex", gap: 10, fontSize: 11, color: "var(--text-muted)", alignItems: "center" }}>
                     <span>📍 {e.address || e.city}</span>
-                    <span>👥 {e.victims || 0} vítimas</span>
+                    <span><IoPeople /> {e.victims || 0} vítimas</span>
                     <span style={{ marginLeft: "auto" }}>{statusBadge(e.status)}</span>
                   </div>
                 </div>

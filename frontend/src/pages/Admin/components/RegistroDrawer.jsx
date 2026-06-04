@@ -178,7 +178,7 @@ export default function RegistroDrawer({ registro, onClose, onAprovar, onReprova
         ) : (
           <div style={{ padding: "14px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 10 }}>
             <button onClick={handleReprovar} style={{ flex: 1, padding: 11, borderRadius: 8, border: "1px solid #dc2626", backgroundColor: reprovando ? "#dc2626" : "rgba(220,38,38,0.1)", color: reprovando ? "#fff" : "#dc2626", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-              {reprovando ? "⚠️ Confirmar Reprovação" : "✗ Reprovar"}
+              {reprovando ? "Confirmar Reprovação" : "✗ Reprovar"}
             </button>
             <button onClick={() => setConfirmStep(true)} style={{ flex: 1, padding: 11, borderRadius: 8, border: "none", backgroundColor: "#16a34a", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
               ✓ Aprovar

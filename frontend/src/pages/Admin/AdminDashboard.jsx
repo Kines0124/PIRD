@@ -22,6 +22,9 @@ import { FaMapMarkedAlt }      from "react-icons/fa";
 import { MdOutlineQueryStats } from "react-icons/md";
 import { GrValidate }          from "react-icons/gr";
 import { GrOverview }          from "react-icons/gr";
+import { IoMdNotificationsOutline } from "react-icons/io";
+import { PiGear } from "react-icons/pi";
+import { TbRefresh } from "react-icons/tb";
 
 
 
@@ -487,7 +490,7 @@ function AdminPanel({ onLogout }) {
             </div>
             <button
               onClick={onLogout}
-              style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6, color: "#ef4444", fontWeight: 700, fontSize: 12, padding: "5px 10px", cursor: "pointer", letterSpacing: "0.05em", transition: "all 0.15s", flexShrink: 0 }}
+              style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6, color: "#ef4444", fontWeight: 700, fontSize: 14, padding: "5px 10px", cursor: "pointer", letterSpacing: "0.05em", transition: "all 0.15s", flexShrink: 0 }}
               onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.22)"; e.currentTarget.style.borderColor = "#ef4444"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)"; }}
             >
@@ -508,13 +511,13 @@ function AdminPanel({ onLogout }) {
             <div className="topbar-spacer" />
             {loadError && (
               <div style={{ fontSize: 12, color: "var(--danger)", display: "flex", alignItems: "center", gap: 6 }}>
-                ⚠️ {loadError}
+                <IoWarningOutline /> {loadError}
                 <button className="btn btn-secondary btn-sm" onClick={loadAll}>↺ Retry</button>
               </div>
             )}
             <button className="btn btn-secondary btn-sm" onClick={loadAll} title="Recarregar dados"
               style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              ↺ Atualizar
+              <TbRefresh style={{fontSize: 14}}/> Atualizar
             </button>
             <div className="topbar-status"><div className="status-dot" />Sistema Online</div>
 
@@ -526,7 +529,7 @@ function AdminPanel({ onLogout }) {
                 onClick={() => setShowNotifs(v => !v)}
                 style={{ position: "relative" }}
               >
-                🔔
+                <IoMdNotificationsOutline style={{color:"yellow", fontSize: 22}} />
                 {totalNotifs > 0 && (
                   <span style={{ position: "absolute", top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 99, background: "#ef4444", color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px" }}>
                     {totalNotifs}
@@ -543,8 +546,8 @@ function AdminPanel({ onLogout }) {
                     Notificações
                   </div>
                   {[
-                    { count: pendingEspecialistas, label: "Especialistas aguardando validação", icon: "⚕️", target: "validacoes" },
-                    { count: pendingCols,          label: "Pontos de coleta pendentes",         icon: "📦", target: "validacoes" },
+                    { count: pendingEspecialistas, label: "Especialistas aguardando validação", icon: <FaStaffSnake />,    target: "validacoes" },
+                    { count: pendingCols,          label: "Pontos de coleta pendentes",         icon: <BsBox2HeartFill />, target: "validacoes" },
                     { count: activeEvents,         label: "Eventos ativos no momento",          icon: <MdFlood style={{color:"#ef4444"}}/>, target: "events"    },
                   ].map(n => (
                     <div
@@ -567,7 +570,7 @@ function AdminPanel({ onLogout }) {
               )}
             </div>
 
-            <button className="topbar-btn" title="Configurações" onClick={openSettings}>⚙️</button>
+            <button className="topbar-btn" title="Configurações" onClick={openSettings}><PiGear style={{color: "lightgray", fontSize:18 }}/></button>
           </div>
 
           {/* Conteúdo com slide direcional */}

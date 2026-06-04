@@ -1,6 +1,7 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { MAPBOX_TOKEN } from "../../../utils/geocoding";
+import { LuCircleAlert } from "react-icons/lu";
 
 const TAUBATE = [-45.5533, -23.0268];
 

@@ -8,6 +8,13 @@ import { Draggable } from "gsap/Draggable";
 import { MAPBOX_TOKEN } from "../../utils/geocoding";
 import { maskPhone } from "../../utils/cpfValidator";
 import { useGeocodingAutocomplete } from "../../hooks/useGeocodingAutocomplete";
+import { IoWarningOutline }        from "react-icons/io5";
+import { FaMapMarkedAlt }          from "react-icons/fa";
+import { IoMdNotificationsOutline } from "react-icons/io";
+import { FcOk }                    from "react-icons/fc";
+import { MdOutlineManageAccounts } from "react-icons/md";
+import { MdOutlineVolunteerActivism } from "react-icons/md";
+
 
 
 gsap.registerPlugin(ScrollTrigger, Draggable);
@@ -611,7 +618,7 @@ function EventosTab({ eventos, convs, criticalPoints, userEmail, rota, onRefresh
               ) : !convAnyByEvento[ev.id] && (
                 <button onClick={() => setPendingVoluntario(ev)}
                   style={{ width: "100%", padding: "10px", borderRadius: 10, border: "1px solid rgba(99,102,241,0.3)", background: "rgba(99,102,241,0.08)", color: "#818cf8", fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                  🤝 Quero ajudar
+                  <MdOutlineVolunteerActivism style={{fontSize:15}}/> Quero ajudar
                 </button>
               )}
               {convAcaminhoByEvento[ev.id] && (
@@ -640,7 +647,7 @@ function EventosTab({ eventos, convs, criticalPoints, userEmail, rota, onRefresh
 
       {!MAPBOX_TOKEN && (
         <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%,-50%)", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 16, padding: "32px", textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🗺️</div>
+          <div style={{ fontSize: 32, marginBottom: 12 }}><FaMapMarkedAlt /></div>
           <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Configure <code>VITE_MAPBOX_TOKEN</code></div>
         </div>
       )}
@@ -779,7 +786,7 @@ function ContaTab({ user, token, onUpdate }) {
           </div>
         </div>
         {error   && <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#ef4444" }}>{error}</div>}
-        {success && <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#22c55e" }}>✅ Alterações salvas com sucesso.</div>}
+        {success && <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#22c55e" }}><FcOk /> Alterações salvas com sucesso.</div>}
         <button onClick={handleSave} disabled={saving}
           style={{ padding: "15px", borderRadius: 12, border: "none", background: saving ? "var(--bg-hover)" : "var(--accent)", color: saving ? "var(--text-muted)" : "#fff", fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer" }}>
           {saving ? "Salvando..." : "Salvar alterações"}
@@ -792,9 +799,9 @@ function ContaTab({ user, token, onUpdate }) {
 // ── Bottom Navigation ─────────────────────────────────────────────────────────
 function BottomNav({ activeTab, onTabChange, pendentes, onLogout }) {
   const tabs = [
-    { id: "convocacoes", label: "Convocações", icon: "🔔" },
-    { id: "eventos",     label: "Eventos",     icon: "🗺️" },
-    { id: "conta",       label: "Conta",       icon: "👤" },
+    { id: "convocacoes", label: "Convocações", icon: <IoMdNotificationsOutline /> },
+    { id: "eventos",     label: "Eventos",     icon: <FaMapMarkedAlt /> },
+    { id: "conta",       label: "Conta",       icon: <MdOutlineManageAccounts style={{fontSize:23}}/> },
   ];
 
   return (
@@ -874,7 +881,7 @@ function ActionToast({ message, onDismiss }) {
         padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 10,
         zIndex: 150,
       }}>
-      <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1.2 }}>⚠️</span>
+      <IoWarningOutline style={{ fontSize: 18, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700, color: "#ef4444", marginBottom: 2 }}>
           Ação não permitida: Já está presente em um evento.

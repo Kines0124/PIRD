@@ -3,6 +3,7 @@ import mapboxgl from "mapbox-gl";
 import { gsap } from "gsap";
 import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { BsBox2HeartFill }     from "react-icons/bs";
+import { FaMapMarkedAlt }      from "react-icons/fa";
 
 function fmt(iso) {
   if (!iso) return "—";
@@ -135,7 +136,7 @@ function PontoDetailDrawer({ ponto, onClose }) {
         {/* Header */}
         <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ width: 52, height: 52, borderRadius: 10, backgroundColor: "rgba(222,57,63,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
-            📦
+            <BsBox2HeartFill />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text-primary)", marginBottom: 3 }}>{ponto.name}</div>
@@ -232,7 +233,7 @@ function PontoCard({ ponto, onClick, animIndex }) {
       }}
     >
       <div style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: "rgba(222,57,63,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
-        📦
+        <BsBox2HeartFill />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-primary)", marginBottom: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -361,7 +362,7 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
           📋 Informações ({validados.length})
         </div>
         <div className={`tab ${tab === "localizacoes" ? "active" : ""}`} onClick={() => { setTab("localizacoes"); setSelId(null); }}>
-          🗺️ Localizações
+          <FaMapMarkedAlt /> Localizações
         </div>
       </div>
 
@@ -444,7 +445,7 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
           <div style={{ flex: 1 }}>
             {filtered.length === 0 ? (
               <div className="empty-state" style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                <div className="empty-state-icon">🗺️</div>
+                <div className="empty-state-icon"><FaMapMarkedAlt /></div>
                 <div className="empty-state-text">Nenhum ponto para exibir</div>
               </div>
             ) : (

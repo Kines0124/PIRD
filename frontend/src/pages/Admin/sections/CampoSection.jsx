@@ -1,6 +1,13 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import MapaCampo from "../components/MapaCampo";
+import { AiOutlineAlert } from "react-icons/ai";
+import { FaRoute } from "react-icons/fa";
+import { CgTrack } from "react-icons/cg";
+import { MdVerified } from "react-icons/md";
+import { IoWarningOutline } from "react-icons/io5";
+import { MdFlood } from "react-icons/md";
+import { FaStaffSnake } from "react-icons/fa6";
 
 const TIPO_LABEL = {
   enchente: "Enchente", deslizamento: "Deslizamento", alagamento: "Alagamento",
@@ -237,12 +244,12 @@ export default function CampoSection({ events, criticalPoints = [], specialists,
   };
 
   const stats = [
-    { label: "Eventos no mapa",         value: showEventos  ? eventosFiltrados.length : 0, icon: "🗂️" },
-    { label: "Pontos críticos",         value: showCriticos ? criticalPoints.length : 0,   icon: "⚠️" },
-    { label: "Especialistas aprovados", value: aprovados.length,                            icon: "👥" },
-    { label: "Disponíveis",             value: disponiveis,                                 icon: "✅" },
-    { label: "A caminho",               value: aCaminho,                                    icon: "🚗" },
-    { label: "No local",                value: noLocal,                                     icon: "📍" },
+    { label: "Eventos no mapa",         value: showEventos  ? eventosFiltrados.length : 0, icon: <MdFlood style={{color:"red", fontSize:22}}/>},
+    { label: "Pontos críticos",         value: showCriticos ? criticalPoints.length : 0,   icon: <IoWarningOutline style={{color:"yellow", fontSize:22}}/>},
+    { label: "Especialistas aprovados", value: aprovados.length,                            icon: <FaStaffSnake style={{color:"lightgreen", fontSize:22}}/> },
+    { label: "Disponíveis",             value: disponiveis,                                 icon: <MdVerified style={{color:"lime", fontSize:22}}/> },
+    { label: "A caminho",               value: aCaminho,                                    icon: <FaRoute style={{color:"lightblue", fontSize:22}}/>},
+    { label: "No local",                value: noLocal,                                     icon: <CgTrack style={{fontSize:22}}/> },
   ];
 
   // Altura dos cards nas listas (aprox 4 cards + scrollbar)
