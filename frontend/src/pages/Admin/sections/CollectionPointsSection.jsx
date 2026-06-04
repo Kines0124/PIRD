@@ -1,13 +1,15 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
+import { gsap } from "gsap";
 import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
+import { BsBox2HeartFill }     from "react-icons/bs";
 
 function fmt(iso) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-// ── Mapbox map ──────────────────────────────────────────────────────────────
+// ── Mapbox map (sem alterações) ─────────────────────────────────────────────
 function CollectionMap({ points, selectedId }) {
   const containerRef = useRef(null);
   const mapRef       = useRef(null);
@@ -78,19 +80,39 @@ function CollectionMap({ points, selectedId }) {
   return <div ref={containerRef} style={{ height: "100%", width: "100%", borderRadius: 8 }} />;
 }
 
-// ── Detail drawer ───────────────────────────────────────────────────────────
+// ── Detail drawer animado ───────────────────────────────────────────────────
 function PontoDetailDrawer({ ponto, onClose }) {
-  if (!ponto) return null;
+  const overlayRef = useRef(null);
+  const panelRef   = useRef(null);
+  const contentRef = useRef(null);
 
-  const rows = (label, value) => (
-    <div key={label} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 8, alignItems: "start" }}>
+  useEffect(() => {
+    const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+    tl.fromTo(overlayRef.current, { opacity: 0 }, { opacity: 1, duration: 0.25 });
+    tl.fromTo(panelRef.current,   { x: 48, opacity: 0 }, { x: 0, opacity: 1, duration: 0.35 }, "<0.06");
+    tl.fromTo(
+      contentRef.current?.querySelectorAll(".drawer-item") || [],
+      { x: 16, opacity: 0 },
+      { x: 0, opacity: 1, stagger: 0.06, duration: 0.28 },
+      "-=0.16"
+    );
+  }, []);
+
+  function handleClose() {
+    const tl = gsap.timeline({ onComplete: onClose });
+    tl.to(panelRef.current,   { x: 48, opacity: 0, duration: 0.22, ease: "power2.in" });
+    tl.to(overlayRef.current, { opacity: 0, duration: 0.18 }, "<0.04");
+  }
+
+  const Row = ({ label, value }) => (
+    <div className="drawer-item" style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 8, alignItems: "start" }}>
       <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", paddingTop: 1 }}>{label}</span>
       <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{value || "—"}</span>
     </div>
   );
 
-  const section = (title, children) => (
-    <div>
+  const Section = ({ title, children }) => (
+    <div className="drawer-item">
       <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600, marginBottom: 10, fontFamily: "var(--font-mono)" }}>
         {title}
       </div>
@@ -99,14 +121,17 @@ function PontoDetailDrawer({ ponto, onClose }) {
   );
 
   return (
-    <div
-      style={{ position: "fixed", inset: 0, zIndex: 500, display: "flex" }}
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
-      <div style={{ flex: 1, background: "rgba(0,0,0,0.5)" }} onClick={onClose} />
+    <div style={{ position: "fixed", inset: 0, zIndex: 500, display: "flex" }}>
+      <div
+        ref={overlayRef}
+        style={{ flex: 1, background: "rgba(0,0,0,0.5)", opacity: 0 }}
+        onClick={handleClose}
+      />
 
-      <div style={{ width: 420, background: "var(--bg-surface)", borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", animation: "slideInRight 0.2s" }}>
-
+      <div
+        ref={panelRef}
+        style={{ width: 420, background: "var(--bg-surface)", borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", opacity: 0, willChange: "transform, opacity" }}
+      >
         {/* Header */}
         <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ width: 52, height: 52, borderRadius: 10, backgroundColor: "rgba(222,57,63,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
@@ -117,7 +142,7 @@ function PontoDetailDrawer({ ponto, onClose }) {
             <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{ponto.type || "Ponto de Coleta"}</div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid var(--border)", background: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
           >✕</button>
         </div>
@@ -130,34 +155,34 @@ function PontoDetailDrawer({ ponto, onClose }) {
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 18 }}>
-          {section("Identificação", [
-            rows("Nome",  ponto.name),
-            rows("CNPJ",  ponto.cnpj),
-            rows("Tipo",  ponto.type),
-          ])}
+        <div ref={contentRef} style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 18 }}>
+          <Section title="Identificação">
+            <Row label="Nome"  value={ponto.name} />
+            <Row label="CNPJ"  value={ponto.cnpj} />
+            <Row label="Tipo"  value={ponto.type} />
+          </Section>
 
-          <div style={{ height: 1, background: "var(--border)" }} />
+          <div className="drawer-item" style={{ height: 1, background: "var(--border)" }} />
 
-          {section("Contato", [
-            rows("Telefone", ponto.phone),
-            rows("E-mail",   ponto.email),
-          ])}
+          <Section title="Contato">
+            <Row label="Telefone" value={ponto.phone} />
+            <Row label="E-mail"   value={ponto.email} />
+          </Section>
 
-          <div style={{ height: 1, background: "var(--border)" }} />
+          <div className="drawer-item" style={{ height: 1, background: "var(--border)" }} />
 
-          {section("Endereço", [
-            rows("Endereço", ponto.address),
-            rows("Cidade",   ponto.city || "—"),
-          ])}
+          <Section title="Endereço">
+            <Row label="Endereço" value={ponto.address} />
+            <Row label="Cidade"   value={ponto.city} />
+          </Section>
 
           {(ponto.lat || ponto.lng) && (
             <>
-              <div style={{ height: 1, background: "var(--border)" }} />
-              {section("Localização GPS", [
-                rows("Latitude",  ponto.lat ? ponto.lat.toFixed(6) : "—"),
-                rows("Longitude", ponto.lng ? ponto.lng.toFixed(6) : "—"),
-              ])}
+              <div className="drawer-item" style={{ height: 1, background: "var(--border)" }} />
+              <Section title="Localização GPS">
+                <Row label="Latitude"  value={ponto.lat ? ponto.lat.toFixed(6) : "—"} />
+                <Row label="Longitude" value={ponto.lng ? ponto.lng.toFixed(6) : "—"} />
+              </Section>
             </>
           )}
         </div>
@@ -166,14 +191,45 @@ function PontoDetailDrawer({ ponto, onClose }) {
   );
 }
 
-// ── Card component ──────────────────────────────────────────────────────────
-function PontoCard({ ponto, onClick }) {
+// ── Card animado ────────────────────────────────────────────────────────────
+function PontoCard({ ponto, onClick, animIndex }) {
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    if (!cardRef.current) return;
+    gsap.fromTo(
+      cardRef.current,
+      { x: 28, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.4, ease: "power3.out", delay: animIndex * 0.055 }
+    );
+  }, []);
+
+  function handleMouseEnter() {
+    gsap.to(cardRef.current, { x: 2, boxShadow: "0 4px 18px rgba(0,0,0,0.15)", duration: 0.2, ease: "power2.out", overwrite: "auto" });
+  }
+  function handleMouseLeave() {
+    gsap.to(cardRef.current, { x: 0, boxShadow: "0 0px 0px rgba(0,0,0,0)", duration: 0.25, ease: "power2.inOut", overwrite: "auto" });
+  }
+  function handleMouseDown() {
+    gsap.to(cardRef.current, { scale: 0.985, duration: 0.1, ease: "power1.in", overwrite: "auto" });
+  }
+  function handleMouseUp() {
+    gsap.to(cardRef.current, { scale: 1, duration: 0.2, ease: "back.out(2)", overwrite: "auto" });
+  }
+
   return (
     <div
+      ref={cardRef}
       onClick={onClick}
-      style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16, cursor: "pointer", transition: "all 0.15s", display: "flex", gap: 14, alignItems: "flex-start" }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; e.currentTarget.style.background = "var(--bg-elevated)"; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg-surface)"; }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      style={{
+        backgroundColor: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 10,
+        padding: 16, cursor: "pointer", display: "flex", gap: 14, alignItems: "flex-start",
+        opacity: 0, willChange: "transform, opacity",
+      }}
     >
       <div style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: "rgba(222,57,63,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
         📦
@@ -203,6 +259,40 @@ function PontoCard({ ponto, onClick }) {
   );
 }
 
+// ── Item da lista lateral (tab localizações) ────────────────────────────────
+function MapListItem({ ponto, isSelected, onClick, animIndex }) {
+  const itemRef = useRef(null);
+
+  useEffect(() => {
+    if (!itemRef.current) return;
+    gsap.fromTo(
+      itemRef.current,
+      { x: 20, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.36, ease: "power2.out", delay: animIndex * 0.05 }
+    );
+  }, []);
+
+  return (
+    <div
+      ref={itemRef}
+      onClick={onClick}
+      style={{
+        padding: "13px 16px", borderBottom: "1px solid var(--border)",
+        cursor: "pointer", transition: "background 0.15s",
+        background: isSelected ? "var(--bg-hover)" : "transparent",
+        borderLeft: `3px solid ${isSelected ? "var(--accent)" : "transparent"}`,
+        opacity: 0, willChange: "transform, opacity",
+      }}
+    >
+      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 3 }}>{ponto.name}</div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>📍 {ponto.address}</div>
+      <span style={{ fontSize: 10, color: isSelected ? "var(--accent)" : "var(--text-muted)" }}>
+        {isSelected ? "📍 no mapa ✓" : "ver no mapa →"}
+      </span>
+    </div>
+  );
+}
+
 // ── Main section ────────────────────────────────────────────────────────────
 export default function CollectionPointsSection({ collectionPoints, openCollectionId, onCollectionOpened }) {
   const [tab,      setTab]      = useState("informacoes");
@@ -210,6 +300,13 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
   const [selId,    setSelId]    = useState(null);
   const [search,   setSearch]   = useState("");
 
+  const headerRef  = useRef(null);
+  const tabsRef    = useRef(null);
+  const gridRef    = useRef(null);
+  const prevTab    = useRef(tab);
+  const prevSearch = useRef(search);
+
+  // Abrir via prop externa
   useEffect(() => {
     if (!openCollectionId || collectionPoints.length === 0) return;
     const ponto = collectionPoints.find(p => String(p.id) === String(openCollectionId));
@@ -220,6 +317,27 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
     }
   }, [openCollectionId, collectionPoints]);
 
+  // Entrada da seção
+  useEffect(() => {
+    const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+    tl.fromTo(headerRef.current, { y: -10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.32 });
+    tl.fromTo(tabsRef.current,   { y: -6,  opacity: 0 }, { y: 0, opacity: 1, duration: 0.28 }, "-=0.14");
+  }, []);
+
+  // Transição ao trocar tab
+  useEffect(() => {
+    if (!gridRef.current || prevTab.current === tab) return;
+    prevTab.current = tab;
+    gsap.fromTo(gridRef.current, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, ease: "power2.out" });
+  }, [tab]);
+
+  // Fade leve ao filtrar
+  useEffect(() => {
+    if (!gridRef.current || prevSearch.current === search) return;
+    prevSearch.current = search;
+    gsap.fromTo(gridRef.current, { opacity: 0.45 }, { opacity: 1, duration: 0.2, ease: "power1.out" });
+  }, [search]);
+
   const validados = collectionPoints.filter(p => p.status === "validado");
   const filtered  = validados.filter(p =>
     (p.name || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -228,29 +346,28 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
 
   return (
     <div className="card">
-      <div className="card-header">
+      {/* Header */}
+      <div ref={headerRef} className="card-header" style={{ opacity: 0 }}>
         <div>
-          <div className="card-title">📦 Pontos de Coleta</div>
+          <div className="card-title"><BsBox2HeartFill style={{color: "#3B82F6"}}/> Pontos de Coleta</div>
           <div className="card-subtitle">Visualização e informações dos pontos validados</div>
         </div>
         <div className="text-sm text-muted mono">{validados.length} ponto(s) validado(s)</div>
       </div>
 
-      <div className="tabs">
-        <div className={`tab ${tab === "informacoes" ? "active" : ""}`}
-          onClick={() => setTab("informacoes")}>
+      {/* Tabs */}
+      <div ref={tabsRef} className="tabs" style={{ opacity: 0 }}>
+        <div className={`tab ${tab === "informacoes" ? "active" : ""}`} onClick={() => setTab("informacoes")}>
           📋 Informações ({validados.length})
         </div>
-        <div className={`tab ${tab === "localizacoes" ? "active" : ""}`}
-          onClick={() => { setTab("localizacoes"); setSelId(null); }}>
+        <div className={`tab ${tab === "localizacoes" ? "active" : ""}`} onClick={() => { setTab("localizacoes"); setSelId(null); }}>
           🗺️ Localizações
         </div>
       </div>
 
       {/* ── Informações tab ── */}
       {tab === "informacoes" && (
-        <div style={{ padding: "16px 20px" }}>
-          {/* Search */}
+        <div ref={gridRef} style={{ padding: "16px 20px" }}>
           <div style={{ marginBottom: 18 }}>
             <input
               className="search-input"
@@ -261,7 +378,7 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
             />
           </div>
 
-          {(search) && (
+          {search && (
             <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 14 }}>
               {filtered.length} resultado(s) encontrado(s)
             </div>
@@ -269,7 +386,7 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
 
           {validados.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">📦</div>
+              <div className="empty-state-icon"><BsBox2HeartFill style={{color: "#3B82F6"}}/></div>
               <div className="empty-state-text">Nenhum ponto validado ainda.</div>
             </div>
           ) : filtered.length === 0 ? (
@@ -279,8 +396,8 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
-              {filtered.map(p => (
-                <PontoCard key={p.id} ponto={p} onClick={() => setSelected(p)} />
+              {filtered.map((p, i) => (
+                <PontoCard key={p.id} ponto={p} animIndex={i} onClick={() => setSelected(p)} />
               ))}
             </div>
           )}
@@ -293,7 +410,8 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
 
       {/* ── Localizações tab ── */}
       {tab === "localizacoes" && (
-        <div style={{ display: "flex", height: 480 }}>
+        <div ref={gridRef} style={{ display: "flex", height: 480 }}>
+          {/* Lista lateral */}
           <div style={{ width: 300, flexShrink: 0, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
               <input
@@ -307,32 +425,22 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
             <div style={{ overflowY: "auto", flex: 1 }}>
               {filtered.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-state-icon">📦</div>
+                  <div className="empty-state-icon"><BsBox2HeartFill style={{color: "#3B82F6"}}/></div>
                   <div className="empty-state-text">Nenhum ponto validado</div>
                 </div>
-              ) : filtered.map(p => (
-                <div
+              ) : filtered.map((p, i) => (
+                <MapListItem
                   key={p.id}
+                  ponto={p}
+                  isSelected={selId === p.id}
+                  animIndex={i}
                   onClick={() => setSelId(prev => prev === p.id ? null : p.id)}
-                  style={{
-                    padding: "13px 16px", borderBottom: "1px solid var(--border)",
-                    cursor: "pointer", transition: "all 0.15s",
-                    background: selId === p.id ? "var(--bg-hover)" : "transparent",
-                    borderLeft: `3px solid ${selId === p.id ? "var(--accent)" : "transparent"}`,
-                  }}
-                >
-                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 3 }}>{p.name}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>📍 {p.address}</div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 10, color: selId === p.id ? "var(--accent)" : "var(--text-muted)" }}>
-                      {selId === p.id ? "📍 no mapa ✓" : "ver no mapa →"}
-                    </span>
-                  </div>
-                </div>
+                />
               ))}
             </div>
           </div>
 
+          {/* Mapa */}
           <div style={{ flex: 1 }}>
             {filtered.length === 0 ? (
               <div className="empty-state" style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>

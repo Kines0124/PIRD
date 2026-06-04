@@ -3,6 +3,16 @@ import mapboxgl from "mapbox-gl";
 import { gsap } from "gsap";
 import { MAPBOX_TOKEN } from "../../../utils/geocoding.js";
 import { severityColor, typeIcon, riskColor, severityBadge, statusBadge } from "../adminTheme.jsx";
+import { FaStaffSnake }        from "react-icons/fa6";
+import { BsBox2HeartFill }     from "react-icons/bs";
+import { IoPeople }            from "react-icons/io5";
+import { MdFlood }             from "react-icons/md";
+import { WiNightAltLightning } from "react-icons/wi";
+import { FaMapMarkedAlt }      from "react-icons/fa";
+import { IoWarningOutline }    from "react-icons/io5";
+import { FcOk }                from "react-icons/fc";
+
+
 
 // ─── Constantes ────────────────────────────────────────────────────────────────
 const SEVERITY_ORDER = { critico: 0, alto: 1, medio: 2, baixo: 3 };
@@ -158,10 +168,10 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
     .slice(0, 4);
 
   const kpiData = [
-    { label: "Eventos Ativos",    value: activeEvents,  locale: false, icon: "🌊", color: "#ef4444", delta: `${events.length} total`,          deltaClass: activeEvents > 0 ? "up" : "ok" },
-    { label: "Vítimas Afetadas",  value: totalVictims,  locale: true,  icon: "👥", color: "#F5C518", delta: `${events.length} eventos`,         deltaClass: "ok" },
-    { label: "Especialistas",     value: approvedSpecs, locale: false, icon: "⚕️", color: "#22c55e", delta: `${pendingSpecs} pendentes`,        deltaClass: pendingSpecs > 0 ? "up" : "ok" },
-    { label: "Pontos de Coleta",  value: collectionPoints.filter(p => p.status === "validado").length, locale: false, icon: "📦", color: "#3B82F6", delta: `${pendingCols} para validar`, deltaClass: pendingCols > 0 ? "up" : "ok" },
+    { label: "Eventos Ativos",    value: activeEvents,  locale: false, icon: <MdFlood style={{color:"#ef4444"}}/>, color: "#ef4444", delta: `${events.length} total`,          deltaClass: activeEvents > 0 ? "up" : "ok" },
+    { label: "Vítimas Afetadas",  value: totalVictims,  locale: true,  icon: <IoPeople style={{color:"#F5C518"}}/>, color: "#F5C518", delta: `${events.length} eventos`,         deltaClass: "ok" },
+    { label: "Especialistas",     value: approvedSpecs, locale: false, icon: <FaStaffSnake style={{color:"#22c55e"}}/>, color: "#22c55e", delta: `${pendingSpecs} pendentes`,        deltaClass: pendingSpecs > 0 ? "up" : "ok" },
+    { label: "Pontos de Coleta",  value: collectionPoints.filter(p => p.status === "validado").length, locale: false, icon: <BsBox2HeartFill style={{color: "#3B82F6"}}/>, color: "#3B82F6", delta: `${pendingCols} para validar`, deltaClass: pendingCols > 0 ? "up" : "ok" },
   ];
 
   const pendingSpecialists = specialists.filter(s => s.status === "pendente");
@@ -283,7 +293,7 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
         <div className="card" ref={setGrid60Ref(0)}>
           <div className="card-header">
             <div>
-              <div className="card-title">🗺️ Mapa Operacional</div>
+              <div className="card-title"><FaMapMarkedAlt style={{color: "cyan"}} /> Mapa Operacional</div>
               <div className="card-subtitle">Eventos, pontos críticos e coleta — Mapbox GL</div>
             </div>
             <div className="btn-group">
@@ -298,24 +308,23 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
             onVerMaisCritico={onGoToCritical}
           />
           <div style={{ display: "flex", gap: 14, marginTop: 10, fontSize: 11, color: "var(--text-muted)", flexWrap: "wrap", alignItems: "center" }}>
-            <span>🌊 Evento</span>
+            <span><MdFlood style={{color:"#ef4444"}}/> Evento</span>
             <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid #FF8C00", background: "#FF8C0022", display: "inline-block" }} />
-              Ponto Crítico
+              <IoWarningOutline style={{color: "yellow"}}/> Ponto Crítico
             </span>
-            <span>📦 Coleta</span>
+            <span><BsBox2HeartFill style={{color: "#3B82F6"}}/> Coleta</span>
           </div>
         </div>
 
         {/* Card: Eventos Recentes (máx. 4, sem encerrados, críticos primeiro) */}
         <div className="card" ref={setGrid60Ref(1)}>
           <div className="card-header">
-            <div><div className="card-title">⚡ Eventos Recentes</div></div>
+            <div><div className="card-title"><MdFlood style={{color:"#ef4444", fontSize: 18}}/> Eventos Recentes</div></div>
             <button className="btn btn-secondary btn-sm" onClick={onNewEvent}>＋ Adicionar</button>
           </div>
           {recentEvents.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">🌊</div>
+              <div className="empty-state-icon"><MdFlood style={{color:"#ef4444"}}/></div>
               <div className="empty-state-text">Nenhum evento ativo registrado</div>
             </div>
           ) : (
@@ -328,7 +337,7 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
                   style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-sm)", padding: "12px 14px", border: "1px solid var(--border)" }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 16 }}>{typeIcon[e.type] || "⚠️"}</span>
+                    <span style={{ fontSize: 16 }}>{typeIcon[e.type] || <IoWarningOutline style={{color: "yellow"}}/>}</span>
                     <span style={{ fontWeight: 600, fontSize: 13, flex: 1 }}>{e.title}</span>
                     {severityBadge(e.severity)}
                   </div>
@@ -351,14 +360,14 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
         <div className="card" ref={setGrid2Ref(0)}>
           <div className="card-header">
             <div>
-              <div className="card-title">⚠️ Pontos Críticos</div>
+              <div className="card-title"><IoWarningOutline style={{color: "yellow", fontSize: 18}}/> Pontos Críticos</div>
               <div className="card-subtitle">{criticalPoints.length} registrados</div>
             </div>
             <button className="btn btn-secondary btn-sm" onClick={onNewPoint}>＋ Adicionar</button>
           </div>
           {criticalPoints.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">⚠️</div>
+              <div className="empty-state-icon"><IoWarningOutline /></div>
               <div className="empty-state-text">Nenhum ponto crítico registrado</div>
             </div>
           ) : (
@@ -386,13 +395,13 @@ export default function OverviewSection({ events, criticalPoints, volunteers, co
         <div className="card" ref={setGrid2Ref(1)}>
           <div className="card-header">
             <div>
-              <div className="card-title">⚕️ Especialistas Pendentes</div>
+              <div className="card-title"><FaStaffSnake style={{color:"#22c55e", fontSize: 18}}/> Especialistas Pendentes</div>
               <div className="card-subtitle">Aguardando aprovação</div>
             </div>
           </div>
           {pendingSpecialists.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">✅</div>
+              <div className="empty-state-icon"><FcOk style={{color:"#22c55e"}}/></div>
               <div className="empty-state-text">Nenhum especialista pendente</div>
             </div>
           ) : pendingSpecialists.map((s, i) => (

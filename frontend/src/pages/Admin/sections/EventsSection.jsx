@@ -106,7 +106,7 @@ function EventDetailMap({ event, collectionPoints, criticalPoints }) {
 
     const color = severityColor[event.severity] || "var(--accent)";
     const eventEl = document.createElement("div");
-    eventEl.innerHTML = `<div style="width:34px;height:34px;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 16px ${color}88;cursor:pointer">${typeIcon[event.type] || "⚠️"}</div>`;
+    eventEl.innerHTML = `<div style="width:34px;height:34px;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 16px ${color}88;cursor:pointer">${typeIcon[event.type] || <IoWarningOutline style={{color: "yellow"}}/>}</div>`;
     new mapboxgl.Marker({ element: eventEl, anchor: "center" })
       .setLngLat([lng, lat])
       .setPopup(new mapboxgl.Popup().setHTML(`<b>${event.title}</b><br/>${event.city || ""}`))
@@ -130,7 +130,7 @@ function EventDetailMap({ event, collectionPoints, criticalPoints }) {
         el.innerHTML = `<div style="width:22px;height:22px;transform:rotate(45deg);background:#FF3B3B;border:2px solid rgba(255,255,255,0.3);box-shadow:0 0 10px #FF3B3B44;"></div>`;
         new mapboxgl.Marker({ element: el, anchor: "center" })
           .setLngLat([parseFloat(cp.lng), parseFloat(cp.lat)])
-          .setPopup(new mapboxgl.Popup().setHTML(`<b>⚠️ ${cp.name}</b>`))
+          .setPopup(new mapboxgl.Popup().setHTML(`<b><IoWarningOutline style={{color: "yellow"}}/> ${cp.name}</b>`))
           .addTo(map);
       }
     }
@@ -512,11 +512,11 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 22 }}>{typeIcon[event.type] || "⚠️"}</span>
+                <span style={{ fontSize: 22 }}>{typeIcon[event.type] || <IoWarningOutline style={{color: "yellow"}}/>}</span>
                 <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17 }}>{event.title}</span>
                 {linkedCritical && (
                   <span style={{ background: "rgba(255,59,59,0.15)", color: "#FF3B3B", border: "1px solid rgba(255,59,59,0.3)", borderRadius: 99, fontSize: 10, padding: "2px 8px", fontWeight: 700, fontFamily: "var(--font-mono)" }}>
-                    ⚠️ PONTO CRÍTICO
+                    <IoWarningOutline style={{color: "yellow"}}/> PONTO CRÍTICO
                   </span>
                 )}
               </div>
@@ -569,7 +569,7 @@ function EventDetailDrawer({ event, collectionPoints, criticalPoints, volunteers
 
           {linkedCritical && (
             <div style={{ marginTop: 12, background: "rgba(255,59,59,0.07)", border: "1px solid rgba(255,59,59,0.25)", borderRadius: 8, padding: "10px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
-              <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
+              <span style={{ fontSize: 18, flexShrink: 0 }}><IoWarningOutline style={{color: "yellow"}}/></span>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#FF3B3B", marginBottom: 2 }}>{linkedCritical.name}</div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{linkedCritical.description}</div>
@@ -835,7 +835,7 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
                           </div>
                         </div>
                       </td>
-                      <td style={{ borderTop: "1px solid var(--border)", borderBottom: "none" }}><span style={{ fontSize: 18 }}>{typeIcon[e.type] || "⚠️"}</span></td>
+                      <td style={{ borderTop: "1px solid var(--border)", borderBottom: "none" }}><span style={{ fontSize: 18 }}>{typeIcon[e.type] || <IoWarningOutline style={{color: "yellow"}}/>}</span></td>
                       <td style={{ borderTop: "1px solid var(--border)", borderBottom: "none" }}>{severityBadge(e.severity)}</td>
                       <td style={{ borderTop: "1px solid var(--border)", borderBottom: "none" }}>{statusBadge(e.status)}</td>
                       <td style={{ borderTop: "1px solid var(--border)", borderBottom: "none" }}><span className="mono" style={{ color: "var(--warning)" }}>{e.victims}</span></td>

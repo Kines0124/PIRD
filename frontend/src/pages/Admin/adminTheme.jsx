@@ -1,7 +1,9 @@
+import { MdFlood }             from "react-icons/md";
+
 // ─── Shared colors / helpers ───────────────────────────────────────────────────
 export const severityColor = { critico: "#FF3B3B", alto: "#FF8C00", medio: "#F5C518", baixo: "#4CAF50" };
 export const severityBg    = { critico: "rgba(255,59,59,0.12)", alto: "rgba(255,140,0,0.12)", medio: "rgba(245,197,24,0.12)", baixo: "rgba(76,175,80,0.12)" };
-export const typeIcon      = { enchente: "🌊", deslizamento: "⛰️", alagamento: "💧", incendio: "🔥" };
+export const typeIcon      = { enchente: <MdFlood style={{color:"#ef4444"}}/>, deslizamento: "⛰️", alagamento: "💧", incendio: "🔥" };
 export const riskColor     = { critico: "#FF3B3B", alto: "#FF8C00", medio: "#F5C518" };
 
 export const SEVERITY_OPTIONS = [

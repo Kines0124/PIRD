@@ -153,7 +153,18 @@ export default function MapaCampo({ alertas = [], profissionais = [], criticalPo
     });
     alertas.filter(a => a.coordenadas && !alertMarkersRef.current.has(a.id)).forEach(a => {
       const el = createAlertEl(a);
-      el.addEventListener("click", () => { setSelCritico(null); setSelProf(null); setSelAlerta(a); });
+      el.addEventListener("click", () => {
+        setSelProf(null);
+        setSelAlerta(a);
+        const coincident = a.coordenadas
+          ? criticalPoints.find(pt =>
+              pt.lat && pt.lng &&
+              Math.abs(parseFloat(pt.lat) - a.coordenadas.lat) < 0.0001 &&
+              Math.abs(parseFloat(pt.lng) - a.coordenadas.lng) < 0.0001
+            ) ?? null
+          : null;
+        setSelCritico(coincident);
+      });
       const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([a.coordenadas.lng, a.coordenadas.lat]).addTo(map);
       alertMarkersRef.current.set(a.id, marker);
@@ -163,7 +174,16 @@ export default function MapaCampo({ alertas = [], profissionais = [], criticalPo
     criticoMarkersRef.current.clear();
     criticalPoints.filter(p => p.lat && p.lng).forEach(pt => {
       const el = createPontoCriticoEl(pt);
-      el.addEventListener("click", () => { setSelAlerta(null); setSelProf(null); setSelCritico(pt); });
+      el.addEventListener("click", () => {
+        setSelProf(null);
+        setSelCritico(pt);
+        const coincident = alertas.find(a =>
+          a.coordenadas &&
+          Math.abs(a.coordenadas.lat - parseFloat(pt.lat)) < 0.0001 &&
+          Math.abs(a.coordenadas.lng - parseFloat(pt.lng)) < 0.0001
+        ) ?? null;
+        setSelAlerta(coincident);
+      });
       const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([parseFloat(pt.lng), parseFloat(pt.lat)]).addTo(map);
       criticoMarkersRef.current.set(String(pt.id), marker);
@@ -207,7 +227,7 @@ export default function MapaCampo({ alertas = [], profissionais = [], criticalPo
                 <div style={{ width: 9, height: 9, borderRadius: "50%", background: cfg.color }} />
                 <span style={{ fontSize: 11, fontWeight: 700, color: cfg.color, textTransform: "uppercase" }}>{selAlerta.criticidade}</span>
               </div>
-              <button onClick={() => setSelAlerta(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: 16, lineHeight: 1 }}>×</button>
+              <button onClick={() => { setSelAlerta(null); setSelCritico(null); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: 16, lineHeight: 1 }}>×</button>
             </div>
             <div style={{ fontWeight: 700, fontSize: 14, color: "#111827", marginBottom: 5 }}>{selAlerta.titulo}</div>
             {selAlerta.endereco && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>📍 {selAlerta.endereco}</div>}
@@ -221,17 +241,32 @@ export default function MapaCampo({ alertas = [], profissionais = [], criticalPo
             )}
             {onVerMaisEvento && (
               <button
-                onClick={() => { onVerMaisEvento(selAlerta.id); setSelAlerta(null); }}
+                onClick={() => { onVerMaisEvento(selAlerta.id); setSelAlerta(null); setSelCritico(null); }}
                 style={{ marginTop: 8, width: "100%", background: "var(--accent)", color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
               >
                 Ver mais →
               </button>
             )}
+            {selCritico && (() => {
+              const rst = RISCO_STYLE[selCritico.risco] ?? RISCO_STYLE.medio;
+              return (
+                <>
+                  <div style={{ borderTop: "1px solid #e5e7eb", margin: "10px 0 8px" }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: rst.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: 10, fontWeight: 700, color: rst.color, textTransform: "uppercase", letterSpacing: 0.3 }}>Ponto Crítico neste local · {rst.label}</span>
+                  </div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: "#111827", marginBottom: 3 }}>{selCritico.name || selCritico.nome}</div>
+                  {selCritico.address && <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 3 }}>📍 {selCritico.address}</div>}
+                  {selCritico.description && <div style={{ fontSize: 11, color: "#374151" }}>{selCritico.description}</div>}
+                </>
+              );
+            })()}
           </div>
         );
       })()}
 
-      {selCritico && (() => {
+      {!selAlerta && selCritico && (() => {
         const rst = RISCO_STYLE[selCritico.risco] ?? RISCO_STYLE.medio;
         return (
           <div style={{ ...popupBase, border: `2px solid ${rst.color}` }}>

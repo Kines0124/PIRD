@@ -13,7 +13,17 @@ import CollectionPointsSection from "./sections/CollectionPointsSection.jsx";
 import EspecialistasSection    from "./sections/EspecialistasSection.jsx";
 import EventModal              from "./modals/EventModal.jsx";
 import CriticalPointModal      from "./modals/CriticalPointModal.jsx";
-import { IoWarningOutline } from "react-icons/io5";
+import { IoWarningOutline }    from "react-icons/io5";
+import { FaStaffSnake }        from "react-icons/fa6";
+import { BsBox2HeartFill }     from "react-icons/bs";
+import { IoPeople }            from "react-icons/io5";
+import { MdFlood }             from "react-icons/md";
+import { FaMapMarkedAlt }      from "react-icons/fa";
+import { MdOutlineQueryStats } from "react-icons/md";
+import { GrValidate }          from "react-icons/gr";
+import { GrOverview }          from "react-icons/gr";
+
+
 
 // ─── Nav order (para slide direction) ────────────────────────────────────────
 const NAV_ORDER = {
@@ -424,14 +434,14 @@ function AdminPanel({ onLogout }) {
   const totalNotifs          = pendingCols + pendingEspecialistas + activeEvents;
 
   const navItems = [
-    { id: "overview",      icon: "◉",  label: "Visão Geral" },
-    { id: "dashboard",     icon: "📊", label: "Dashboard" },
-    { id: "events",        icon: "🌊", label: "Eventos",         badge: events.filter(e => e.status === "ativo").length },
-    { id: "campo",         icon: "🗺️", label: "Campo" },
-    { id: "especialistas", icon: "⚕️", label: "Especialistas",   badge: specialists.filter(s => s.status === "aprovado").length, badgeBlue: true },
+    { id: "overview",      icon: <GrOverview style={{fontSize: 18}}/>,  label: "Visão Geral" },
+    { id: "dashboard",     icon: <MdOutlineQueryStats style={{color:"pink", fontSize: 18}}/>, label: "Dashboard" },
+    { id: "events",        icon: <MdFlood style={{color:"#ef4444", fontSize: 18}}/>, label: "Eventos",         badge: events.filter(e => e.status === "ativo").length },
+    { id: "campo",         icon: <FaMapMarkedAlt style={{color: "cyan", fontSize: 18}}/>, label: "Campo" },
+    { id: "especialistas", icon: <FaStaffSnake style={{color:"#22c55e", fontSize: 18}}/>, label: "Especialistas",   badge: specialists.filter(s => s.status === "aprovado").length, badgeBlue: true },
     { id: "critical",      icon: <IoWarningOutline style={{color:"yellow", fontSize: 18}} />, label: "Pontos Críticos", badge: criticalPoints.length },
-    { id: "collection",    icon: "📦", label: "Pontos de Coleta" },
-    { id: "validacoes",    icon: "🙋", label: "Validações",      badge: pendingEspecialistas + pendingCols },
+    { id: "collection",    icon: <BsBox2HeartFill style={{color: "#3B82F6", fontSize: 18}}/>, label: "Pontos de Coleta" },
+    { id: "validacoes",    icon: <GrValidate style={{color: "orange", fontSize: 18}}/>, label: "Validações",      badge: pendingEspecialistas + pendingCols },
   ];
 
   const sectionTitles = {
@@ -535,7 +545,7 @@ function AdminPanel({ onLogout }) {
                   {[
                     { count: pendingEspecialistas, label: "Especialistas aguardando validação", icon: "⚕️", target: "validacoes" },
                     { count: pendingCols,          label: "Pontos de coleta pendentes",         icon: "📦", target: "validacoes" },
-                    { count: activeEvents,         label: "Eventos ativos no momento",          icon: "🌊", target: "events"    },
+                    { count: activeEvents,         label: "Eventos ativos no momento",          icon: <MdFlood style={{color:"#ef4444"}}/>, target: "events"    },
                   ].map(n => (
                     <div
                       key={n.target + n.label}
