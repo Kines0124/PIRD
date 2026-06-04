@@ -350,6 +350,7 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
   );
 
   return (
+    <>
     <div className="card">
       {/* Header */}
       <div ref={headerRef} className="card-header" style={{ opacity: 0 }}>
@@ -406,10 +407,6 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
               ))}
             </div>
           )}
-
-          {selected && (
-            <PontoDetailDrawer ponto={selected} onClose={() => setSelected(null)} />
-          )}
         </div>
       )}
 
@@ -459,5 +456,10 @@ export default function CollectionPointsSection({ collectionPoints, openCollecti
         </div>
       )}
     </div>
+
+      {selected && (
+        <PontoDetailDrawer ponto={selected} onClose={() => setSelected(null)} />
+      )}
+    </>
   );
 }
