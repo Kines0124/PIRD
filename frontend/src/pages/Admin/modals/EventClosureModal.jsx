@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { FaCalendarDays }          from "react-icons/fa6";
+import { LuNotebookPen }           from "react-icons/lu";
+import { BsBox2HeartFill }         from "react-icons/bs";
+import { IoPeople }                from "react-icons/io5";
+import { FaStaffSnake }            from "react-icons/fa6";
+
 
 // ---------------------------------------------------------------------------
 // Geração do PDF (client-side, sem dependência de backend)
@@ -309,10 +314,17 @@ async function generateEventReport({ event, specialists, collectionPoints, selec
       y = ensureSpace(IMG_H + GAP_ROW + 10, y);
       const col2 = selectedFotos[i + 1];
 
-      // Carrega imagens via fetch → base64
-      const toBase64 = async (url) => {
+      // Carrega imagens via HTMLImageElement → canvas → base64
+      const toBase64 = async (fotoUrl) => {
         try {
-          const res  = await fetch(url);
+          const publicBase = "https://pub-a19728e3da19420992e3f8c68ef17b50.r2.dev";
+          const chave = fotoUrl.replace(publicBase + "/", "");
+          const proxyUrl = `http://localhost:8080/proxy/foto?chave=${encodeURIComponent(chave)}`;
+
+          const token = sessionStorage.getItem("admin_token");
+          const res = await fetch(proxyUrl, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
           const blob = await res.blob();
           return await new Promise((resolve, reject) => {
             const r = new FileReader();
@@ -323,18 +335,20 @@ async function generateEventReport({ event, specialists, collectionPoints, selec
         } catch { return null; }
       };
 
-      const b64a = await toBase64(selectedFotos[i].url);
-      const b64b = col2 ? await toBase64(col2.url) : null;
+      const fmt = "JPEG"; // canvas.toDataURL sempre devolve JPEG aqui
 
-      if (b64a) doc.addImage(b64a, "JPEG", MARGIN,              y, IMG_W, IMG_H);
-      if (b64b) doc.addImage(b64b, "JPEG", MARGIN + IMG_W + GAP_COL, y, IMG_W, IMG_H);
+      const b64a = await toBase64(selectedFotos[i].fotoUrl);
+      const b64b = col2 ? await toBase64(col2.fotoUrl) : null;
+
+      if (b64a) doc.addImage(b64a, fmt, MARGIN,                    y, IMG_W, IMG_H);
+      if (b64b) doc.addImage(b64b, fmt, MARGIN + IMG_W + GAP_COL, y, IMG_W, IMG_H);
 
       // Legendas
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
       doc.setTextColor(100, 116, 139);
-      const capA = selectedFotos[i].descricao || `Foto ${i + 1}`;
-      const capB = col2 ? (col2.descricao || `Foto ${i + 2}`) : null;
+      const capA = selectedFotos[i].nomeArquivo || `Foto ${i + 1}`;
+      const capB = col2 ? (col2.nomeArquivo || `Foto ${i + 2}`) : null;
       doc.text(doc.splitTextToSize(capA, IMG_W)[0], MARGIN,                          y + IMG_H + 4);
       if (capB) doc.text(doc.splitTextToSize(capB, IMG_W)[0], MARGIN + IMG_W + GAP_COL, y + IMG_H + 4);
 
@@ -476,7 +490,7 @@ export default function EventClosureModal({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <span style={{ fontSize: 26 }}>📋</span>
+            <span style={{ fontSize: 26 }}><LuNotebookPen/></span>
             <div>
               <div
                 style={{
@@ -499,9 +513,9 @@ export default function EventClosureModal({
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
             {[
               { icon: <FaCalendarDays />, label: event.date ?? event.dataInicio ?? "—" },
-              { icon: "🩺", label: `${linkedSpecialists.length} especialistas` },
-              { icon: "📦", label: `${(event.nearbyCollectionIds ?? []).length} pontos de coleta` },
-              { icon: "👥", label: `${event.victims ?? event.vitimasEstimadas ?? 0} vítimas` },
+              { icon: <FaStaffSnake style={{color:"#22c55e"}}/>, label: `${linkedSpecialists.length} especialistas` },
+              { icon: <BsBox2HeartFill style={{color:"#3B82F6"}}/>, label: `${(event.nearbyCollectionIds ?? []).length} pontos de coleta` },
+              { icon: <IoPeople style={{color:"#F5C518"}}/>, label: `${event.victims ?? event.vitimasEstimadas ?? 0} vítimas` },
             ].map((chip, i) => (
               <span
                 key={i}
@@ -610,8 +624,8 @@ export default function EventClosureModal({
                           }}
                         >
                           <img
-                            src={foto.url}
-                            alt={foto.descricao || "Foto"}
+                            src={foto.fotoUrl}
+                            alt={foto.nomeArquivo || "Foto"}
                             style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                           />
                           {/* Overlay de seleção */}
