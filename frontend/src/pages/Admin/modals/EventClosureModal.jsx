@@ -1,40 +1,10 @@
-/**
- * EventClosureModal.jsx
- *
- * Exibido automaticamente quando o administrador muda o status de um evento
- * para "encerrado". Pergunta se deseja gerar o relatório oficial em PDF.
- *
- * Uso no componente pai (ex: EventModal ou onde onSaveEvent é chamado):
- *
- *   import EventClosureModal from "./modals/EventClosureModal";
- *
- *   // Após salvar com sucesso e status === "encerrado":
- *   const [closureEvent, setClosureEvent] = useState(null);
- *
- *   async function handleSave(prevEvent, form) {
- *     const saved = await onSaveEvent(prevEvent, form);   // sua lógica existente
- *     if (form.status === "encerrado") setClosureEvent(saved); // abre modal
- *   }
- *
- *   {closureEvent && (
- *     <EventClosureModal
- *       event={closureEvent}
- *       specialists={specialists}
- *       collectionPoints={collectionPoints}
- *       onClose={() => setClosureEvent(null)}
- *     />
- *   )}
- *
- * Dependência de runtime: jspdf  (já é common em projetos React — instale com
- *   npm install jspdf  ou  yarn add jspdf   se ainda não estiver no package.json)
- */
-
 import { useEffect, useRef, useState } from "react";
+import { FaCalendarDays }          from "react-icons/fa6";
 
 // ---------------------------------------------------------------------------
 // Geração do PDF (client-side, sem dependência de backend)
 // ---------------------------------------------------------------------------
-async function generateEventReport({ event, specialists, collectionPoints }) {
+async function generateEventReport({ event, specialists, collectionPoints, selectedFotos = [] }) {
   const { jsPDF } = await import("jspdf");
 
   const doc    = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -324,6 +294,55 @@ async function generateEventReport({ event, specialists, collectionPoints }) {
     y += 4;
   }
 
+  // ── FOTOS ──────────────────────────────────────────────────────────────────
+  if (selectedFotos.length > 0) {
+    y = ensureSpace(28, y);
+    divider(y); y += 6;
+    y = sectionHeader(`REGISTROS FOTOGRÁFICOS (${selectedFotos.length})`, y);
+
+    const IMG_W   = (CW - 6) / 2;   // 2 fotos por linha com gap de 6mm
+    const IMG_H   = IMG_W * 0.65;   // proporção ~3:2
+    const GAP_COL = 6;
+    const GAP_ROW = 6;
+
+    for (let i = 0; i < selectedFotos.length; i += 2) {
+      y = ensureSpace(IMG_H + GAP_ROW + 10, y);
+      const col2 = selectedFotos[i + 1];
+
+      // Carrega imagens via fetch → base64
+      const toBase64 = async (url) => {
+        try {
+          const res  = await fetch(url);
+          const blob = await res.blob();
+          return await new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload  = () => resolve(r.result);
+            r.onerror = reject;
+            r.readAsDataURL(blob);
+          });
+        } catch { return null; }
+      };
+
+      const b64a = await toBase64(selectedFotos[i].url);
+      const b64b = col2 ? await toBase64(col2.url) : null;
+
+      if (b64a) doc.addImage(b64a, "JPEG", MARGIN,              y, IMG_W, IMG_H);
+      if (b64b) doc.addImage(b64b, "JPEG", MARGIN + IMG_W + GAP_COL, y, IMG_W, IMG_H);
+
+      // Legendas
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(100, 116, 139);
+      const capA = selectedFotos[i].descricao || `Foto ${i + 1}`;
+      const capB = col2 ? (col2.descricao || `Foto ${i + 2}`) : null;
+      doc.text(doc.splitTextToSize(capA, IMG_W)[0], MARGIN,                          y + IMG_H + 4);
+      if (capB) doc.text(doc.splitTextToSize(capB, IMG_W)[0], MARGIN + IMG_W + GAP_COL, y + IMG_H + 4);
+
+      y += IMG_H + GAP_ROW + 8;
+    }
+    y += 4;
+  }
+
   // ── RODAPÉ em todas as páginas ─────────────────────────────────────────────
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
@@ -350,11 +369,22 @@ export default function EventClosureModal({
   specialists = [],
   collectionPoints = [],
   convocacoes = [],
+  fotos = [],
   onClose,
 }) {
-  const [loading, setLoading] = useState(false);
-  const [done, setDone]       = useState(false);
+  const [loading,       setLoading]       = useState(false);
+  const [done,          setDone]          = useState(false);
+  const [selectedFotos, setSelectedFotos] = useState([]);
   const overlayRef = useRef(null);
+
+  // Seleciona/deseleciona foto pelo id
+  function toggleFoto(foto) {
+    setSelectedFotos(prev =>
+      prev.find(f => f.id === foto.id)
+        ? prev.filter(f => f.id !== foto.id)
+        : [...prev, foto]
+    );
+  }
 
   // Especialistas que atuaram: usa snapshot de convocacoes passado pelo pai,
   // capturado ANTES de chamar onSaveEvent. Isso garante que os status originais
@@ -395,7 +425,7 @@ export default function EventClosureModal({
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      const doc = await generateEventReport({ event, specialists: linkedSpecialists, collectionPoints });
+      const doc = await generateEventReport({ event, specialists: linkedSpecialists, collectionPoints, selectedFotos });
       const safeTitle = (event.title ?? event.titulo ?? "evento")
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")   // remove acentos
@@ -541,6 +571,79 @@ export default function EventClosureModal({
                   </div>
                 ))}
               </div>
+
+              {/* Seletor de fotos */}
+              {fotos.length > 0 && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      Fotos para o relatório
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={() => setSelectedFotos([...fotos])}
+                        style={{ fontSize: 11, background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontWeight: 600, padding: 0 }}
+                      >
+                        Todas
+                      </button>
+                      <span style={{ color: "var(--border)", fontSize: 11 }}>|</span>
+                      <button
+                        onClick={() => setSelectedFotos([])}
+                        style={{ fontSize: 11, background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontWeight: 600, padding: 0 }}
+                      >
+                        Nenhuma
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                    {fotos.map(foto => {
+                      const sel = !!selectedFotos.find(f => f.id === foto.id);
+                      return (
+                        <div
+                          key={foto.id}
+                          onClick={() => toggleFoto(foto)}
+                          style={{
+                            position: "relative", cursor: "pointer", borderRadius: 8, overflow: "hidden",
+                            border: `2px solid ${sel ? "var(--accent)" : "var(--border)"}`,
+                            transition: "border-color 0.15s",
+                            aspectRatio: "3 / 2",
+                          }}
+                        >
+                          <img
+                            src={foto.url}
+                            alt={foto.descricao || "Foto"}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                          />
+                          {/* Overlay de seleção */}
+                          <div style={{
+                            position: "absolute", inset: 0,
+                            background: sel ? "rgba(222,57,63,0.18)" : "rgba(0,0,0,0.0)",
+                            transition: "background 0.15s",
+                            display: "flex", alignItems: "flex-start", justifyContent: "flex-end",
+                            padding: 5,
+                          }}>
+                            <div style={{
+                              width: 18, height: 18, borderRadius: "50%",
+                              background: sel ? "var(--accent)" : "rgba(0,0,0,0.45)",
+                              border: `2px solid ${sel ? "var(--accent)" : "rgba(255,255,255,0.6)"}`,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 10, color: "#fff", fontWeight: 700, flexShrink: 0,
+                              transition: "all 0.15s",
+                            }}>
+                              {sel ? "✓" : ""}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {selectedFotos.length > 0 && (
+                    <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-muted)" }}>
+                      {selectedFotos.length} foto{selectedFotos.length !== 1 ? "s" : ""} selecionada{selectedFotos.length !== 1 ? "s" : ""}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                 <button

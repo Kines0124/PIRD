@@ -2,20 +2,20 @@ import { useState, useRef, useEffect } from "react";
 import { SEVERITY_OPTIONS } from "../adminTheme.jsx";
 import { useGeocodingAutocomplete } from "../../../hooks/useGeocodingAutocomplete.js";
 import { MdFlood } from "react-icons/md";
-import { LuLandPlot } from "react-icons/lu";
+import { MdLandslide } from "react-icons/md";
 import { LuDroplets } from "react-icons/lu";
 import { LuFlame } from "react-icons/lu";
-import { LuConstruction } from "react-icons/lu";
+import { RiEarthquakeFill } from "react-icons/ri";
 import { PiBiohazardThin } from "react-icons/pi";
 import { IoWarningOutline } from "react-icons/io5";
 
 const TIPO_OPTIONS = [
-  { value: "enchente",     label: "Enchente",     icon: MdFlood,         color: "#3b82f6" }, // azul
-  { value: "deslizamento", label: "Deslizamento", icon: LuLandPlot,      color: "#a16207" }, // marrom
-  { value: "alagamento",   label: "Alagamento",   icon: LuDroplets,      color: "#06b6d4" }, // ciano
-  { value: "incendio",     label: "Incêndio",     icon: LuFlame,         color: "#ef4444" }, // vermelho
-  { value: "desabamento",  label: "Desabamento",  icon: LuConstruction,  color: "#f97316" }, // laranja
-  { value: "intoxicacao",  label: "Intoxicação",  icon: PiBiohazardThin, color: "#84cc16" }, // verde-limão
+  { value: "enchente",     label: "Enchente",     icon: MdFlood,          color: "#3b82f6" }, // azul
+  { value: "deslizamento", label: "Deslizamento", icon: MdLandslide,      color: "#a16207" }, // marrom
+  { value: "alagamento",   label: "Alagamento",   icon: LuDroplets,       color: "#06b6d4" }, // ciano
+  { value: "incendio",     label: "Incêndio",     icon: LuFlame,          color: "#ef4444" }, // vermelho
+  { value: "desabamento",  label: "Desabamento",  icon: RiEarthquakeFill, color: "#f97316" }, // laranja
+  { value: "intoxicacao",  label: "Intoxicação",  icon: PiBiohazardThin,  color: "#84cc16" }, // verde-limão
   { value: "outro",        label: "Outro",        icon: IoWarningOutline, color: "#eab308" }, // amarelo
 ];
 

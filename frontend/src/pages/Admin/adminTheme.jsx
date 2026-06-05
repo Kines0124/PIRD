@@ -1,10 +1,18 @@
-import { MdFlood }             from "react-icons/md";
+import { MdFlood } from "react-icons/md";
+import { MdLandslide } from "react-icons/md";
+import { LuDroplets } from "react-icons/lu";
+import { LuFlame } from "react-icons/lu";
+import { RiEarthquakeFill } from "react-icons/ri";
+import { PiBiohazardThin } from "react-icons/pi";
+import { IoWarningOutline } from "react-icons/io5";
 
 // ─── Shared colors / helpers ───────────────────────────────────────────────────
 export const severityColor = { critico: "#FF3B3B", alto: "#FF8C00", medio: "#F5C518", baixo: "#4CAF50" };
 export const severityBg    = { critico: "rgba(255,59,59,0.12)", alto: "rgba(255,140,0,0.12)", medio: "rgba(245,197,24,0.12)", baixo: "rgba(76,175,80,0.12)" };
-export const typeIcon      = { enchente: <MdFlood style={{color:"#ef4444"}}/>, deslizamento: "⛰️", alagamento: "💧", incendio: "🔥" };
-export const riskColor     = { critico: "#FF3B3B", alto: "#FF8C00", medio: "#F5C518" };
+export const typeIcon      = { enchente: <MdFlood style={{color:"#ef4444"}}/>, deslizamento: <MdLandslide style={{color:"#a16207"}}/>, 
+                               alagamento: <LuDroplets style={{color:"#06b6d4"}}/>, incendio: <LuFlame style={{color:"#ef4444"}}/>,
+                               desabamento: <RiEarthquakeFill style={{color:"#f97316"}}/>, intoxicacao: <PiBiohazardThin style={{color:"#84cc16"}}/>  };
+export const riskColor     = { critico: "#FF3B3B", alto: "#FF8C00", medio: "#F5C518", baixo: "#16a34a" };
 
 export const SEVERITY_OPTIONS = [
   { value: "critico", label: "Crítico", color: "#FF3B3B", bg: "rgba(255,59,59,0.12)" },

@@ -322,7 +322,7 @@ function ConvCard({ c, onResponder, onChegada, userEmail }) {
 function ConvocacoesTab({ convs, onResponder, onChegada, userEmail }) {
   const pendentes = convs.filter(c => c.status === "pendente");
   const ativas    = convs.filter(c => c.status === "a_caminho" || c.status === "no_local");
-  const historico = convs.filter(c => c.status === "recusado" || c.status === "no_local" || c.status === "encerrada");
+  const historico = convs.filter(c => c.status === "recusado" || c.status === "encerrada");
 
   const sec = (label, count) => (
     <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center", gap: 8 }}>

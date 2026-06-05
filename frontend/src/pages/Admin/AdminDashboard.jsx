@@ -16,7 +16,6 @@ import CriticalPointModal      from "./modals/CriticalPointModal.jsx";
 import { IoWarningOutline }    from "react-icons/io5";
 import { FaStaffSnake }        from "react-icons/fa6";
 import { BsBox2HeartFill }     from "react-icons/bs";
-import { IoPeople }            from "react-icons/io5";
 import { MdFlood }             from "react-icons/md";
 import { FaMapMarkedAlt }      from "react-icons/fa";
 import { MdOutlineQueryStats } from "react-icons/md";
@@ -546,9 +545,9 @@ function AdminPanel({ onLogout }) {
                     Notificações
                   </div>
                   {[
-                    { count: pendingEspecialistas, label: "Especialistas aguardando validação", icon: <FaStaffSnake />,    target: "validacoes" },
-                    { count: pendingCols,          label: "Pontos de coleta pendentes",         icon: <BsBox2HeartFill />, target: "validacoes" },
-                    { count: activeEvents,         label: "Eventos ativos no momento",          icon: <MdFlood style={{color:"#ef4444"}}/>, target: "events"    },
+                    { count: pendingEspecialistas, label: "Especialistas aguardando validação", icon: <FaStaffSnake style={{color:"#22c55e"}}/>,    target: "validacoes" },
+                    { count: pendingCols,          label: "Pontos de coleta pendentes",         icon: <BsBox2HeartFill style={{color:"#ef4444"}}/>, target: "validacoes" },
+                    { count: activeEvents,         label: "Eventos ativos no momento",          icon: <MdFlood style={{color:"#3B82F6"}}/>, target: "events"    },
                   ].map(n => (
                     <div
                       key={n.target + n.label}

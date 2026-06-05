@@ -24,18 +24,32 @@ function fmtFull(iso) {
 
 export default function RegistroDrawer({ registro, onClose, onAprovar, onReprovar }) {
   const [obs,            setObs]            = useState("");
-  const [confirmStep,    setConfirmStep]    = useState(false);
+  const [confirmStep,    setConfirmStep]    = useState(null); // null | "aprovar" | "reprovar"
   const [confirmSenha,   setConfirmSenha]   = useState("");
   const [confirmError,   setConfirmError]   = useState(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const [reprovando,     setReprovando]     = useState(false);
 
   if (!registro) return null;
 
-  const conselho      = CONSELHO_LINKS[registro.profissao];
-  const storedEmail   = adminApi.getAdminEmail();
+  const conselho    = CONSELHO_LINKS[registro.profissao];
+  const storedEmail = adminApi.getAdminEmail();
 
-  async function handleConfirmarAprovar() {
+  function handleAprovarClick() {
+    setConfirmSenha(""); setConfirmError(null);
+    setConfirmStep("aprovar");
+  }
+
+  function handleReprovandoClick() {
+    if (!obs.trim()) { alert("Informe o motivo da reprovação."); return; }
+    setConfirmSenha(""); setConfirmError(null);
+    setConfirmStep("reprovar");
+  }
+
+  function cancelConfirm() {
+    setConfirmStep(null); setConfirmSenha(""); setConfirmError(null);
+  }
+
+  async function handleConfirmar() {
     if (!storedEmail) {
       setConfirmError("Sessão sem e-mail armazenado. Faça logout e login novamente.");
       return;
@@ -44,7 +58,11 @@ export default function RegistroDrawer({ registro, onClose, onAprovar, onReprova
     setConfirmError(null);
     try {
       await adminApi.login(storedEmail, confirmSenha);
-      onAprovar(registro.id);
+      if (confirmStep === "aprovar") {
+        onAprovar(registro.id);
+      } else {
+        onReprovar(registro.id, obs.trim());
+      }
       onClose();
     } catch {
       setConfirmError("Senha incorreta. Tente novamente.");
@@ -53,17 +71,14 @@ export default function RegistroDrawer({ registro, onClose, onAprovar, onReprova
     }
   }
 
-  function handleReprovar() {
-    if (!obs.trim()) { alert("Informe o motivo da reprovação."); return; }
-    if (!reprovando) { setReprovando(true); return; }
-    onReprovar(registro.id, obs.trim());
-    setReprovando(false); setObs(""); onClose();
-  }
+  const isAprovar   = confirmStep === "aprovar";
+  const actionColor = isAprovar ? "#16a34a" : "#dc2626";
 
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 40 }} />
       <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 480, backgroundColor: "var(--bg-elevated)", borderLeft: "1px solid var(--border)", zIndex: 50, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+
         {/* Header */}
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer", fontSize: 20, lineHeight: 1, padding: 0 }}>←</button>
@@ -149,12 +164,13 @@ export default function RegistroDrawer({ registro, onClose, onAprovar, onReprova
         {confirmStep ? (
           <div style={{ padding: "16px 20px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>
-              🔒 Confirme sua senha para aprovar este especialista:
+              🔒 Confirme sua senha para {isAprovar ? "aprovar" : "reprovar"} este especialista:
             </div>
             <input
               type="password"
               value={confirmSenha}
               onChange={e => { setConfirmSenha(e.target.value); setConfirmError(null); }}
+              onKeyDown={e => e.key === "Enter" && confirmSenha && !confirmLoading && handleConfirmar()}
               placeholder="Sua senha"
               autoFocus
               style={{ backgroundColor: "var(--bg-hover)", border: `1px solid ${confirmError ? "#ef4444" : "var(--border)"}`, borderRadius: 8, color: "var(--text-primary)", fontSize: 13, padding: "10px 12px", outline: "none" }}
@@ -163,24 +179,24 @@ export default function RegistroDrawer({ registro, onClose, onAprovar, onReprova
               <div style={{ fontSize: 11, color: "#ef4444", fontFamily: "var(--font-mono)" }}>{confirmError}</div>
             )}
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => { setConfirmStep(false); setConfirmSenha(""); setConfirmError(null); }} style={{ flex: 1, padding: 11, borderRadius: 8, border: "1px solid var(--border)", backgroundColor: "transparent", color: "var(--text-secondary)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+              <button onClick={cancelConfirm} style={{ flex: 1, padding: 11, borderRadius: 8, border: "1px solid var(--border)", backgroundColor: "transparent", color: "var(--text-secondary)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
                 Cancelar
               </button>
               <button
-                onClick={handleConfirmarAprovar}
+                onClick={handleConfirmar}
                 disabled={!confirmSenha || confirmLoading}
-                style={{ flex: 1, padding: 11, borderRadius: 8, border: "none", backgroundColor: confirmSenha && !confirmLoading ? "#16a34a" : "var(--bg-hover)", color: confirmSenha && !confirmLoading ? "#fff" : "var(--text-muted)", fontWeight: 700, fontSize: 13, cursor: confirmSenha && !confirmLoading ? "pointer" : "not-allowed", transition: "all 0.15s" }}
+                style={{ flex: 1, padding: 11, borderRadius: 8, border: "none", backgroundColor: confirmSenha && !confirmLoading ? actionColor : "var(--bg-hover)", color: confirmSenha && !confirmLoading ? "#fff" : "var(--text-muted)", fontWeight: 700, fontSize: 13, cursor: confirmSenha && !confirmLoading ? "pointer" : "not-allowed", transition: "all 0.15s" }}
               >
-                {confirmLoading ? "Verificando..." : "✓ Confirmar Aprovação"}
+                {confirmLoading ? "Verificando..." : isAprovar ? "✓ Confirmar Aprovação" : "✗ Confirmar Reprovação"}
               </button>
             </div>
           </div>
         ) : (
           <div style={{ padding: "14px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 10 }}>
-            <button onClick={handleReprovar} style={{ flex: 1, padding: 11, borderRadius: 8, border: "1px solid #dc2626", backgroundColor: reprovando ? "#dc2626" : "rgba(220,38,38,0.1)", color: reprovando ? "#fff" : "#dc2626", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-              {reprovando ? "Confirmar Reprovação" : "✗ Reprovar"}
+            <button onClick={handleReprovandoClick} style={{ flex: 1, padding: 11, borderRadius: 8, border: "1px solid #dc2626", backgroundColor: "rgba(220,38,38,0.1)", color: "#dc2626", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+              ✗ Reprovar
             </button>
-            <button onClick={() => setConfirmStep(true)} style={{ flex: 1, padding: 11, borderRadius: 8, border: "none", backgroundColor: "#16a34a", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            <button onClick={handleAprovarClick} style={{ flex: 1, padding: 11, borderRadius: 8, border: "none", backgroundColor: "#16a34a", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
               ✓ Aprovar
             </button>
           </div>

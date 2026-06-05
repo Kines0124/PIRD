@@ -16,6 +16,8 @@ import { IoIosPin }                from "react-icons/io";
 import { MdFlood }                 from "react-icons/md";
 import { GoGoal }                  from "react-icons/go";
 import { CiEdit }                  from "react-icons/ci";
+import { LuNotebookPen }           from "react-icons/lu";
+
 
 const PROF_COLORS = {
   "Médico Clínico Geral":      "#2563eb",
@@ -780,7 +782,7 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
       <div ref={cardRef} className="card">
         <div className="card-header">
           <div>
-            <div className="card-title">📋 Gerenciar Eventos Oficiais</div>
+            <div className="card-title"><LuNotebookPen/> Gerenciar Eventos Oficiais</div>
             <div className="card-subtitle">Cadastro e atualização de desastres · clique na linha para detalhes</div>
           </div>
           <button className="btn btn-primary" onClick={() => setShowNew(true)}>＋ Novo Evento</button>
@@ -799,7 +801,7 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
         <div className="table-wrap">
           {filtered.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">🌊</div>
+              <div className="empty-state-icon"><MdFlood style={{color:"#ef4444"}}/></div>
               <div className="empty-state-text">Nenhum evento encontrado</div>
             </div>
           ) : (
@@ -959,6 +961,7 @@ export default function EventsSection({ events, onSaveEvent, criticalPoints, col
           specialists={specialists}
           collectionPoints={collectionPoints}
           convocacoes={closureEvent.snapshot}
+          fotos={eventPhotos[closureEvent.event.id] ?? []}
           onClose={() => setClosureEvent(null)}
         />
       )}
