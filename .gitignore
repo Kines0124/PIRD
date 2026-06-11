@@ -1,3 +1,5 @@
+*.rar
+node_modules/
 node_modules
 dist
 .env
@@ -5,3 +7,4 @@ dist
 .DS_Store
 target/
 *.rar
+*.sql
